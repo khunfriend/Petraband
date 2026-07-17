@@ -133,7 +133,7 @@ function DatePickerCalendar({
         {cells.map((cell, i) => {
           const selected = selectedDates.has(cell.iso);
           const isToday = cell.iso === todayISO;
-          const isAfterPerformance = maxDateISO !== null && cell.iso >= maxDateISO;
+          const isAfterPerformance = maxDateISO !== null && cell.iso > maxDateISO;
           const disabled = !cell.current || isAfterPerformance;
 
           return (
@@ -142,7 +142,7 @@ function DatePickerCalendar({
               type="button"
               onClick={() => !disabled && onToggle(cell.iso)}
               disabled={disabled}
-              title={isAfterPerformance ? "วันแสดงหรือหลังจากนั้น ไม่สามารถเลือกได้" : undefined}
+              title={isAfterPerformance ? "หลังวันแสดง ไม่สามารถเลือกได้" : undefined}
               className={[
                 "h-10 text-sm font-medium transition-colors relative flex items-center justify-center border-b border-r border-hairline-soft",
                 disabled
@@ -295,7 +295,7 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
           <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted">เลือกวันซ้อม</h2>
           {minPerformanceDate && (
             <p className="text-xs text-muted-soft">
-              เลือกได้เฉพาะวันก่อนวันแสดง ({new Date(minPerformanceDate + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })})
+              เลือกได้ถึงวันแสดง ({new Date(minPerformanceDate + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })})
             </p>
           )}
         </div>

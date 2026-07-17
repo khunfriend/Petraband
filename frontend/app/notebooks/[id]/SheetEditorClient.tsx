@@ -7,14 +7,6 @@ import { Toolbar } from "@/components/sheets/Toolbar";
 import { SheetGrid, type SheetGridHandle } from "@/components/sheets/SheetGrid";
 import type { CellRef, CellStyle, FullSheet, SheetSummary } from "@/components/sheets/types";
 
-interface SongVersion {
-  id: string;
-  message: string;
-  duration: number | null;
-  createdAt: string;
-  createdBy: { nickname: string };
-}
-
 interface NotebookData {
   id: string;
   name: string;
@@ -24,13 +16,6 @@ interface NotebookData {
 
 interface Props {
   notebook: NotebookData;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString("th-TH", {
-    year: "numeric", month: "short", day: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
 }
 
 export default function SheetEditorClient({ notebook: initialNotebook }: Props) {
@@ -43,9 +28,6 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
   const [selection, setSelection] = useState<CellRef[]>([]);
   const [currentStyle, setCurrentStyle] = useState<CellStyle>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [showHistory, setShowHistory] = useState(false);
-  const [versions, setVersions] = useState<SongVersion[]>([]);
-  const [loadingVersions, setLoadingVersions] = useState(false);
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gridRef = useRef<SheetGridHandle>(null);
 
@@ -56,21 +38,6 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
       saveStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 2000);
     }
   }, []);
-
-  const loadVersions = useCallback(async () => {
-    if (!notebook.song) return;
-    setLoadingVersions(true);
-    const res = await fetch(`/api/songs/${notebook.song.id}/versions`);
-    if (res.ok) {
-      const data = await res.json();
-      setVersions(data.versions ?? []);
-    }
-    setLoadingVersions(false);
-  }, [notebook.song]);
-
-  useEffect(() => {
-    if (showHistory) loadVersions();
-  }, [showHistory, loadVersions]);
 
   // Load active sheet data
   useEffect(() => {
@@ -204,20 +171,6 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
           {saveStatus === "error" && <span className="text-xs text-red-500">บันทึกไม่สำเร็จ</span>}
 
           {notebook.song && (
-            <button
-              type="button"
-              onClick={() => setShowHistory((v) => !v)}
-              className={`text-xs px-3 py-1 rounded-full border transition ${
-                showHistory
-                  ? "bg-surface-soft border-coral text-coral"
-                  : "bg-surface-soft border-hairline text-muted hover:text-ink"
-              }`}
-            >
-              ประวัติการแก้ไข
-            </button>
-          )}
-
-          {notebook.song && (
             <Link href={`/songs/${notebook.song.id}`} className="text-xs text-muted hover:text-ink">
               ดูหน้าเพลง →
             </Link>
@@ -243,31 +196,6 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
           })()}
         </div>
       </div>
-
-      {/* Version History Panel */}
-      {showHistory && (
-        <div className="border-b border-hairline bg-surface-soft">
-          <div className="px-4 py-2 flex items-center gap-2">
-            <p className="text-xs font-bold tracking-wide uppercase text-muted">ประวัติการแก้ไข</p>
-          </div>
-          {loadingVersions ? (
-            <p className="text-xs text-muted px-4 pb-3">กำลังโหลด...</p>
-          ) : versions.length === 0 ? (
-            <p className="text-xs text-muted px-4 pb-3">ยังไม่มีประวัติการแก้ไข</p>
-          ) : (
-            <ul className="divide-y divide-hairline-soft max-h-40 overflow-y-auto">
-              {versions.map((v) => (
-                <li key={v.id} className="px-4 py-2">
-                  <p className="text-xs font-medium text-ink">{v.message}</p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {v.createdBy.nickname} · {formatDate(v.createdAt)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
 
       {/* Toolbar */}
       <Toolbar

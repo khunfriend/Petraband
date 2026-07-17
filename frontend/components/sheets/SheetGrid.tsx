@@ -113,12 +113,12 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     return new Map(m);
   }
 
-  function pushHistory(newCells: Map<string, CellData>) {
+  const pushHistory = useCallback((newCells: Map<string, CellData>) => {
     historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
     historyRef.current.push(cloneCells(newCells));
     if (historyRef.current.length > 100) historyRef.current.shift();
     historyIndexRef.current = historyRef.current.length - 1;
-  }
+  }, []);
 
   function saveCellDiff(prevMap: Map<string, CellData>, nextMap: Map<string, CellData>) {
     const payload: Array<{ rowIndex: number; colIndex: number; cellValue: string | null }> = [];
@@ -393,7 +393,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     pendingCells.current.set(key, value);
     flushCellSaves();
     setEditingCell(null);
-  }, [editingCell, editValue, flushCellSaves]);
+  }, [editingCell, editValue, flushCellSaves, pushHistory]);
 
   const cancelEdit = useCallback(() => {
     setEditingCell(null);
@@ -465,7 +465,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         body: JSON.stringify({ cells: payload }),
       }).catch(() => {});
     },
-    [editingCell, anchor, selectedCells, rowCount, colCount, sheetId]
+    [editingCell, anchor, selectedCells, sheetId, pushHistory]
   );
 
   // Handle keyboard on the grid container
@@ -516,7 +516,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         startEditing(anchor.row, anchor.col, e.key);
       }
     },
-    [editingCell, anchor, moveSelection, startEditing, selectedCells, queueCellSave, handleUndo, handleRedo]
+    [editingCell, anchor, moveSelection, startEditing, selectedCells, queueCellSave, handleUndo, handleRedo, pushHistory]
   );
 
   const handleEditKeyDown = useCallback(

@@ -172,7 +172,7 @@ function snap(v: number, grid = 0.1) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export default function StageEditor({ stageId, performanceId, initialStage, instruments, isAdmin }: Props) {
+export default function StageEditor({ stageId, initialStage, instruments, isAdmin }: Props) {
 
   const [stage, setStage] = useState<StageData>(initialStage);
   const [items, setItems] = useState<StageItemData[]>(initialStage.items);

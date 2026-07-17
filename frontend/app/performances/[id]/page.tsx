@@ -82,12 +82,6 @@ export default async function PerformanceDetailPage({ params }: Params) {
     session?.user.role === "HEAD" &&
     performance.heads.some((h) => h.userId === session.user.id);
 
-  const assignedHeads = performance.heads.map((h) => ({
-    id: h.user.id,
-    nickname: h.user.nickname,
-    generation: h.user.generation,
-  }));
-
   return (
     <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
       <div className="flex items-center gap-2 text-sm text-muted mb-6">
@@ -132,7 +126,6 @@ export default async function PerformanceDetailPage({ params }: Params) {
         }))}
         isAdmin={isAdmin}
         isHead={isHead}
-        assignedHeads={assignedHeads}
         stageLayout={
           stageLayout
             ? {

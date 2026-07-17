@@ -170,7 +170,7 @@ function DatePickerCalendar({
   );
 }
 
-export default function CreatePracticeScheduleClient({ performanceId, performanceName, members, performanceDates }: Props) {
+export default function CreatePracticeScheduleClient({ performanceId, performanceName, performanceDates }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(`ตารางซ้อม${performanceName}`);
   const [days, setDays] = useState<DayEntry[]>([]);

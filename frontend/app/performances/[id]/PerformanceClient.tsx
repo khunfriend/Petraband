@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -274,7 +273,6 @@ export default function PerformanceClient({
   isAdmin,
   isHead,
   hasJoined: initialHasJoined,
-  assignedHeads: initialAssignedHeads,
   stageLayout,
   practiceSchedules,
 }: {
@@ -283,7 +281,6 @@ export default function PerformanceClient({
   isAdmin: boolean;
   isHead: boolean;
   hasJoined: boolean;
-  assignedHeads: AssignedHead[];
   stageLayout: StageLayout | null;
   practiceSchedules: PracticeScheduleEntry[];
 }) {
@@ -292,11 +289,7 @@ export default function PerformanceClient({
   const [participants, setParticipants] = useState(initialParticipants);
   const [hasJoined, setHasJoined] = useState(initialHasJoined);
   const [joinLoading, setJoinLoading] = useState(false);
-  const [assignedHeads, setAssignedHeads] = useState<AssignedHead[]>(initialAssignedHeads);
   const [allMembers, setAllMembers] = useState<AssignedHead[]>([]);
-  const [showAddHead, setShowAddHead] = useState(false);
-  const [addHeadLoading, setAddHeadLoading] = useState(false);
-  const [selectedMemberId, setSelectedMemberId] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const canEdit = isAdmin || isHead;
@@ -305,8 +298,6 @@ export default function PerformanceClient({
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesForm, setNotesForm] = useState<Record<string, string>>(initial.equipmentNotes ?? {});
   const [notesLoading, setNotesLoading] = useState(false);
-
-  const EQUIPMENT_ROWS = ["สแตนโน้ต", "ขาไมค์", "เก้าอี้", "โต๊ะ"];
 
   async function saveEquipmentNotes() {
     setNotesLoading(true);
@@ -699,57 +690,6 @@ export default function PerformanceClient({
     });
     if (!res.ok) return;
     setParticipants((prev) => prev.filter((p) => !(p.userId === userId && p.position === position)));
-  }
-
-  // ── Head management ───────────────────────────────────────
-  async function openAddHead() {
-    setShowAddHead(true);
-    if (allMembers.length === 0) {
-      const res = await fetch("/api/users");
-      if (res.ok) {
-        const data = await res.json();
-        setAllMembers(
-          (data.users as Array<{ id: string; nickname: string; generation: string }>).map((u) => ({
-            id: u.id,
-            nickname: u.nickname,
-            generation: u.generation,
-          }))
-        );
-      }
-    }
-  }
-
-  async function addHead() {
-    if (!selectedMemberId) return;
-    setAddHeadLoading(true);
-    try {
-      const res = await fetch(`/api/performances/${performance.id}/heads`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: selectedMemberId }),
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const newHead = data.head.user as AssignedHead;
-      setAssignedHeads((prev) => {
-        if (prev.some((h) => h.id === newHead.id)) return prev;
-        return [...prev, newHead];
-      });
-      setShowAddHead(false);
-      setSelectedMemberId("");
-    } finally {
-      setAddHeadLoading(false);
-    }
-  }
-
-  async function removeHead(userId: string) {
-    const res = await fetch(`/api/performances/${performance.id}/heads`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId }),
-    });
-    if (!res.ok) return;
-    setAssignedHeads((prev) => prev.filter((h) => h.id !== userId));
   }
 
   // ─── Render ───────────────────────────────────────────────

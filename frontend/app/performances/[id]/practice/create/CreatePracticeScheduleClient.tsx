@@ -19,6 +19,7 @@ type Props = {
   performanceId: string;
   performanceName: string;
   members: Member[];
+  performanceDates: string[];
 };
 
 const DAY_LABELS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -49,9 +50,11 @@ function formatDateThai(iso: string) {
 function DatePickerCalendar({
   selectedDates,
   onToggle,
+  maxDateISO,
 }: {
   selectedDates: Set<string>;
   onToggle: (iso: string) => void;
+  maxDateISO: string | null;
 }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -130,21 +133,24 @@ function DatePickerCalendar({
         {cells.map((cell, i) => {
           const selected = selectedDates.has(cell.iso);
           const isToday = cell.iso === todayISO;
+          const isAfterPerformance = maxDateISO !== null && cell.iso >= maxDateISO;
+          const disabled = !cell.current || isAfterPerformance;
 
           return (
             <button
               key={cell.iso + i}
               type="button"
-              onClick={() => cell.current && onToggle(cell.iso)}
-              disabled={!cell.current}
+              onClick={() => !disabled && onToggle(cell.iso)}
+              disabled={disabled}
+              title={isAfterPerformance ? "วันแสดงหรือหลังจากนั้น ไม่สามารถเลือกได้" : undefined}
               className={[
                 "h-10 text-sm font-medium transition-colors relative flex items-center justify-center border-b border-r border-hairline-soft",
-                cell.current
-                  ? selected
+                disabled
+                  ? "text-muted-soft cursor-default bg-surface-soft opacity-40"
+                  : selected
                     ? "bg-primary text-white hover:bg-primary-active"
-                    : "hover:bg-surface-cream-strong text-ink"
-                  : "text-muted-soft cursor-default bg-surface-soft",
-                isToday && !selected ? "font-extrabold text-coral" : "",
+                    : "hover:bg-surface-cream-strong text-ink",
+                isToday && !selected && !disabled ? "font-extrabold text-coral" : "",
               ].join(" ")}
             >
               {cell.day}
@@ -164,12 +170,15 @@ function DatePickerCalendar({
   );
 }
 
-export default function CreatePracticeScheduleClient({ performanceId, performanceName, members }: Props) {
+export default function CreatePracticeScheduleClient({ performanceId, performanceName, members, performanceDates }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(`ตารางซ้อม${performanceName}`);
   const [days, setDays] = useState<DayEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // วันซ้อมต้องก่อนวันแสดงวันแรก
+  const minPerformanceDate = performanceDates.length > 0 ? performanceDates[0] : null;
 
   const selectedDateSet = useMemo(() => new Set(days.map((d) => d.date)), [days]);
 
@@ -282,10 +291,15 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
 
       {/* Section 2: เลือกวันจากปฏิทิน */}
       <div>
-        <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">
-          เลือกวันซ้อม
-        </h2>
-        <DatePickerCalendar selectedDates={selectedDateSet} onToggle={toggleDate} />
+        <div className="flex items-baseline gap-3 mb-3">
+          <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted">เลือกวันซ้อม</h2>
+          {minPerformanceDate && (
+            <p className="text-xs text-muted-soft">
+              เลือกได้เฉพาะวันก่อนวันแสดง ({new Date(minPerformanceDate + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })})
+            </p>
+          )}
+        </div>
+        <DatePickerCalendar selectedDates={selectedDateSet} onToggle={toggleDate} maxDateISO={minPerformanceDate} />
       </div>
 
       {/* Section 3: กำหนดช่วงเวลาต่อวัน */}

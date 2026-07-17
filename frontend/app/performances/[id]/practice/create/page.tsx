@@ -13,7 +13,12 @@ export default async function CreatePracticeSchedulePage({ params }: Params) {
 
   const performance = await prisma.performance.findUnique({
     where: { id },
-    select: { id: true, name: true, heads: { select: { userId: true } } },
+    select: {
+      id: true,
+      name: true,
+      heads: { select: { userId: true } },
+      dates: { select: { date: true }, orderBy: { date: "asc" } },
+    },
   });
 
   if (!performance) notFound();
@@ -63,6 +68,7 @@ export default async function CreatePracticeSchedulePage({ params }: Params) {
         performanceId={id}
         performanceName={performance.name}
         members={members}
+        performanceDates={performance.dates.map((d) => d.date.toISOString().slice(0, 10))}
       />
     </div>
   );

@@ -26,13 +26,18 @@ export default async function MembersPage() {
       },
       select: {
         id: true,
-        email: true,
         nickname: true,
         generation: true,
         role: true,
         status: true,
         isTemporary: true,
+        contact: true,
         primaryInstrument: { select: { id: true, name: true, nameThai: true } },
+        secondaryInstruments: {
+          select: { instrument: { select: { id: true, nameThai: true } } },
+        },
+        // Admin/Head see additional identifying fields; Member sees only public fields
+        ...((isAdmin || isHead) && { email: true, firstName: true, lastName: true }),
       },
       orderBy: [{ status: "asc" }, { nickname: "asc" }],
     }),

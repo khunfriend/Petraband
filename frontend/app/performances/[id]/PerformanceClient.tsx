@@ -541,7 +541,7 @@ export default function PerformanceClient({
     setSelectedAddUserIds([]);
     setAddMemberSearch("");
     if (allMembers.length === 0) {
-      const res = await fetch("/api/users");
+      const res = await fetch(`/api/users?performanceId=${performance.id}`);
       if (res.ok) {
         const data = await res.json();
         setAllMembers(

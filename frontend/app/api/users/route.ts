@@ -4,13 +4,25 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "ADMIN")
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  // Optional ?performanceId=X — excludes Temp users linked to a different performance
+  const performanceId = req.nextUrl.searchParams.get("performanceId");
+
   const users = await prisma.user.findMany({
+    where: {
+      status: "ACTIVE",
+      ...(performanceId && {
+        OR: [
+          { isTemporary: false },
+          { isTemporary: true, linkedPerformanceId: performanceId },
+        ],
+      }),
+    },
     select: {
       id: true,
       email: true,
@@ -19,6 +31,7 @@ export async function GET() {
       role: true,
       status: true,
       isTemporary: true,
+      linkedPerformanceId: true,
       primaryInstrument: { select: { id: true, name: true, nameThai: true } },
     },
     orderBy: { nickname: "asc" },

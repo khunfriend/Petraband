@@ -13,13 +13,18 @@ type UpcomingPerformance = { id: string; name: string; firstDate: string | null 
 
 type User = {
   id: string;
-  email: string;
   nickname: string;
   generation: string;
   role: Role;
   status: Status;
   isTemporary: boolean;
+  contact: string | null;
   primaryInstrument: { id: string; name: string; nameThai: string } | null;
+  secondaryInstruments: { instrument: { id: string; nameThai: string } }[];
+  // Admin/Head only
+  email?: string;
+  firstName?: string | null;
+  lastName?: string | null;
 };
 
 function RoleBadge({ role }: { role: Role }) {
@@ -313,6 +318,11 @@ export default function MembersClient({
                   {user.primaryInstrument && (
                     <span className="text-xs text-muted">{user.primaryInstrument.nameThai}</span>
                   )}
+                  {user.secondaryInstruments.length > 0 && (
+                    <span className="text-xs text-muted-soft">
+                      · เล่นเป็น {user.secondaryInstruments.map((s) => s.instrument.nameThai).join(", ")}
+                    </span>
+                  )}
                   {user.isTemporary && (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
                       ชั่วคราว
@@ -324,7 +334,12 @@ export default function MembersClient({
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted mt-0.5">{user.email}</p>
+                {user.contact && (
+                  <p className="text-xs text-muted mt-0.5">📞 {user.contact}</p>
+                )}
+                {user.email && (
+                  <p className="text-xs text-muted-soft mt-0.5">{user.email}</p>
+                )}
               </div>
 
               <RoleBadge role={user.role} />

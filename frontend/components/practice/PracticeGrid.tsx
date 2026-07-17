@@ -140,11 +140,15 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
     };
   });
 
-  const ungrouped = allMembers.filter((m) => !assignedUserIds.has(m.id)).map((m) => ({
-    userId: m.id,
-    nickname: m.nickname,
-    generation: m.generation,
-  }));
+  const ungroupedSeen = new Set<string>();
+  const ungrouped = allMembers
+    .filter((m) => {
+      if (assignedUserIds.has(m.id)) return false;
+      if (ungroupedSeen.has(m.id)) return false;
+      ungroupedSeen.add(m.id);
+      return true;
+    })
+    .map((m) => ({ userId: m.id, nickname: m.nickname, generation: m.generation }));
 
   if (ungrouped.length > 0) {
     rows.push({
@@ -165,7 +169,7 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
     }
   }
 
-  const totalMembersInGrid = allMembers.length;
+  const totalMembersInGrid = rows.reduce((sum, r) => sum + r.members.length, 0);
 
   if (schedule.days.length === 0) {
     return <p className="text-sm text-muted-soft">ยังไม่มีวันซ้อม</p>;

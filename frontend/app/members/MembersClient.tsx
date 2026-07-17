@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -93,10 +94,50 @@ export default function MembersClient({
 
   const canManageRoles = isAdmin || isHead;
 
-  const visibleUsers = useMemo(
-    () => (showExpired ? users : users.filter((u) => u.status === "ACTIVE")),
-    [users, showExpired]
-  );
+  // Filters
+  const [search, setSearch] = useState("");
+  const [filterGeneration, setFilterGeneration] = useState("");
+  const [filterInstrumentId, setFilterInstrumentId] = useState("");
+  const [filterRole, setFilterRole] = useState<Role | "">("");
+
+  const { generationOptions, instrumentOptions } = useMemo(() => {
+    const gens = new Set<string>();
+    const insts = new Map<string, string>();
+    for (const u of users) {
+      if (u.generation) gens.add(u.generation);
+      if (u.primaryInstrument) insts.set(u.primaryInstrument.id, u.primaryInstrument.nameThai);
+    }
+    return {
+      generationOptions: Array.from(gens).sort(),
+      instrumentOptions: Array.from(insts, ([id, nameThai]) => ({ id, nameThai })).sort((a, b) => a.nameThai.localeCompare(b.nameThai)),
+    };
+  }, [users]);
+
+  const visibleUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return users.filter((u) => {
+      if (!showExpired && u.status !== "ACTIVE") return false;
+      if (filterGeneration && u.generation !== filterGeneration) return false;
+      if (filterInstrumentId && u.primaryInstrument?.id !== filterInstrumentId) return false;
+      if (filterRole && u.role !== filterRole) return false;
+      if (q) {
+        const haystack = [
+          u.nickname,
+          u.generation,
+          u.contact ?? "",
+          u.email ?? "",
+          u.firstName ?? "",
+          u.lastName ?? "",
+          u.primaryInstrument?.nameThai ?? "",
+          ...u.secondaryInstruments.map((s) => s.instrument.nameThai),
+        ].join(" ").toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [users, showExpired, search, filterGeneration, filterInstrumentId, filterRole]);
+
+  const hasActiveFilters = search || filterGeneration || filterInstrumentId || filterRole;
 
   async function changeRole(userId: string, newRole: Role) {
     setLoadingId(userId);
@@ -214,6 +255,40 @@ export default function MembersClient({
         </p>
       )}
 
+      {/* Search + filters */}
+      <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+        <Input
+          id="search"
+          placeholder="ค้นหา ชื่อ, เครื่องดนตรี, contact..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 min-w-[200px]"
+        />
+        <select className={selectClass} value={filterGeneration} onChange={(e) => setFilterGeneration(e.target.value)}>
+          <option value="">ทุกรุ่น</option>
+          {generationOptions.map((g) => <option key={g} value={g}>{g}</option>)}
+        </select>
+        <select className={selectClass} value={filterInstrumentId} onChange={(e) => setFilterInstrumentId(e.target.value)}>
+          <option value="">ทุกเครื่องดนตรี</option>
+          {instrumentOptions.map((i) => <option key={i.id} value={i.id}>{i.nameThai}</option>)}
+        </select>
+        <select className={selectClass} value={filterRole} onChange={(e) => setFilterRole(e.target.value as Role | "")}>
+          <option value="">ทุก Role</option>
+          <option value="MEMBER">Member</option>
+          <option value="HEAD">Head</option>
+          <option value="ADMIN">Admin</option>
+        </select>
+        {hasActiveFilters && (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => { setSearch(""); setFilterGeneration(""); setFilterInstrumentId(""); setFilterRole(""); }}
+          >
+            ล้างตัวกรอง
+          </Button>
+        )}
+      </div>
+
       {/* Create form */}
       {isAdmin && showCreate && (
         <form
@@ -311,7 +386,7 @@ export default function MembersClient({
               key={user.id}
               className={`flex items-center gap-4 px-4 py-3 bg-surface-card border border-hairline-soft rounded-[var(--radius-md)] ${isExpired ? "opacity-60" : ""}`}
             >
-              <div className="flex-1 min-w-0">
+              <Link href={`/members/${user.id}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-medium text-ink">{user.nickname}</p>
                   <span className="text-xs text-muted-soft">{user.generation}</span>
@@ -340,7 +415,7 @@ export default function MembersClient({
                 {user.email && (
                   <p className="text-xs text-muted-soft mt-0.5">{user.email}</p>
                 )}
-              </div>
+              </Link>
 
               <RoleBadge role={user.role} />
 

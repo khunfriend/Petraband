@@ -60,7 +60,19 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  await prisma.notebook.deleteMany({ where: { songId: id } });
-  await prisma.song.delete({ where: { id } });
+
+  const performanceSongs = await prisma.performanceSong.findMany({
+    where: { songId: id },
+    select: { id: true },
+  });
+  const psIds = performanceSongs.map((ps) => ps.id);
+
+  await prisma.$transaction([
+    prisma.songAssignment.deleteMany({ where: { performanceSongId: { in: psIds } } }),
+    prisma.performanceSong.deleteMany({ where: { songId: id } }),
+    prisma.notebook.deleteMany({ where: { songId: id } }),
+    prisma.song.delete({ where: { id } }),
+  ]);
+
   return NextResponse.json({ ok: true });
 }

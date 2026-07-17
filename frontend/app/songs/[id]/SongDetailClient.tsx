@@ -65,7 +65,11 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
   const handleDelete = useCallback(async () => {
     if (!confirm(`ลบเพลง "${song.title}" และสมุดโน้ตทั้งหมดออก?`)) return;
     const res = await fetch(`/api/songs/${song.id}`, { method: "DELETE" });
-    if (res.ok) window.location.href = "/songs";
+    if (res.ok) {
+      window.location.href = "/songs";
+    } else {
+      alert("ลบเพลงไม่สำเร็จ กรุณาลองใหม่");
+    }
   }, [song.id, song.title, router]);
 
   const handleOpenNotebook = useCallback(async () => {

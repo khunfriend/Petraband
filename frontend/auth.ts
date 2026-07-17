@@ -68,6 +68,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.nickname,
           role: user.role,
+          avatarUrl: user.avatarUrl,
           tokenVersion: user.tokenVersion,
         };
       },
@@ -75,22 +76,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id as string;
         token.role = (user as { role: Role }).role;
+        token.avatarUrl = (user as unknown as { avatarUrl?: string | null }).avatarUrl ?? null;
         token.tokenVersion = (user as unknown as { tokenVersion?: number }).tokenVersion ?? 0;
         return token;
       }
       // On subsequent requests, verify token version still matches DB
+      // Also refresh avatarUrl on profile updates
       if (token.id) {
         try {
           const current = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { tokenVersion: true },
+            select: { tokenVersion: true, avatarUrl: true, nickname: true },
           });
           if (!current || current.tokenVersion !== token.tokenVersion) {
             return null;
+          }
+          if (trigger === "update" || token.avatarUrl !== current.avatarUrl) {
+            token.avatarUrl = current.avatarUrl;
+            token.name = current.nickname;
           }
         } catch { /* pass through on transient error */ }
       }
@@ -99,6 +106,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     session({ session, token }) {
       session.user.id = token.id as string;
       session.user.role = token.role as Role;
+      session.user.avatarUrl = (token.avatarUrl as string | null) ?? null;
       return session;
     },
   },

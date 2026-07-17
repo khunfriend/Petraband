@@ -58,9 +58,19 @@ export function TopNav() {
             <>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold hover:bg-primary-active transition-colors"
+                className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold hover:bg-primary-active transition-colors overflow-hidden"
               >
-                {session.user.name?.charAt(0).toUpperCase() ?? "?"}
+                {session.user.avatarUrl ? (
+                  <Image
+                    src={session.user.avatarUrl}
+                    alt={session.user.name ?? ""}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  session.user.name?.charAt(0).toUpperCase() ?? "?"
+                )}
               </button>
 
               {menuOpen && (

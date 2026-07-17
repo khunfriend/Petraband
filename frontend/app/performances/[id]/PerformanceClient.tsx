@@ -317,8 +317,11 @@ export default function PerformanceClient({
         body: JSON.stringify({ equipmentNotes: notesForm }),
       });
       if (res.ok) {
-        setPerformance((prev) => ({ ...prev, equipmentNotes: notesForm }));
+        setPerformance((prev) => ({ ...prev, equipmentNotes: { ...notesForm } }));
         setEditingNotes(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`บันทึกไม่สำเร็จ: ${err.error ?? res.status}`);
       }
     } finally {
       setNotesLoading(false);

@@ -428,11 +428,6 @@ export default function PerformanceClient({
 
   // ── Global instrument equipment ───────────────────────────
   const [globalInstruments, setGlobalInstruments] = useState<InstrumentRow[]>([]);
-  const [showInstrumentSection, setShowInstrumentSection] = useState(false);
-  const [editingInstruments, setEditingInstruments] = useState(false);
-  const [editInstruments, setEditInstruments] = useState<InstrumentRow[]>([]);
-  const [newInstrumentName, setNewInstrumentName] = useState("");
-  const [instrumentsLoading, setInstrumentsLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/instrument-equipment")
@@ -440,53 +435,6 @@ export default function PerformanceClient({
       .then((d) => setGlobalInstruments(d.rows ?? []))
       .catch(() => {});
   }, []);
-
-  function openInstrumentsEdit() {
-    setEditInstruments(globalInstruments.map((r) => ({ ...r })));
-    setNewInstrumentName("");
-    setEditingInstruments(true);
-  }
-
-  function updateInstrumentRow(idx: number, field: "chairs" | "tables", value: string) {
-    const num = value === "" ? null : Math.max(0, parseInt(value) || 0);
-    setEditInstruments((prev) =>
-      prev.map((row, i) => (i === idx ? { ...row, [field]: num } : row))
-    );
-  }
-
-  function removeInstrumentRow(idx: number) {
-    setEditInstruments((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function addInstrumentRow() {
-    const name = newInstrumentName.trim();
-    if (!name) return;
-    setEditInstruments((prev) => [...prev, { name, chairs: 0, tables: null }]);
-    setNewInstrumentName("");
-  }
-
-  async function saveInstruments() {
-    setInstrumentsLoading(true);
-    try {
-      const payload = editInstruments.map((r) => ({
-        name: r.name,
-        chairs: r.chairs ?? 0,
-        tables: r.tables ?? null,
-      }));
-      const res = await fetch("/api/instrument-equipment", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setGlobalInstruments(data.rows ?? payload);
-        setEditingInstruments(false);
-      }
-    } finally {
-      setInstrumentsLoading(false);
-    }
-  }
 
   // ── Songs ─────────────────────────────────────────────────
   const [showPicker, setShowPicker] = useState(false);
@@ -1570,129 +1518,6 @@ export default function PerformanceClient({
           </section>
         );
       })()}
-
-      {/* ── เครื่องดนตรีและอุปกรณ์ (global, collapsible) ── */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <button
-            onClick={() => { setShowInstrumentSection((v) => !v); setEditingInstruments(false); }}
-            className="flex items-center gap-2 group"
-          >
-            <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted group-hover:text-ink transition-colors">
-              เครื่องดนตรีและอุปกรณ์
-            </h2>
-            <span className="text-xs text-muted-soft">{showInstrumentSection ? "▲" : "▼"}</span>
-          </button>
-          {showInstrumentSection && isAdmin && !editingInstruments && (
-            <button onClick={openInstrumentsEdit} className="text-xs font-medium text-coral hover:underline">
-              แก้ไข →
-            </button>
-          )}
-        </div>
-
-        {showInstrumentSection && (
-          editingInstruments ? (
-            <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-hairline-soft bg-surface-soft text-xs text-muted uppercase tracking-wide">
-                    <th className="px-3 py-2 text-left w-8">#</th>
-                    <th className="px-3 py-2 text-left">ชื่อเครื่องดนตรี</th>
-                    <th className="px-3 py-2 text-center w-24">เก้าอี้</th>
-                    <th className="px-3 py-2 text-center w-24">โต๊ะ</th>
-                    <th className="px-2 py-2 w-8"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-hairline-soft">
-                  {editInstruments.map((row, idx) => (
-                    <tr key={idx}>
-                      <td className="px-3 py-1.5 text-xs text-muted-soft">{idx + 1}</td>
-                      <td className="px-3 py-1.5 font-medium text-ink">{row.name}</td>
-                      <td className="px-3 py-1.5 text-center">
-                        <input
-                          type="number"
-                          min={0}
-                          value={row.chairs}
-                          onChange={(e) => updateInstrumentRow(idx, "chairs", e.target.value)}
-                          className="w-16 px-2 py-0.5 text-sm text-center border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-coral focus:ring-[2px] focus:ring-coral/20"
-                        />
-                      </td>
-                      <td className="px-3 py-1.5 text-center">
-                        <input
-                          type="number"
-                          min={0}
-                          value={row.tables ?? ""}
-                          placeholder="—"
-                          onChange={(e) => updateInstrumentRow(idx, "tables", e.target.value)}
-                          className="w-16 px-2 py-0.5 text-sm text-center border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-coral focus:ring-[2px] focus:ring-coral/20 placeholder:text-muted-soft"
-                        />
-                      </td>
-                      <td className="px-2 py-1.5 text-center">
-                        <button onClick={() => removeInstrumentRow(idx)} className="text-muted-soft hover:text-red-500 text-xs">✕</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-hairline-soft bg-surface-soft font-semibold text-sm">
-                    <td className="px-3 py-2 text-xs text-muted-soft" colSpan={2}>รวม</td>
-                    <td className="px-3 py-2 text-center text-ink">{editInstruments.reduce((s, r) => s + (r.chairs ?? 0), 0)}</td>
-                    <td className="px-3 py-2 text-center text-ink">{editInstruments.reduce((s, r) => s + (r.tables ?? 0), 0)}</td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
-              <div className="px-3 py-2.5 border-t border-hairline-soft flex items-center gap-2">
-                <input
-                  type="text"
-                  value={newInstrumentName}
-                  onChange={(e) => setNewInstrumentName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addInstrumentRow()}
-                  placeholder="ชื่อเครื่องดนตรีอื่นๆ..."
-                  className="flex-1 px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
-                />
-                <Button size="sm" variant="secondary" onClick={addInstrumentRow}>+ เพิ่ม</Button>
-              </div>
-              <div className="px-3 pb-3 flex gap-2">
-                <Button size="sm" variant="coral" onClick={saveInstruments} disabled={instrumentsLoading}>
-                  {instrumentsLoading ? "กำลังบันทึก..." : "บันทึก"}
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setEditingInstruments(false)}>ยกเลิก</Button>
-              </div>
-            </div>
-          ) : (
-            <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-hairline-soft bg-surface-soft text-xs text-muted uppercase tracking-wide">
-                    <th className="px-3 py-2 text-left w-8">#</th>
-                    <th className="px-3 py-2 text-left">ชื่อเครื่องดนตรี</th>
-                    <th className="px-3 py-2 text-center w-24">เก้าอี้</th>
-                    <th className="px-3 py-2 text-center w-24">โต๊ะ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-hairline-soft">
-                  {globalInstruments.map((row, idx) => (
-                    <tr key={idx}>
-                      <td className="px-3 py-2 text-xs text-muted-soft">{idx + 1}</td>
-                      <td className="px-3 py-2 font-medium text-ink">{row.name}</td>
-                      <td className="px-3 py-2 text-center text-ink">{row.chairs}</td>
-                      <td className="px-3 py-2 text-center text-muted-soft">{row.tables ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-hairline-soft bg-surface-soft font-semibold text-sm">
-                    <td className="px-3 py-2.5 text-xs text-muted-soft" colSpan={2}>รวม</td>
-                    <td className="px-3 py-2.5 text-center text-ink">{globalInstruments.reduce((s, r) => s + (r.chairs ?? 0), 0)}</td>
-                    <td className="px-3 py-2.5 text-center text-ink">{globalInstruments.reduce((s, r) => s + (r.tables ?? 0), 0)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )
-        )}
-      </section>
 
       {/* ── Head assignment — Admin only ── */}
       {isAdmin && (

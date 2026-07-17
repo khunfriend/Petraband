@@ -62,14 +62,25 @@ type Props = {
   schedule: Schedule;
   allMembers: Member[];
   performanceId: string;
+  performanceDates: string[];
   currentUserId: string | null;
   isAdmin: boolean;
   isHead: boolean;
 };
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("th-TH", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
 export default function PracticeScheduleClient({
   schedule,
   allMembers,
+  performanceDates,
   currentUserId,
   isAdmin,
   isHead,
@@ -83,6 +94,15 @@ export default function PracticeScheduleClient({
   const [titleLoading, setTitleLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const [editMode, setEditMode] = useState(false);
+  const [addDayOpen, setAddDayOpen] = useState(false);
+  const [newDate, setNewDate] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [addSlotForDay, setAddSlotForDay] = useState<string | null>(null);
+  const [newSlot, setNewSlot] = useState({ startTime: "18:00", endTime: "20:00", label: "" });
+
+  const maxDate = performanceDates.length > 0 ? performanceDates[performanceDates.length - 1] : null;
 
   useEffect(() => {
     if (!canEdit) return;
@@ -103,7 +123,10 @@ export default function PracticeScheduleClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: editTitle.trim() }),
       });
-      if (res.ok) setEditingTitle(false);
+      if (res.ok) {
+        setEditingTitle(false);
+        router.refresh();
+      }
     } finally {
       setTitleLoading(false);
     }
@@ -113,9 +136,84 @@ export default function PracticeScheduleClient({
     setDeleteLoading(true);
     try {
       const res = await fetch(`/api/practice-schedules/${schedule.id}`, { method: "DELETE" });
-      if (res.ok) router.push(`/performances/${schedule.performanceId}`);
+      if (res.ok) router.push(`/performances/${schedule.performanceId}/practice`);
     } finally {
       setDeleteLoading(false);
+    }
+  }
+
+  async function addDay() {
+    if (!newDate) return;
+    setBusy(true);
+    try {
+      const templateSlots = schedule.days.length > 0
+        ? schedule.days[schedule.days.length - 1].slots.map((s) => ({
+            startTime: s.startTime,
+            endTime: s.endTime,
+            label: s.label,
+            isSpecial: s.isSpecial,
+          }))
+        : [{ startTime: "18:00", endTime: "20:00", label: "", isSpecial: false }];
+      const res = await fetch(`/api/practice-schedules/${schedule.id}/days`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: newDate, slots: templateSlots }),
+      });
+      if (res.ok) {
+        setAddDayOpen(false);
+        setNewDate("");
+        router.refresh();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`เพิ่มวันไม่สำเร็จ: ${err.error ?? res.status}`);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteDay(dayId: string) {
+    if (!confirm("ลบวันนี้ ยืนยันมั้ย? (ข้อมูลการตอบรับในวันนี้จะหายทั้งหมด)")) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/practice-days/${dayId}`, { method: "DELETE" });
+      if (res.ok) router.refresh();
+      else alert("ลบไม่สำเร็จ");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addSlot(dayId: string) {
+    if (!newSlot.startTime || !newSlot.endTime) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/practice-days/${dayId}/slots`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSlot),
+      });
+      if (res.ok) {
+        setAddSlotForDay(null);
+        setNewSlot({ startTime: "18:00", endTime: "20:00", label: "" });
+        router.refresh();
+      } else {
+        alert("เพิ่มช่วงเวลาไม่สำเร็จ");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteSlot(slotId: string) {
+    if (!confirm("ลบช่วงเวลานี้ ยืนยันมั้ย?")) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/practice-slots/${slotId}`, { method: "DELETE" });
+      if (res.ok) router.refresh();
+      else alert("ลบไม่สำเร็จ");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -145,21 +243,152 @@ export default function PracticeScheduleClient({
           </div>
         )}
         {canEdit && !editingTitle && (
-          confirmDelete ? (
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs text-red-600">ยืนยันลบ?</span>
-              <Button size="sm" variant="coral" onClick={deleteSchedule} disabled={deleteLoading}>
-                {deleteLoading ? "กำลังลบ..." : "ลบ"}
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setConfirmDelete(false)}>ยกเลิก</Button>
-            </div>
-          ) : (
-            <Button size="sm" variant="secondary" onClick={() => setConfirmDelete(true)} className="shrink-0">
-              ลบตารางซ้อม
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant={editMode ? "coral" : "secondary"}
+              onClick={() => setEditMode((v) => !v)}
+            >
+              {editMode ? "เสร็จสิ้น" : "แก้ไขวัน/ช่วงเวลา"}
             </Button>
-          )
+            {confirmDelete ? (
+              <>
+                <span className="text-xs text-red-600">ยืนยันลบ?</span>
+                <Button size="sm" variant="coral" onClick={deleteSchedule} disabled={deleteLoading}>
+                  {deleteLoading ? "กำลังลบ..." : "ลบ"}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setConfirmDelete(false)}>ยกเลิก</Button>
+              </>
+            ) : (
+              <Button size="sm" variant="secondary" onClick={() => setConfirmDelete(true)}>
+                ลบตารางซ้อม
+              </Button>
+            )}
+          </div>
         )}
       </div>
+
+      {canEdit && editMode && (
+        <div className="p-4 bg-surface-card border border-hairline-soft rounded-[var(--radius-md)]">
+          <p className="text-xs font-bold tracking-[1.5px] uppercase text-muted mb-3">
+            แก้ไขวันและช่วงเวลา
+          </p>
+
+          <div className="flex flex-col gap-3">
+            {schedule.days.map((day) => (
+              <div key={day.id} className="border border-hairline-soft rounded-[var(--radius-md)] overflow-hidden">
+                <div className="flex items-center justify-between gap-3 px-3 py-2 bg-surface-cream-strong">
+                  <span className="text-sm font-semibold text-ink">{formatDate(day.date)}</span>
+                  <button
+                    onClick={() => deleteDay(day.id)}
+                    disabled={busy}
+                    className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    ลบวัน
+                  </button>
+                </div>
+                <div className="px-3 py-2 flex flex-wrap gap-1.5">
+                  {day.slots.map((slot) => (
+                    <span
+                      key={slot.id}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                        slot.isSpecial
+                          ? "bg-coral/10 border-coral/30 text-coral"
+                          : "bg-canvas border-hairline text-ink"
+                      }`}
+                    >
+                      {slot.startTime}–{slot.endTime}
+                      {slot.label && ` · ${slot.label}`}
+                      <button
+                        onClick={() => deleteSlot(slot.id)}
+                        disabled={busy}
+                        className="ml-0.5 text-muted hover:text-red-600 disabled:opacity-50"
+                        aria-label="ลบ"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {addSlotForDay === day.id ? (
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-canvas border border-coral rounded-[var(--radius-md)]">
+                      <input
+                        type="time"
+                        value={newSlot.startTime}
+                        onChange={(e) => setNewSlot((s) => ({ ...s, startTime: e.target.value }))}
+                        className="text-xs bg-transparent outline-none w-[70px]"
+                      />
+                      <span className="text-xs text-muted">–</span>
+                      <input
+                        type="time"
+                        value={newSlot.endTime}
+                        onChange={(e) => setNewSlot((s) => ({ ...s, endTime: e.target.value }))}
+                        className="text-xs bg-transparent outline-none w-[70px]"
+                      />
+                      <input
+                        type="text"
+                        value={newSlot.label}
+                        onChange={(e) => setNewSlot((s) => ({ ...s, label: e.target.value }))}
+                        placeholder="label (ไม่บังคับ)"
+                        className="text-xs bg-transparent outline-none w-[100px] border-l border-hairline pl-1.5"
+                      />
+                      <button
+                        onClick={() => addSlot(day.id)}
+                        disabled={busy}
+                        className="text-xs text-coral font-medium hover:underline disabled:opacity-50"
+                      >
+                        เพิ่ม
+                      </button>
+                      <button
+                        onClick={() => { setAddSlotForDay(null); setNewSlot({ startTime: "18:00", endTime: "20:00", label: "" }); }}
+                        className="text-xs text-muted hover:text-ink"
+                      >
+                        ยกเลิก
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAddSlotForDay(day.id)}
+                      className="text-xs text-coral hover:underline px-2 py-1"
+                    >
+                      + เพิ่มช่วงเวลา
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-hairline-soft">
+            {addDayOpen ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="date"
+                  value={newDate}
+                  max={maxDate ?? undefined}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  className="text-sm px-3 py-1.5 border border-hairline rounded-[var(--radius-md)] bg-canvas outline-none focus:border-coral"
+                />
+                <Button size="sm" variant="coral" onClick={addDay} disabled={busy || !newDate}>
+                  เพิ่มวัน
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => { setAddDayOpen(false); setNewDate(""); }}>
+                  ยกเลิก
+                </Button>
+                {maxDate && (
+                  <span className="text-xs text-muted-soft">เลือกได้ถึงวันแสดง ({maxDate})</span>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddDayOpen(true)}
+                className="text-sm font-medium text-coral hover:underline"
+              >
+                + เพิ่มวัน
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {canEdit && (
         <div className="p-4 bg-surface-card border border-hairline-soft rounded-[var(--radius-md)]">

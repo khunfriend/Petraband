@@ -37,7 +37,12 @@ export default async function PracticeSchedulePage({ params }: Params) {
     }),
     prisma.performance.findUnique({
       where: { id },
-      select: { id: true, name: true, heads: { select: { userId: true } } },
+      select: {
+        id: true,
+        name: true,
+        heads: { select: { userId: true } },
+        dates: { select: { date: true }, orderBy: { date: "asc" } },
+      },
     }),
     prisma.performanceMember.findMany({
       where: { performanceId: id },
@@ -77,6 +82,7 @@ export default async function PracticeSchedulePage({ params }: Params) {
         }}
         allMembers={performanceMembers.map((m) => m.user)}
         performanceId={id}
+        performanceDates={performance.dates.map((d) => d.date.toISOString().slice(0, 10))}
         currentUserId={session?.user.id ?? null}
         isAdmin={isAdmin}
         isHead={isHead}

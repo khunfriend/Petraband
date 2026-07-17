@@ -60,17 +60,22 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [openingNotebook, setOpeningNotebook] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
   const handleDelete = useCallback(async () => {
-    if (!confirm(`ลบเพลง "${song.title}" และสมุดโน้ตทั้งหมดออก?`)) return;
+    if (deleteConfirmInput !== song.title) return;
+    setDeleting(true);
     const res = await fetch(`/api/songs/${song.id}`, { method: "DELETE" });
+    setDeleting(false);
     if (res.ok) {
       window.location.href = "/songs";
     } else {
       alert("ลบเพลงไม่สำเร็จ กรุณาลองใหม่");
     }
-  }, [song.id, song.title, router]);
+  }, [song.id, song.title, deleteConfirmInput]);
 
   const handleOpenNotebook = useCallback(async () => {
     setOpeningNotebook(true);
@@ -157,7 +162,7 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
               <Button variant="coral" size="sm" onClick={handleOpenNotebook} disabled={openingNotebook}>
                 {openingNotebook ? "กำลังเปิด..." : "สมุดโน้ต"}
               </Button>
-              <Button variant="secondary" size="sm" onClick={handleDelete} className="text-red-600 border-red-200 hover:bg-red-50">
+              <Button variant="secondary" size="sm" onClick={() => { setShowDeleteModal(true); setDeleteConfirmInput(""); }} className="text-red-600 border-red-200 hover:bg-red-50">
                 ลบเพลง
               </Button>
               {saved && <span className="text-sm text-success">บันทึกเรียบร้อยแล้ว</span>}
@@ -227,6 +232,43 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
       {/* Notation Grid */}
       {sheetData.rows.length > 0 && (
         <NotationGrid sheetData={sheetData} editable={editMode} onChange={setSheetData} />
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-surface-card rounded-[var(--radius-lg)] border border-hairline shadow-lg p-6 w-full max-w-sm flex flex-col gap-4">
+            <h2 className="text-base font-bold text-ink">ยืนยันการลบเพลง</h2>
+            <p className="text-sm text-muted">
+              การลบจะลบสมุดโน้ตและข้อมูลทั้งหมดออกถาวร พิมพ์ชื่อเพลงเพื่อยืนยัน
+            </p>
+            <p className="text-sm font-medium text-ink bg-surface-soft px-3 py-1.5 rounded-[var(--radius-sm)] border border-hairline">
+              {song.title}
+            </p>
+            <input
+              type="text"
+              autoFocus
+              value={deleteConfirmInput}
+              onChange={(e) => setDeleteConfirmInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleDelete(); }}
+              placeholder="พิมพ์ชื่อเพลงที่นี่"
+              className="text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-1.5 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-red-400"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="secondary" size="sm" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+                ยกเลิก
+              </Button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteConfirmInput !== song.title || deleting}
+                className="text-sm px-4 py-1.5 rounded-[var(--radius-sm)] bg-red-500 text-white font-medium disabled:opacity-40 hover:bg-red-600 transition"
+              >
+                {deleting ? "กำลังลบ..." : "ลบเพลง"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

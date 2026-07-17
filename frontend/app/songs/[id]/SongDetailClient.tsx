@@ -62,6 +62,12 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
   const [openingNotebook, setOpeningNotebook] = useState(false);
   const router = useRouter();
 
+  const handleDelete = useCallback(async () => {
+    if (!confirm(`ลบเพลง "${song.title}" และสมุดโน้ตทั้งหมดออก?`)) return;
+    const res = await fetch(`/api/songs/${song.id}`, { method: "DELETE" });
+    if (res.ok) router.push("/songs");
+  }, [song.id, song.title, router]);
+
   const handleOpenNotebook = useCallback(async () => {
     setOpeningNotebook(true);
     try {
@@ -146,6 +152,9 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
               </Button>
               <Button variant="coral" size="sm" onClick={handleOpenNotebook} disabled={openingNotebook}>
                 {openingNotebook ? "กำลังเปิด..." : "สมุดโน้ต"}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={handleDelete} className="text-red-600 border-red-200 hover:bg-red-50">
+                ลบเพลง
               </Button>
               {saved && <span className="text-sm text-success">บันทึกเรียบร้อยแล้ว</span>}
             </>

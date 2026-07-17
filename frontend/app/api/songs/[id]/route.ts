@@ -60,6 +60,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
+  await prisma.notebook.deleteMany({ where: { songId: id } });
   await prisma.song.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

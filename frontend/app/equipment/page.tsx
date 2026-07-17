@@ -1,15 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import EquipmentClient from "./EquipmentClient";
+import InstrumentEquipmentTab from "./InstrumentEquipmentTab";
+import EquipmentTabs from "./EquipmentTabs";
 
 export const metadata = { title: "อุปกรณ์ · PETRAband" };
 
 export default async function EquipmentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; type?: string; condition?: string }>;
+  searchParams: Promise<{ tab?: string; search?: string; type?: string; condition?: string }>;
 }) {
-  const { search = "", type = "", condition = "" } = await searchParams;
+  const { tab = "list", search = "", type = "", condition = "" } = await searchParams;
   const session = await auth();
   const isAdmin = session?.user.role === "ADMIN";
 
@@ -26,16 +28,19 @@ export default async function EquipmentPage({
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-xs font-bold tracking-[1.5px] uppercase text-muted mb-1">
-            คลังอุปกรณ์
-          </p>
-          <h1 className="text-2xl font-bold text-ink">อุปกรณ์</h1>
-        </div>
+      <div className="mb-6">
+        <p className="text-xs font-bold tracking-[1.5px] uppercase text-muted mb-1">
+          คลังอุปกรณ์
+        </p>
+        <h1 className="text-2xl font-bold text-ink">อุปกรณ์</h1>
       </div>
 
-      <EquipmentClient equipment={equipment} isAdmin={isAdmin} />
+      <EquipmentTabs activeTab={tab}>
+        {{
+          list: <EquipmentClient equipment={equipment} isAdmin={isAdmin} />,
+          settings: <InstrumentEquipmentTab isAdmin={isAdmin} />,
+        }}
+      </EquipmentTabs>
     </div>
   );
 }

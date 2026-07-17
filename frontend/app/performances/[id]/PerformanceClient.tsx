@@ -709,6 +709,14 @@ export default function PerformanceClient({
           >
             {joinLoading ? "..." : hasJoined ? "✓ เข้าร่วมแล้ว" : "เข้าร่วม"}
           </Button>
+          {canEdit && (
+            <a
+              href={`/api/performances/${performance.id}/export`}
+              className="inline-flex items-center h-9 px-3 rounded-[var(--radius-md)] border border-hairline bg-canvas text-sm font-medium text-ink hover:border-coral hover:text-coral transition-colors"
+            >
+              📄 Export
+            </a>
+          )}
           {isAdmin && (
             <Button
               size="sm"

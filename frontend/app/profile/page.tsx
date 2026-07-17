@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import Image from "next/image";
 import ProfileForm from "./ProfileForm";
 
 export default async function ProfilePage() {
@@ -11,9 +12,21 @@ export default async function ProfilePage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: {
+    select: {
+      id: true,
+      email: true,
+      nickname: true,
+      firstName: true,
+      lastName: true,
+      avatarUrl: true,
+      contact: true,
+      generation: true,
+      isTemporary: true,
+      role: true,
+      primaryInstrumentId: true,
       primaryInstrument: true,
-      secondaryInstrument: true,
+      secondaryInstruments: { include: { instrument: true } },
+      linkedPerformance: { select: { id: true, name: true, dates: { select: { date: true }, orderBy: { date: "asc" }, take: 1 } } },
     },
   });
 
@@ -41,14 +54,31 @@ export default async function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6 py-4">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-surface-cream-strong border border-hairline flex items-center justify-center text-lg font-bold text-ink">
-          {user.nickname.charAt(0).toUpperCase()}
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 rounded-full bg-surface-cream-strong border border-hairline overflow-hidden flex items-center justify-center text-xl font-bold text-ink shrink-0">
+          {user.avatarUrl ? (
+            <Image src={user.avatarUrl} alt={user.nickname} width={56} height={56} className="object-cover w-full h-full" />
+          ) : (
+            user.nickname.charAt(0).toUpperCase()
+          )}
         </div>
         <div>
-          <h1 className="text-xl font-bold text-ink">{user.nickname}</h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            <Badge variant="pill">{user.generation}</Badge>
+          <h1 className="text-xl font-bold text-ink">
+            {user.nickname}
+            {(user.firstName || user.lastName) && (
+              <span className="ml-2 text-sm font-normal text-muted">
+                ({[user.firstName, user.lastName].filter(Boolean).join(" ")})
+              </span>
+            )}
+          </h1>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {user.generation && <Badge variant="pill">{user.generation}</Badge>}
+            {user.isTemporary && (
+              <Badge variant="pill">
+                บัญชีชั่วคราว
+                {user.linkedPerformance && ` · ${user.linkedPerformance.name}`}
+              </Badge>
+            )}
             <Badge variant="coral">{user.role}</Badge>
           </div>
         </div>
@@ -58,10 +88,15 @@ export default async function ProfilePage() {
         user={{
           id: user.id,
           nickname: user.nickname,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          avatarUrl: user.avatarUrl,
+          contact: user.contact,
           generation: user.generation,
+          isTemporary: user.isTemporary,
           email: user.email,
           primaryInstrumentId: user.primaryInstrumentId,
-          secondaryInstrumentId: user.secondaryInstrumentId,
+          secondaryInstrumentIds: user.secondaryInstruments.map((s) => s.instrumentId),
         }}
         instruments={instruments}
       />
@@ -72,18 +107,14 @@ export default async function ProfilePage() {
           <p className="text-sm text-muted">ยังไม่มีประวัติการแสดง</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {assignments.map((a: typeof assignments[number]) => (
+            {assignments.map((a) => (
               <div
                 key={a.id}
                 className="flex items-start justify-between gap-4 py-2 border-b border-hairline-soft last:border-0"
               >
                 <div>
-                  <p className="text-sm font-medium text-ink">
-                    {a.performanceSong.song.title}
-                  </p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {a.performanceSong.performance.name}
-                  </p>
+                  <p className="text-sm font-medium text-ink">{a.performanceSong.song.title}</p>
+                  <p className="text-xs text-muted mt-0.5">{a.performanceSong.performance.name}</p>
                 </div>
                 <Badge variant="pill">{a.instrument.nameThai}</Badge>
               </div>

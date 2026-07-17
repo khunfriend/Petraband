@@ -5,6 +5,22 @@ import { prisma } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
 import type { Role } from "@prisma/client";
 
+async function cleanupExpiredTempAccounts() {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    await prisma.user.deleteMany({
+      where: {
+        isTemporary: true,
+        OR: [
+          { linkedPerformanceId: null },
+          { linkedPerformance: { dates: { every: { date: { lt: today } } } } },
+        ],
+      },
+    });
+  } catch { /* silent */ }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -36,6 +52,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
         if (!isValid) { console.error("[authorize] wrong password for:", credentials.email); return null; }
+
+        // Fire-and-forget cleanup of expired temporary accounts
+        cleanupExpiredTempAccounts();
 
         return {
           id: user.id,

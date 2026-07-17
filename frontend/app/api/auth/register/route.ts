@@ -7,9 +7,15 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   nickname: z.string().min(1).max(50),
-  generation: z.string().min(1), // e.g. "#17", "#สมทบ"
+  firstName: z.string().max(50).optional(),
+  lastName: z.string().max(50).optional(),
+  avatarUrl: z.string().optional(),
+  contact: z.string().max(200).optional(),
+  generation: z.string().default(""),
+  isTemporary: z.boolean().default(false),
+  linkedPerformanceId: z.string().optional(),
   primaryInstrumentId: z.string().optional(),
-  secondaryInstrumentId: z.string().optional(),
+  secondaryInstrumentIds: z.array(z.string()).default([]),
 });
 
 export async function POST(req: NextRequest) {
@@ -23,8 +29,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { email, password, nickname, generation, primaryInstrumentId, secondaryInstrumentId } =
-    parsed.data;
+  const {
+    email, password, nickname, firstName, lastName, avatarUrl,
+    contact, generation, isTemporary, linkedPerformanceId, primaryInstrumentId, secondaryInstrumentIds,
+  } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -38,9 +46,17 @@ export async function POST(req: NextRequest) {
       email,
       passwordHash,
       nickname,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      avatarUrl: avatarUrl || null,
+      contact: contact || null,
       generation,
+      isTemporary,
+      linkedPerformanceId: isTemporary ? (linkedPerformanceId || null) : null,
       primaryInstrumentId: primaryInstrumentId || null,
-      secondaryInstrumentId: secondaryInstrumentId || null,
+      secondaryInstruments: {
+        create: secondaryInstrumentIds.map((instrumentId) => ({ instrumentId })),
+      },
     },
     select: { id: true, email: true, nickname: true, role: true },
   });

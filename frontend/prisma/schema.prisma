@@ -36,32 +36,48 @@ enum EquipmentCondition {
 // ─── User & Auth ───────────────────────────────────────────
 
 model User {
-  id                    String   @id @default(cuid())
-  email                 String   @unique
-  passwordHash          String
-  nickname              String
-  generation            String   // e.g. "#17", "#สมทบ"
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  passwordHash        String
+  nickname            String
+  firstName           String?
+  lastName            String?
+  avatarUrl           String?
+  contact             String?
+  generation          String   @default("")   // e.g. "#20", "#สมทบ"
+  isTemporary           Boolean  @default(false)
+  linkedPerformanceId   String?
   role                  Role     @default(MEMBER)
   primaryInstrumentId   String?
-  secondaryInstrumentId String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  primaryInstrument    Instrument? @relation("PrimaryInstrument", fields: [primaryInstrumentId], references: [id])
-  secondaryInstrument  Instrument? @relation("SecondaryInstrument", fields: [secondaryInstrumentId], references: [id])
+  primaryInstrument    Instrument?              @relation("PrimaryInstrument", fields: [primaryInstrumentId], references: [id])
+  secondaryInstruments UserSecondaryInstrument[]
+  linkedPerformance    Performance?             @relation("TempUsers", fields: [linkedPerformanceId], references: [id], onDelete: SetNull)
 
-  rsvps                Rsvp[]
-  songAssignments      SongAssignment[]
-  rehearsalAttendances RehearsalAttendance[]
-  auditLogs            AuditLog[]
-  stageLayoutVersions  StageLayoutVersion[]
-  songVersions         SongVersion[]
-  stageTemplates       StageTemplate[]
-  performanceHeads     PerformanceHead[]
-  practiceSchedules    PracticeSchedule[]    @relation("ScheduleCreator")
+  rsvps                  Rsvp[]
+  songAssignments        SongAssignment[]
+  rehearsalAttendances   RehearsalAttendance[]
+  auditLogs              AuditLog[]
+  stageLayoutVersions    StageLayoutVersion[]
+  songVersions           SongVersion[]
+  stageTemplates         StageTemplate[]
+  performanceHeads       PerformanceHead[]
+  practiceSchedules      PracticeSchedule[]      @relation("ScheduleCreator")
   practiceGroupMembers   PracticeGroupMember[]
   practiceAvailabilities PracticeAvailability[]
   performanceMembers     PerformanceMember[]
+}
+
+model UserSecondaryInstrument {
+  userId       String
+  instrumentId String
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instrument Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, instrumentId])
 }
 
 // ─── Instruments ───────────────────────────────────────────
@@ -75,10 +91,10 @@ model Instrument {
   footprintH       Float   @default(1)
   iconType         String  @default("default")
 
-  primaryUsers    User[]         @relation("PrimaryInstrument")
-  secondaryUsers  User[]         @relation("SecondaryInstrument")
-  songAssignments SongAssignment[]
-  stageItems      StageItem[]
+  primaryUsers         User[]                    @relation("PrimaryInstrument")
+  secondaryUsers       UserSecondaryInstrument[]
+  songAssignments      SongAssignment[]
+  stageItems           StageItem[]
 }
 
 // ─── Songs ─────────────────────────────────────────────────
@@ -132,6 +148,7 @@ model Performance {
   heads             PerformanceHead[]
   practiceSchedules PracticeSchedule[]
   members           PerformanceMember[]
+  temporaryUsers    User[]              @relation("TempUsers")
 }
 
 model PerformanceDate {

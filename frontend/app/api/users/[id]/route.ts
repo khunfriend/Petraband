@@ -5,9 +5,13 @@ import { z } from "zod";
 
 const updateSchema = z.object({
   nickname: z.string().min(1).max(50).optional(),
+  firstName: z.string().max(50).nullable().optional(),
+  lastName: z.string().max(50).nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
+  contact: z.string().max(200).nullable().optional(),
   generation: z.string().optional(),
   primaryInstrumentId: z.string().nullable().optional(),
-  secondaryInstrumentId: z.string().nullable().optional(),
+  secondaryInstrumentIds: z.array(z.string()).optional(),
 });
 
 export async function PATCH(
@@ -19,7 +23,6 @@ export async function PATCH(
 
   const { id } = await params;
 
-  // Only self or admin can update
   if (session.user.id !== id && session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -30,10 +33,31 @@ export async function PATCH(
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
 
+  const { secondaryInstrumentIds, ...rest } = parsed.data;
+
   const user = await prisma.user.update({
     where: { id },
-    data: parsed.data,
-    select: { id: true, nickname: true, generation: true, primaryInstrumentId: true, secondaryInstrumentId: true },
+    data: {
+      ...rest,
+      ...(secondaryInstrumentIds !== undefined && {
+        secondaryInstruments: {
+          deleteMany: {},
+          create: secondaryInstrumentIds.map((instrumentId) => ({ instrumentId })),
+        },
+      }),
+    },
+    select: {
+      id: true,
+      nickname: true,
+      firstName: true,
+      lastName: true,
+      avatarUrl: true,
+      contact: true,
+      generation: true,
+      isTemporary: true,
+      primaryInstrumentId: true,
+      secondaryInstruments: { select: { instrumentId: true } },
+    },
   });
 
   return NextResponse.json({ user });

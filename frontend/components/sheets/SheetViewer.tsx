@@ -12,7 +12,9 @@ export function SheetViewer({ sheetId }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSheet(null);
     fetch(`/api/sheets/${sheetId}`)
       .then((r) => r.json())

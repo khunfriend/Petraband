@@ -179,6 +179,7 @@ export default function StageEditor({ stageId, performanceId, initialStage, inst
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [snapGrid, setSnapGrid] = useState(0.1);
+  const newItemCounter = useRef(0);
 
   // Canvas sizing
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -253,7 +254,7 @@ export default function StageEditor({ stageId, performanceId, initialStage, inst
     const y = snap(Math.max(0, stage.heightUnits / 2 - instr.footprintH / 2), snapGrid);
     const maxLayer = items.reduce((m, it) => Math.max(m, it.layerOrder), 0);
     const newItem: StageItemData = {
-      id: `new-${Date.now()}-${Math.random()}`,
+      id: `new-${++newItemCounter.current}`,
       instrumentId: instr.id,
       x,
       y,
@@ -453,7 +454,7 @@ export default function StageEditor({ stageId, performanceId, initialStage, inst
     label: string;
   };
 
-  function VersionPreview({ version }: { version: VersionEntry }) {
+  function renderVersionPreview(version: VersionEntry) {
     const snap = (version.snapshotJson as SnapshotItem[]) ?? [];
     const previewW = 300;
     const previewH = previewW * (stage.heightUnits / stage.widthUnits);
@@ -778,7 +779,7 @@ export default function StageEditor({ stageId, performanceId, initialStage, inst
                     ปิด
                   </button>
                 </div>
-                <VersionPreview version={previewVersion} />
+                {renderVersionPreview(previewVersion)}
                 {isAdmin && (
                   <Button
                     size="sm"

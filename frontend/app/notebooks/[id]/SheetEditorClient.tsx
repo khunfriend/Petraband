@@ -41,8 +41,10 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
 
   // Load active sheet data
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!activeSheetId) { setActiveSheetData(null); return; }
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch(`/api/sheets/${activeSheetId}`)
       .then((r) => r.json())

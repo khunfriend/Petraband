@@ -134,7 +134,7 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
     const seen = new Set<string>();
     return {
       groupName: g.name,
-      members: g.members
+      members: (g.members ?? [])
         .filter((m) => { if (seen.has(m.userId)) return false; seen.add(m.userId); return true; })
         .map((m) => ({ userId: m.userId, nickname: m.user.nickname, generation: m.user.generation })),
     };
@@ -236,7 +236,7 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
                   </td>
                 </tr>
               )}
-              {members.map((member) => (
+              {(members ?? []).map((member) => (
                 <tr
                   key={`${groupIndex}:${member.userId}`}
                   className={member.userId === currentUserId ? "bg-primary/5" : "hover:bg-surface-cream-strong/50"}

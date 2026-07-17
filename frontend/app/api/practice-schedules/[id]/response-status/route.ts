@@ -31,7 +31,12 @@ export async function GET(_req: Request, { params }: Params) {
     }),
   ]);
 
-  const members = memberRows.map((r) => r.user);
+  const seen = new Set<string>();
+  const members = memberRows.map((r) => r.user).filter((u) => {
+    if (seen.has(u.id)) return false;
+    seen.add(u.id);
+    return true;
+  });
   const respondedSet = new Set(respondedUserIds.map((r) => r.userId));
 
   const responded = members.filter((m) => respondedSet.has(m.id));

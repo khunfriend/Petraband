@@ -29,6 +29,7 @@ export default function AllSongsPanel() {
 
   useEffect(() => {
     if (open && !loaded) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(true);
       fetch("/api/performances/songs")
         .then((r) => r.json())

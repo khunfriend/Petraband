@@ -86,6 +86,7 @@ export default function PracticeScheduleClient({
 
   useEffect(() => {
     if (!canEdit) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingStatus(true);
     fetch(`/api/practice-schedules/${schedule.id}/response-status`)
       .then((r) => r.ok ? r.json() : null)

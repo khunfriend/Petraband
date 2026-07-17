@@ -121,6 +121,7 @@ model Performance {
   costume           String?
   programSchedule   Json?
   instrumentsNeeded Json?
+  equipmentNotes    Json?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

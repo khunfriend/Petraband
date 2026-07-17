@@ -48,6 +48,7 @@ const updateSchema = z.object({
   costume: z.string().nullable().optional(),
   programSchedule: z.array(programDaySchema).nullable().optional(),
   instrumentsNeeded: z.array(instrumentNeededSchema).nullable().optional(),
+  equipmentNotes: z.record(z.string(), z.string()).nullable().optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -64,7 +65,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       { status: 400 }
     );
 
-  const { programSchedule, instrumentsNeeded, ...rest } = parsed.data;
+  const { programSchedule, instrumentsNeeded, equipmentNotes, ...rest } = parsed.data;
   const performance = await prisma.performance.update({
     where: { id: id },
     data: {
@@ -74,6 +75,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
       }),
       ...(instrumentsNeeded !== undefined && {
         instrumentsNeeded: instrumentsNeeded === null ? Prisma.JsonNull : instrumentsNeeded,
+      }),
+      ...(equipmentNotes !== undefined && {
+        equipmentNotes: equipmentNotes === null ? Prisma.JsonNull : (equipmentNotes as Prisma.InputJsonValue),
       }),
     },
   });

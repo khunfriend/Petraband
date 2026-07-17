@@ -34,6 +34,7 @@ type Performance = {
   location: string | null;
   description: string | null;
   costume: string | null;
+  equipmentNotes: Record<string, string> | null;
   dates: DateEntry[];
   songs: SongEntry[];
 };
@@ -299,6 +300,30 @@ export default function PerformanceClient({
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const canEdit = isAdmin || isHead;
+
+  // ── Equipment notes ──────────────────────────────────────
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesForm, setNotesForm] = useState<Record<string, string>>(initial.equipmentNotes ?? {});
+  const [notesLoading, setNotesLoading] = useState(false);
+
+  const EQUIPMENT_ROWS = ["สแตนโน้ต", "ขาไมค์", "เก้าอี้", "โต๊ะ"];
+
+  async function saveEquipmentNotes() {
+    setNotesLoading(true);
+    try {
+      const res = await fetch(`/api/performances/${performance.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ equipmentNotes: notesForm }),
+      });
+      if (res.ok) {
+        setPerformance((prev) => ({ ...prev, equipmentNotes: notesForm }));
+        setEditingNotes(false);
+      }
+    } finally {
+      setNotesLoading(false);
+    }
+  }
 
   // ── Section 1 edit: name / location / dates ──────────────
   const [editingInfo, setEditingInfo] = useState(false);
@@ -1484,33 +1509,60 @@ export default function PerformanceClient({
 
               {/* อุปกรณ์เสริม */}
               <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-hairline-soft bg-surface-soft">
+                <div className="px-4 py-2.5 border-b border-hairline-soft bg-surface-soft flex items-center justify-between">
                   <p className="text-xs font-semibold text-muted uppercase tracking-wide">อุปกรณ์เสริม</p>
+                  {canEdit && !editingNotes && (
+                    <button
+                      onClick={() => { setNotesForm(performance.equipmentNotes ?? {}); setEditingNotes(true); }}
+                      className="text-xs text-coral hover:underline"
+                    >
+                      แก้ไขหมายเหตุ
+                    </button>
+                  )}
+                  {editingNotes && (
+                    <div className="flex gap-2">
+                      <button onClick={saveEquipmentNotes} disabled={notesLoading} className="text-xs text-coral hover:underline">
+                        {notesLoading ? "กำลังบันทึก..." : "บันทึก"}
+                      </button>
+                      <button onClick={() => setEditingNotes(false)} className="text-xs text-muted hover:underline">ยกเลิก</button>
+                    </div>
+                  )}
                 </div>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-hairline-soft text-xs text-muted">
                       <th className="px-4 py-2 text-left">รายการ</th>
                       <th className="px-4 py-2 text-center w-20">จำนวน</th>
+                      <th className="px-4 py-2 text-left">หมายเหตุ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-hairline-soft">
-                    <tr>
-                      <td className="px-4 py-2 text-ink">สแตนโน้ต</td>
-                      <td className="px-4 py-2 text-center text-ink">{totalPlayers}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2 text-ink">ขาไมค์</td>
-                      <td className="px-4 py-2 text-center text-ink">{totalPlayers}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2 text-ink">เก้าอี้</td>
-                      <td className="px-4 py-2 text-center text-ink">{totalChairs}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2 text-ink">โต๊ะ</td>
-                      <td className="px-4 py-2 text-center text-ink">{totalTables}</td>
-                    </tr>
+                    {[
+                      { label: "สแตนโน้ต", count: totalPlayers },
+                      { label: "ขาไมค์", count: totalPlayers },
+                      { label: "เก้าอี้", count: totalChairs },
+                      { label: "โต๊ะ", count: totalTables },
+                    ].map(({ label, count }) => (
+                      <tr key={label}>
+                        <td className="px-4 py-2 text-ink">{label}</td>
+                        <td className="px-4 py-2 text-center text-ink">{count}</td>
+                        <td className="px-4 py-2">
+                          {editingNotes ? (
+                            <input
+                              type="text"
+                              value={notesForm[label] ?? ""}
+                              onChange={(e) => setNotesForm((prev) => ({ ...prev, [label]: e.target.value }))}
+                              placeholder="หมายเหตุ..."
+                              className="w-full text-xs px-2 py-1 border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[2px] focus:ring-coral/20"
+                            />
+                          ) : (
+                            <span className="text-xs text-muted">
+                              {performance.equipmentNotes?.[label] || "—"}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

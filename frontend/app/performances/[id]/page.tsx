@@ -106,6 +106,7 @@ export default async function PerformanceDetailPage({ params }: Params) {
           location: perf.location ?? null,
           description: perf.description ?? null,
           costume: perf.costume ?? null,
+          equipmentNotes: (perf.equipmentNotes as Record<string, string> | null) ?? null,
           dates: performance.dates.map((d) => ({
             id: d.id,
             date: d.date.toISOString(),

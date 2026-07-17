@@ -221,10 +221,10 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
           </tr>
         </thead>
         <tbody>
-          {rows.map(({ groupName, members }) => (
-            <React.Fragment key={groupName ?? "__ungrouped__"}>
+          {rows.map(({ groupName, members }, groupIndex) => (
+            <React.Fragment key={groupIndex}>
               {groupName !== null && (
-                <tr key={`group-${groupName}`}>
+                <tr key={`group-${groupIndex}`}>
                   <td
                     colSpan={1 + schedule.days.reduce((acc, d) => acc + d.slots.length, 0)}
                     className="sticky left-0 bg-surface-cream-strong border-b border-hairline-soft px-4 py-1.5"
@@ -237,7 +237,7 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
               )}
               {members.map((member) => (
                 <tr
-                  key={member.userId}
+                  key={`${groupIndex}:${member.userId}`}
                   className={member.userId === currentUserId ? "bg-primary/5" : "hover:bg-surface-cream-strong/50"}
                 >
                   <td className="sticky left-0 z-10 bg-inherit border-b border-r border-hairline-soft px-4 py-2 whitespace-nowrap">
@@ -254,7 +254,7 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
                       const isPending = pending.has(key);
                       return (
                         <td
-                          key={slot.id}
+                          key={`${day.id}:${slot.id}`}
                           className="border-b border-hairline-soft px-2 py-2 text-center"
                         >
                           {isMe ? (
@@ -316,7 +316,7 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
             {schedule.days.map((day) =>
               day.slots.map((slot) => (
                 <td
-                  key={slot.id}
+                  key={`total:${day.id}:${slot.id}`}
                   className="border-t border-hairline-soft px-2 py-2 text-center"
                 >
                   <span className="text-xs font-semibold text-ink">

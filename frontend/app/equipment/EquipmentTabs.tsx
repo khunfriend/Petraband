@@ -4,7 +4,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode } from "react";
 
 const TABS = [
-  { key: "list", label: "รายอุปกรณ์" },
+  { key: "list", label: "รายการอุปกรณ์" },
   { key: "settings", label: "ตั้งค่าอุปกรณ์ในการแสดง" },
 ];
 

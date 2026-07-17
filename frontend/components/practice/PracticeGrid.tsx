@@ -130,14 +130,15 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
 
   type Row = { userId: string; nickname: string; generation: string };
 
-  const rows: { groupName: string | null; members: Row[] }[] = schedule.memberGroups.map((g) => ({
-    groupName: g.name,
-    members: g.members.map((m) => ({
-      userId: m.userId,
-      nickname: m.user.nickname,
-      generation: m.user.generation,
-    })),
-  }));
+  const rows: { groupName: string | null; members: Row[] }[] = schedule.memberGroups.map((g) => {
+    const seen = new Set<string>();
+    return {
+      groupName: g.name,
+      members: g.members
+        .filter((m) => { if (seen.has(m.userId)) return false; seen.add(m.userId); return true; })
+        .map((m) => ({ userId: m.userId, nickname: m.user.nickname, generation: m.user.generation })),
+    };
+  });
 
   const ungrouped = allMembers.filter((m) => !assignedUserIds.has(m.id)).map((m) => ({
     userId: m.id,

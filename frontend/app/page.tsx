@@ -8,6 +8,18 @@ export default async function HomePage() {
   const session = await auth();
   if (!session) redirect("/login");
 
+  // Temporary accounts see only their assigned performance
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isTemporary: true, linkedPerformanceId: true },
+  });
+  if (currentUser?.isTemporary) {
+    if (currentUser.linkedPerformanceId) {
+      redirect(`/performances/${currentUser.linkedPerformanceId}`);
+    }
+    redirect("/login");
+  }
+
   const rangeStart = new Date();
   rangeStart.setMonth(rangeStart.getMonth() - 1);
   rangeStart.setDate(1);

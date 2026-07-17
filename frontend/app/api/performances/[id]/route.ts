@@ -88,9 +88,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
-  const allowed = await canEditPerformance(session.user.id, session.user.role, id);
-  if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await prisma.performance.delete({ where: { id } });
   return NextResponse.json({ ok: true });

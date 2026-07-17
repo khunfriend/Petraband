@@ -14,6 +14,11 @@ enum Role {
   ADMIN
 }
 
+enum AccountStatus {
+  ACTIVE
+  EXPIRED
+}
+
 enum RsvpStatus {
   AVAILABLE
   UNAVAILABLE
@@ -47,6 +52,8 @@ model User {
   generation          String   @default("")   // e.g. "#20", "#สมทบ"
   isTemporary           Boolean  @default(false)
   linkedPerformanceId   String?
+  status                AccountStatus @default(ACTIVE)
+  tokenVersion          Int      @default(0)  // bumped on password reset to invalidate sessions
   role                  Role     @default(MEMBER)
   primaryInstrumentId   String?
   createdAt             DateTime @default(now())
@@ -68,6 +75,20 @@ model User {
   practiceGroupMembers   PracticeGroupMember[]
   practiceAvailabilities PracticeAvailability[]
   performanceMembers     PerformanceMember[]
+  passwordResetTokens    PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model UserSecondaryInstrument {

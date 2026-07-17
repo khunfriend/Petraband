@@ -25,11 +25,20 @@ export async function POST(req: Request, { params }: Params) {
 
   const slot = await prisma.practiceSlot.findUnique({
     where: { id: slotId },
-    include: { day: { select: { scheduleId: true } } },
+    include: { day: { select: { scheduleId: true, schedule: { select: { performanceId: true } } } } },
   });
 
   if (!slot || slot.day.scheduleId !== id) {
     return NextResponse.json({ error: "Slot not found in this schedule" }, { status: 404 });
+  }
+
+  // Temp accounts can only set availability on their linked performance's schedules
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isTemporary: true, linkedPerformanceId: true },
+  });
+  if (currentUser?.isTemporary && slot.day.schedule.performanceId !== currentUser.linkedPerformanceId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   await prisma.practiceAvailability.upsert({

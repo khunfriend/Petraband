@@ -39,6 +39,21 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
 
+  // Temp accounts can only RSVP to their linked performance
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isTemporary: true, linkedPerformanceId: true },
+  });
+  if (currentUser?.isTemporary) {
+    const perfDate = await prisma.performanceDate.findUnique({
+      where: { id: parsed.data.performanceDateId },
+      select: { performanceId: true },
+    });
+    if (!perfDate || perfDate.performanceId !== currentUser.linkedPerformanceId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const rsvp = await prisma.rsvp.upsert({
     where: {
       userId_performanceDateId: {

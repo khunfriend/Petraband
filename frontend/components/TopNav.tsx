@@ -11,13 +11,16 @@ const navLinks = [
   { href: "/songs", label: "เพลง · Songs" },
   { href: "/performances", label: "งานแสดง" },
   { href: "/members", label: "สมาชิก" },
-  { href: "/equipment", label: "อุปกรณ์" },
+  { href: "/equipment", label: "อุปกรณ์", roles: ["ADMIN", "HEAD"] as const },
 ];
 
 export function TopNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const role = session?.user.role;
+  const visibleLinks = navLinks.filter((l) => !l.roles || (role && l.roles.includes(role as "ADMIN" | "HEAD")));
 
   return (
     <nav className="h-16 bg-canvas border-b border-hairline sticky top-0 z-40">
@@ -34,7 +37,7 @@ export function TopNav() {
         </Link>
 
         <div className="flex items-center gap-1 flex-1">
-          {navLinks.map((link) => (
+          {visibleLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}

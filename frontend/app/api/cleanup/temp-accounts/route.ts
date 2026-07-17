@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// Deletes temporary accounts whose linked performance has fully passed (all dates in the past)
+// Downgrades temporary accounts whose linked performance has fully passed (all dates in the past)
+// Keeps the record for audit; sets status = EXPIRED so login is blocked.
 export async function POST() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Find temp users whose linked performance has ended (max date < today), or whose performance was deleted (linkedPerformanceId = null but isTemporary)
-  const deleted = await prisma.user.deleteMany({
+  const result = await prisma.user.updateMany({
     where: {
       isTemporary: true,
+      status: "ACTIVE",
       OR: [
         { linkedPerformanceId: null },
         {
@@ -21,7 +22,8 @@ export async function POST() {
         },
       ],
     },
+    data: { status: "EXPIRED" },
   });
 
-  return NextResponse.json({ deleted: deleted.count });
+  return NextResponse.json({ expired: result.count });
 }

@@ -8,37 +8,66 @@ export default async function MembersPage() {
   if (!session) redirect("/login");
 
   const isAdmin = session.user.role === "ADMIN";
+  const isHead = session.user.role === "HEAD";
 
-  // All authenticated users can view the member list; only admin sees role controls
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      email: true,
-      nickname: true,
-      generation: true,
-      role: true,
-      primaryInstrument: { select: { id: true, name: true, nameThai: true } },
-    },
-    orderBy: { nickname: "asc" },
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isTemporary: true },
   });
+  const isTemp = currentUser?.isTemporary === true;
+
+  const [users, instruments, upcomingPerformances] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        // Non-admin sees only ACTIVE; Admin can toggle via UI (fetches EXPIRED separately via API)
+        ...(!isAdmin && { status: "ACTIVE" }),
+        // Temp accounts see only Head/Admin — hide regular members and other temps
+        ...(isTemp && { role: { in: ["HEAD", "ADMIN"] } }),
+      },
+      select: {
+        id: true,
+        email: true,
+        nickname: true,
+        generation: true,
+        role: true,
+        status: true,
+        isTemporary: true,
+        primaryInstrument: { select: { id: true, name: true, nameThai: true } },
+      },
+      orderBy: [{ status: "asc" }, { nickname: "asc" }],
+    }),
+    isAdmin
+      ? prisma.instrument.findMany({
+          orderBy: { nameThai: "asc" },
+          select: { id: true, nameThai: true, name: true },
+        })
+      : Promise.resolve([]),
+    isAdmin
+      ? prisma.performance.findMany({
+          where: { dates: { some: { date: { gte: new Date() } } } },
+          select: {
+            id: true,
+            name: true,
+            dates: { select: { date: true }, orderBy: { date: "asc" }, take: 1 },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-ink">สมาชิก</h1>
-        <span className="text-sm text-muted">{users.length} คน</span>
-      </div>
-
-      {isAdmin && (
-        <p className="text-sm text-muted mb-4">
-          คลิกปุ่มเพื่อเปลี่ยน Role ของสมาชิก (ไม่สามารถเปลี่ยน Role ของตัวเองได้)
-        </p>
-      )}
-
       <MembersClient
         initialUsers={users}
         currentUserId={session.user.id}
         isAdmin={isAdmin}
+        isHead={isHead}
+        instruments={instruments}
+        upcomingPerformances={upcomingPerformances.map((p) => ({
+          id: p.id,
+          name: p.name,
+          firstDate: p.dates[0]?.date.toISOString() ?? null,
+        }))}
       />
     </div>
   );

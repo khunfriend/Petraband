@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -67,7 +68,20 @@ function PerformanceCard({ p, past }: { p: Performance; past?: boolean }) {
 
 export default async function PerformancesPage() {
   const session = await auth();
-  const isAdmin = session?.user.role === "ADMIN";
+  if (!session) redirect("/login");
+  const isAdmin = session.user.role === "ADMIN";
+
+  // Temp accounts see only their assigned performance — redirect out of list
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isTemporary: true, linkedPerformanceId: true },
+  });
+  if (currentUser?.isTemporary) {
+    if (currentUser.linkedPerformanceId) {
+      redirect(`/performances/${currentUser.linkedPerformanceId}`);
+    }
+    redirect("/login");
+  }
 
   const performances = await getPerformances();
 

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import PerformanceClient from "./PerformanceClient";
 
@@ -9,6 +9,16 @@ type Params = { params: Promise<{ id: string }> };
 export default async function PerformanceDetailPage({ params }: Params) {
   const { id } = await params;
   const session = await auth();
+  if (!session) redirect("/login");
+
+  // Temp accounts can only access their linked performance
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isTemporary: true, linkedPerformanceId: true },
+  });
+  if (currentUser?.isTemporary && currentUser.linkedPerformanceId !== id) {
+    notFound();
+  }
 
   const [performance, participants, myMember, stageLayout, practiceSchedules] = await Promise.all([
     prisma.performance.findUnique({

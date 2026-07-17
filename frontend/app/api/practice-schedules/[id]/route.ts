@@ -70,12 +70,10 @@ export async function DELETE(_req: Request, { params }: Params) {
   const { id } = await params;
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const schedule = await prisma.practiceSchedule.findUnique({ where: { id } });
   if (!schedule) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const allowed = await canEditPerformance(session.user.id, session.user.role, schedule.performanceId);
-  if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await prisma.practiceSchedule.delete({ where: { id } });
 

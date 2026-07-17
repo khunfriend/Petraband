@@ -5,18 +5,20 @@ import { prisma } from "@/lib/prisma";
 import { authConfig } from "./auth.config";
 import type { Role } from "@prisma/client";
 
-async function cleanupExpiredTempAccounts() {
+async function downgradeExpiredTempAccounts() {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    await prisma.user.deleteMany({
+    await prisma.user.updateMany({
       where: {
         isTemporary: true,
+        status: "ACTIVE",
         OR: [
           { linkedPerformanceId: null },
           { linkedPerformance: { dates: { every: { date: { lt: today } } } } },
         ],
       },
+      data: { status: "EXPIRED" },
     });
   } catch { /* silent */ }
 }
@@ -53,24 +55,44 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         if (!isValid) { console.error("[authorize] wrong password for:", credentials.email); return null; }
 
-        // Fire-and-forget cleanup of expired temporary accounts
-        cleanupExpiredTempAccounts();
+        if (user.status === "EXPIRED") {
+          console.error("[authorize] account expired:", credentials.email);
+          return null;
+        }
+
+        // Fire-and-forget downgrade of expired temporary accounts
+        downgradeExpiredTempAccounts();
 
         return {
           id: user.id,
           email: user.email,
           name: user.nickname,
           role: user.role,
+          tokenVersion: user.tokenVersion,
         };
       },
     }),
   ],
   callbacks: {
     ...authConfig.callbacks,
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id as string;
-        token.role = user.role as Role;
+        token.role = (user as { role: Role }).role;
+        token.tokenVersion = (user as unknown as { tokenVersion?: number }).tokenVersion ?? 0;
+        return token;
+      }
+      // On subsequent requests, verify token version still matches DB
+      if (token.id) {
+        try {
+          const current = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { tokenVersion: true },
+          });
+          if (!current || current.tokenVersion !== token.tokenVersion) {
+            return null;
+          }
+        } catch { /* pass through on transient error */ }
       }
       return token;
     },

@@ -251,7 +251,7 @@ export default function PracticeScheduleClient({
             >
               {editMode ? "เสร็จสิ้น" : "แก้ไขวัน/ช่วงเวลา"}
             </Button>
-            {confirmDelete ? (
+            {isAdmin && (confirmDelete ? (
               <>
                 <span className="text-xs text-red-600">ยืนยันลบ?</span>
                 <Button size="sm" variant="coral" onClick={deleteSchedule} disabled={deleteLoading}>
@@ -263,7 +263,7 @@ export default function PracticeScheduleClient({
               <Button size="sm" variant="secondary" onClick={() => setConfirmDelete(true)}>
                 ลบตารางซ้อม
               </Button>
-            )}
+            ))}
           </div>
         )}
       </div>

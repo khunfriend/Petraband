@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { notFound, redirect } from "next/navigation";
 import EquipmentClient from "./EquipmentClient";
 import InstrumentEquipmentTab from "./InstrumentEquipmentTab";
 import EquipmentTabs from "./EquipmentTabs";
@@ -13,7 +14,10 @@ export default async function EquipmentPage({
 }) {
   const { tab = "list", search = "", type = "", condition = "" } = await searchParams;
   const session = await auth();
-  const isAdmin = session?.user.role === "ADMIN";
+  if (!session) redirect("/login");
+  const isAdmin = session.user.role === "ADMIN";
+  const isHead = session.user.role === "HEAD";
+  if (!isAdmin && !isHead) notFound();
 
   const equipment = await prisma.equipment.findMany({
     where: {

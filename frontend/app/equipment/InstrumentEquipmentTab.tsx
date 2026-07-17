@@ -59,9 +59,6 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
     }
   }
 
-  const totalChairs = (editing ? editRows : rows).reduce((s, r) => s + (r.chairs ?? 0), 0);
-  const totalTables = (editing ? editRows : rows).reduce((s, r) => s + (r.tables ?? 0), 0);
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -114,14 +111,6 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="border-t border-hairline-soft bg-surface-soft text-sm font-semibold">
-                  <td className="px-4 py-2.5 text-xs text-muted-soft" colSpan={2}>รวม</td>
-                  <td className="px-4 py-2.5 text-center text-ink">{editRows.reduce((s, r) => s + (r.chairs ?? 0), 0)}</td>
-                  <td className="px-4 py-2.5 text-center text-ink">{editRows.reduce((s, r) => s + (r.tables ?? 0), 0)}</td>
-                  <td />
-                </tr>
-              </tfoot>
             </table>
             <div className="px-4 py-3 border-t border-hairline-soft flex items-center gap-2">
               <input
@@ -163,13 +152,6 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="border-t border-hairline-soft bg-surface-soft text-sm font-semibold">
-                <td className="px-4 py-2.5 text-xs text-muted-soft" colSpan={2}>รวม</td>
-                <td className="px-4 py-2.5 text-center text-ink">{totalChairs}</td>
-                <td className="px-4 py-2.5 text-center text-ink">{totalTables}</td>
-              </tr>
-            </tfoot>
           </table>
         )}
       </div>

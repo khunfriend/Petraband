@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 type Availability = {
   id: string;
@@ -222,7 +222,7 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
         </thead>
         <tbody>
           {rows.map(({ groupName, members }) => (
-            <>
+            <React.Fragment key={groupName ?? "__ungrouped__"}>
               {groupName !== null && (
                 <tr key={`group-${groupName}`}>
                   <td
@@ -307,7 +307,7 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
                   )}
                 </tr>
               ))}
-            </>
+            </React.Fragment>
           ))}
           <tr className="bg-surface-cream-strong">
             <td className="sticky left-0 z-10 bg-surface-cream-strong border-t border-hairline-soft px-4 py-2">

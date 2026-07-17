@@ -10,7 +10,7 @@ const TABS = [
 
 interface Props {
   activeTab: string;
-  children: Record<string, ReactNode>;
+  children: ReactNode;
 }
 
 export default function EquipmentTabs({ activeTab, children }: Props) {
@@ -45,7 +45,7 @@ export default function EquipmentTabs({ activeTab, children }: Props) {
       </div>
 
       {/* Tab content */}
-      {children[activeTab] ?? children["list"]}
+      {children}
     </div>
   );
 }

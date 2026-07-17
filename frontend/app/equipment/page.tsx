@@ -36,10 +36,11 @@ export default async function EquipmentPage({
       </div>
 
       <EquipmentTabs activeTab={tab}>
-        {{
-          list: <EquipmentClient equipment={equipment} isAdmin={isAdmin} />,
-          settings: <InstrumentEquipmentTab isAdmin={isAdmin} />,
-        }}
+        {tab === "settings" ? (
+          <InstrumentEquipmentTab isAdmin={isAdmin} />
+        ) : (
+          <EquipmentClient equipment={equipment} isAdmin={isAdmin} />
+        )}
       </EquipmentTabs>
     </div>
   );

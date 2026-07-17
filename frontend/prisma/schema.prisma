@@ -1,0 +1,501 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ─────────────────────────────────────────────────
+
+enum Role {
+  MEMBER
+  HEAD
+  ADMIN
+}
+
+enum RsvpStatus {
+  AVAILABLE
+  UNAVAILABLE
+  PENDING
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  EXCUSED
+}
+
+enum EquipmentCondition {
+  GOOD
+  FAIR
+  NEEDS_REPAIR
+  RETIRED
+}
+
+// ─── User & Auth ───────────────────────────────────────────
+
+model User {
+  id                    String   @id @default(cuid())
+  email                 String   @unique
+  passwordHash          String
+  nickname              String
+  generation            String   // e.g. "#17", "#สมทบ"
+  role                  Role     @default(MEMBER)
+  primaryInstrumentId   String?
+  secondaryInstrumentId String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  primaryInstrument    Instrument? @relation("PrimaryInstrument", fields: [primaryInstrumentId], references: [id])
+  secondaryInstrument  Instrument? @relation("SecondaryInstrument", fields: [secondaryInstrumentId], references: [id])
+
+  rsvps                Rsvp[]
+  songAssignments      SongAssignment[]
+  rehearsalAttendances RehearsalAttendance[]
+  auditLogs            AuditLog[]
+  stageLayoutVersions  StageLayoutVersion[]
+  songVersions         SongVersion[]
+  stageTemplates       StageTemplate[]
+  performanceHeads     PerformanceHead[]
+  practiceSchedules    PracticeSchedule[]    @relation("ScheduleCreator")
+  practiceGroupMembers   PracticeGroupMember[]
+  practiceAvailabilities PracticeAvailability[]
+  performanceMembers     PerformanceMember[]
+}
+
+// ─── Instruments ───────────────────────────────────────────
+
+model Instrument {
+  id               String  @id @default(cuid())
+  name             String  @unique
+  nameThai         String
+  allowsConcurrent Boolean @default(false)
+  footprintW       Float   @default(1)
+  footprintH       Float   @default(1)
+  iconType         String  @default("default")
+
+  primaryUsers    User[]         @relation("PrimaryInstrument")
+  secondaryUsers  User[]         @relation("SecondaryInstrument")
+  songAssignments SongAssignment[]
+  stageItems      StageItem[]
+}
+
+// ─── Songs ─────────────────────────────────────────────────
+
+model Song {
+  id        String   @id @default(cuid())
+  songCode  String   @unique
+  title     String
+  category  String   @default("ดนตรีไทย")
+  duration  Int?     // seconds, null = N/A
+  sheetData Json?    // rows/cols grid format from songs_full_export.json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  performanceSongs PerformanceSong[]
+  versions         SongVersion[]
+  notebooks        Notebook[]
+}
+
+model SongVersion {
+  id          String   @id @default(cuid())
+  songId      String
+  sheetData   Json?
+  duration    Int?
+  message     String   @default("แก้ไขโน้ต")
+  createdById String
+  createdAt   DateTime @default(now())
+
+  song      Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id])
+}
+
+// ─── Performances ──────────────────────────────────────────
+
+model Performance {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  location          String?
+  costume           String?
+  programSchedule   Json?
+  instrumentsNeeded Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  dates             PerformanceDate[]
+  songs             PerformanceSong[]
+  stageLayouts      StageLayout[]
+  rehearsals        Rehearsal[]
+  heads             PerformanceHead[]
+  practiceSchedules PracticeSchedule[]
+  members           PerformanceMember[]
+}
+
+model PerformanceDate {
+  id            String   @id @default(cuid())
+  performanceId String
+  date          DateTime @db.Date
+  startTime     String?  // "HH:MM"
+  endTime       String?  // "HH:MM"
+
+  performance Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  rsvps       Rsvp[]
+}
+
+model PerformanceSong {
+  id            String @id @default(cuid())
+  performanceId String
+  songId        String
+  order         Int    @default(0)
+
+  performance Performance    @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  song        Song           @relation(fields: [songId], references: [id])
+  assignments SongAssignment[]
+
+  @@unique([performanceId, songId])
+}
+
+model Rsvp {
+  id                String     @id @default(cuid())
+  userId            String
+  performanceDateId String
+  status            RsvpStatus @default(PENDING)
+  updatedAt         DateTime   @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id])
+  performanceDate PerformanceDate @relation(fields: [performanceDateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, performanceDateId])
+}
+
+// ─── Instrument Booking ────────────────────────────────────
+
+model SongAssignment {
+  id                String   @id @default(cuid())
+  performanceSongId String
+  userId            String
+  instrumentId      String
+  createdAt         DateTime @default(now())
+
+  performanceSong PerformanceSong @relation(fields: [performanceSongId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id])
+  instrument      Instrument      @relation(fields: [instrumentId], references: [id])
+
+  @@unique([performanceSongId, userId])
+}
+
+// ─── Stage Layout ──────────────────────────────────────────
+
+model StageLayout {
+  id            String   @id @default(cuid())
+  performanceId String
+  name          String   @default("ผังเวที")
+  widthUnits    Float    @default(10)
+  heightUnits   Float    @default(5)
+  unitLabel     String   @default("m")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  performance Performance          @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  versions    StageLayoutVersion[]
+  items       StageItem[]
+}
+
+model StageLayoutVersion {
+  id            String   @id @default(cuid())
+  stageLayoutId String
+  versionNumber Int      @default(1)
+  snapshotJson  Json
+  changeNote    String   @default("")
+  createdById   String
+  createdAt     DateTime @default(now())
+
+  stageLayout StageLayout @relation(fields: [stageLayoutId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation(fields: [createdById], references: [id])
+}
+
+model StageItem {
+  id            String  @id @default(cuid())
+  stageLayoutId String
+  instrumentId  String
+  x             Float
+  y             Float
+  rotation      Float   @default(0)
+  layerOrder    Int     @default(0)
+  label         String?
+
+  stageLayout StageLayout @relation(fields: [stageLayoutId], references: [id], onDelete: Cascade)
+  instrument  Instrument  @relation(fields: [instrumentId], references: [id])
+}
+
+model StageTemplate {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  widthUnits     Float    @default(10)
+  heightUnits    Float    @default(5)
+  unitLabel      String   @default("m")
+  placementsJson Json     @default("[]")
+  tags           String[]
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  createdBy User? @relation(fields: [createdById], references: [id])
+}
+
+// ─── Rehearsals ────────────────────────────────────────────
+
+model Rehearsal {
+  id            String   @id @default(cuid())
+  performanceId String
+  date          DateTime @db.Date
+  location      String?
+  createdAt     DateTime @default(now())
+
+  performance Performance           @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  attendances RehearsalAttendance[]
+}
+
+model RehearsalAttendance {
+  id          String           @id @default(cuid())
+  rehearsalId String
+  userId      String
+  status      AttendanceStatus @default(ABSENT)
+  note        String?
+
+  rehearsal Rehearsal @relation(fields: [rehearsalId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([rehearsalId, userId])
+}
+
+// ─── Equipment ─────────────────────────────────────────────
+
+model Equipment {
+  id        String             @id @default(cuid())
+  name      String
+  type      String?
+  quantity  Int                @default(1)
+  condition EquipmentCondition @default(GOOD)
+  lengthCm  Float?
+  widthCm   Float?
+  heightCm  Float?
+  note      String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+}
+
+// ─── Performance Head Assignment ──────────────────────────
+
+model PerformanceHead {
+  id            String   @id @default(cuid())
+  userId        String
+  performanceId String
+  assignedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  performance Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, performanceId])
+}
+
+model PerformanceMember {
+  id            String   @id @default(cuid())
+  userId        String
+  performanceId String
+  position      String   @default("")
+  joinedAt      DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  performance Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, performanceId, position])
+}
+
+// ─── Practice Schedule ─────────────────────────────────────
+
+model PracticeSchedule {
+  id            String   @id @default(cuid())
+  performanceId String
+  title         String   @default("ตารางซ้อม")
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  performance  Performance          @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  createdBy    User                 @relation("ScheduleCreator", fields: [createdById], references: [id])
+  days         PracticeDay[]
+  memberGroups PracticeMemberGroup[]
+}
+
+model PracticeDay {
+  id         String   @id @default(cuid())
+  scheduleId String
+  date       DateTime @db.Date
+  dayOrder   Int      @default(0)
+
+  schedule PracticeSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  slots    PracticeSlot[]
+}
+
+model PracticeSlot {
+  id        String  @id @default(cuid())
+  dayId     String
+  startTime String
+  endTime   String
+  label     String  @default("")
+  isSpecial Boolean @default(false)
+  slotOrder Int     @default(0)
+
+  day            PracticeDay           @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  availabilities PracticeAvailability[]
+}
+
+model PracticeMemberGroup {
+  id           String @id @default(cuid())
+  scheduleId   String
+  name         String
+  displayOrder Int    @default(0)
+
+  schedule PracticeSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  members  PracticeGroupMember[]
+}
+
+model PracticeGroupMember {
+  id      String @id @default(cuid())
+  groupId String
+  userId  String
+
+  group PracticeMemberGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model PracticeAvailability {
+  id          String   @id @default(cuid())
+  slotId      String
+  userId      String
+  isAvailable Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  slot PracticeSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([slotId, userId])
+}
+
+// ─── Audit Log (append-only) ───────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String   // e.g. "UPDATE_STAGE_LAYOUT", "CREATE_REHEARSAL"
+  targetType String   // e.g. "StageLayout", "Rehearsal"
+  targetId   String
+  payload    Json?    // diff or snapshot
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─── Global Instrument Equipment Settings ─────────────────
+
+model InstrumentEquipment {
+  id        String @id @default(cuid())
+  name      String @unique
+  chairs    Int    @default(0)
+  tables    Int?
+  sortOrder Int    @default(0)
+}
+
+// ─── Sheet Music Editor ────────────────────────────────────
+
+model Notebook {
+  id        String   @id @default(cuid())
+  songId    String?
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  song   Song?   @relation(fields: [songId], references: [id], onDelete: SetNull)
+  sheets Sheet[]
+}
+
+model Sheet {
+  id          String   @id @default(cuid())
+  notebookId  String
+  name        String   @default("Sheet1")
+  sheetOrder  Int      @default(0)
+  columnCount Int      @default(8)
+  rowCount    Int      @default(20)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  notebook     Notebook      @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  cells        Cell[]
+  mergedCells  MergedCell[]
+  columnWidths ColumnWidth[]
+  rowHeights   RowHeight[]
+}
+
+model Cell {
+  id         String  @id @default(cuid())
+  sheetId    String
+  rowIndex   Int
+  colIndex   Int
+  cellValue  String?
+
+  sheet Sheet      @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  style CellStyle?
+
+  @@unique([sheetId, rowIndex, colIndex])
+}
+
+model CellStyle {
+  id             String  @id @default(cuid())
+  cellId         String  @unique
+  fontFamily     String  @default("Sarabun")
+  fontSize       Int     @default(14)
+  isBold         Boolean @default(false)
+  isItalic       Boolean @default(false)
+  isUnderline    Boolean @default(false)
+  textAlign      String  @default("center")
+  textColor      String  @default("#000000")
+  highlightColor String?
+
+  cell Cell @relation(fields: [cellId], references: [id], onDelete: Cascade)
+}
+
+model MergedCell {
+  id       String @id @default(cuid())
+  sheetId  String
+  startRow Int
+  startCol Int
+  endRow   Int
+  endCol   Int
+
+  sheet Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+}
+
+model ColumnWidth {
+  sheetId  String
+  colIndex Int
+  widthPx  Int    @default(100)
+
+  sheet Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+
+  @@id([sheetId, colIndex])
+}
+
+model RowHeight {
+  sheetId  String
+  rowIndex Int
+  heightPx Int    @default(28)
+
+  sheet Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+
+  @@id([sheetId, rowIndex])
+}

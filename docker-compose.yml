@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: petraband
+      POSTGRES_PASSWORD: petraband
+      POSTGRES_DB: petraband
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petraband"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+    environment:
+      DATABASE_URL: postgresql://petraband:petraband@db:5432/petraband?schema=public
+      AUTH_SECRET: petraband-dev-secret-change-in-production
+      AUTH_URL: http://localhost:3003
+      AUTH_TRUST_HOST: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+type Params = { params: Promise<{ id: string }> };
+
+export async function GET(_req: NextRequest, { params }: Params) {
+  const { id } = await params;
+  const song = await prisma.song.findUnique({ where: { id } });
+  if (!song) return NextResponse.json({ error: "ไม่พบเพลง" }, { status: 404 });
+  return NextResponse.json({ song });
+}
+
+const updateSchema = z.object({
+  title: z.string().min(1).optional(),
+  category: z.string().optional(),
+  duration: z.number().int().positive().nullable().optional(),
+  sheetData: z.any().optional(),
+  commitMessage: z.string().optional(),
+});
+
+export async function PUT(req: NextRequest, { params }: Params) {
+  const session = await auth();
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const body = await req.json();
+  const parsed = updateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
+  }
+
+  const { commitMessage, ...songData } = parsed.data;
+  const current = await prisma.song.findUnique({ where: { id } });
+  if (!current) return NextResponse.json({ error: "ไม่พบเพลง" }, { status: 404 });
+
+  const [, song] = await prisma.$transaction([
+    prisma.songVersion.create({
+      data: {
+        songId: id,
+        sheetData: current.sheetData ?? undefined,
+        duration: current.duration,
+        message: commitMessage?.trim() || "แก้ไขโน้ต",
+        createdById: session.user.id,
+      },
+    }),
+    prisma.song.update({ where: { id }, data: songData }),
+  ]);
+
+  return NextResponse.json({ song });
+}
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const session = await auth();
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  await prisma.song.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
+}

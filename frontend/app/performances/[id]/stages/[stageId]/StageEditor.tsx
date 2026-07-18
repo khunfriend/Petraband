@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/Button";
+import { getInstrumentColor as getColors } from "@/lib/instrumentColors";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,23 +53,6 @@ type Props = {
   isAdmin: boolean;
 };
 
-// ─── Icon colors per iconType ────────────────────────────────────────────────
-
-const ICON_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  ranat:  { bg: "#dbeafe", border: "#3b82f6", text: "#1e40af" },
-  khong:  { bg: "#dcfce7", border: "#22c55e", text: "#15803d" },
-  pi:     { bg: "#fef9c3", border: "#eab308", text: "#854d0e" },
-  so:     { bg: "#ede9fe", border: "#8b5cf6", text: "#5b21b6" },
-  khim:   { bg: "#fce7f3", border: "#ec4899", text: "#9d174d" },
-  chakhe: { bg: "#fff7ed", border: "#f97316", text: "#9a3412" },
-  drum:   { bg: "#fee2e2", border: "#ef4444", text: "#991b1b" },
-  ching:  { bg: "#f0fdf4", border: "#86efac", text: "#166534" },
-  default: { bg: "#f1f5f9", border: "#94a3b8", text: "#334155" },
-};
-
-function getColors(iconType: string) {
-  return ICON_COLORS[iconType] ?? ICON_COLORS.default;
-}
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 
@@ -581,7 +565,7 @@ export default function StageEditor({ stageId, initialStage, instruments, isAdmi
             Export ▾
           </Button>
           {showExport && (
-            <div className="absolute right-0 top-full mt-1 z-50 bg-surface-card border border-hairline-soft rounded-[var(--radius-md)] shadow-lg overflow-hidden min-w-[130px]">
+            <div className="absolute right-0 top-full mt-1 z-50 bg-surface-card border border-hairline rounded-[var(--radius-md)] overflow-hidden min-w-[130px]">
               <button
                 onClick={exportPng}
                 className="w-full text-left px-4 py-2 text-sm text-ink hover:bg-surface-cream-strong transition-colors"
@@ -602,7 +586,7 @@ export default function StageEditor({ stageId, initialStage, instruments, isAdmi
       {/* ── Save dialog ── */}
       {showSaveDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 print:hidden">
-          <div className="bg-surface-card border border-hairline-soft rounded-[var(--radius-lg)] p-6 w-full max-w-sm shadow-xl">
+          <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-6 w-full max-w-sm">
             <p className="text-base font-semibold text-ink mb-3">บันทึกผังเวที</p>
             <label className="text-xs text-muted block mb-1">หมายเหตุการแก้ไข (ไม่บังคับ)</label>
             <input
@@ -763,7 +747,7 @@ export default function StageEditor({ stageId, initialStage, instruments, isAdmi
           <div className="w-72 shrink-0 border-l border-hairline-soft bg-surface-soft overflow-y-auto print:hidden">
             <div className="px-4 pt-4 pb-2 border-b border-hairline-soft flex items-center justify-between">
               <p className="text-sm font-semibold text-ink">ประวัติเวอร์ชัน</p>
-              <button onClick={() => setShowHistory(false)} className="text-muted hover:text-ink text-lg">×</button>
+              <button onClick={() => setShowHistory(false)} aria-label="ปิด" className="text-muted hover:text-ink text-lg">×</button>
             </div>
 
             {previewVersion && (

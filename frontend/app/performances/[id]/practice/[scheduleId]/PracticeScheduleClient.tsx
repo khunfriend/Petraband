@@ -253,7 +253,7 @@ export default function PracticeScheduleClient({
             </Button>
             {isAdmin && (confirmDelete ? (
               <>
-                <span className="text-xs text-red-600">ยืนยันลบ?</span>
+                <span className="text-xs text-error">ยืนยันลบ?</span>
                 <Button size="sm" variant="coral" onClick={deleteSchedule} disabled={deleteLoading}>
                   {deleteLoading ? "กำลังลบ..." : "ลบ"}
                 </Button>
@@ -282,7 +282,7 @@ export default function PracticeScheduleClient({
                   <button
                     onClick={() => deleteDay(day.id)}
                     disabled={busy}
-                    className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                    className="text-xs text-error hover:underline disabled:opacity-50"
                   >
                     ลบวัน
                   </button>
@@ -302,7 +302,7 @@ export default function PracticeScheduleClient({
                       <button
                         onClick={() => deleteSlot(slot.id)}
                         disabled={busy}
-                        className="ml-0.5 text-muted hover:text-red-600 disabled:opacity-50"
+                        className="ml-0.5 text-muted hover:text-error disabled:opacity-50"
                         aria-label="ลบ"
                       >
                         ×

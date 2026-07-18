@@ -74,7 +74,7 @@ export function TopNav() {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-10 w-44 bg-surface-card border border-hairline-soft rounded-[var(--radius-lg)] shadow-sm py-1 z-50">
+                <div className="absolute right-0 top-10 w-44 bg-surface-card border border-hairline rounded-[var(--radius-lg)] py-1 z-50">
                   <div className="px-4 py-2 border-b border-hairline-soft">
                     <p className="text-xs font-medium text-ink">{session.user.name}</p>
                     <p className="text-xs text-muted">{session.user.email}</p>

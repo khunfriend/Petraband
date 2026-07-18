@@ -106,7 +106,7 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
                       />
                     </td>
                     <td className="px-2 py-2 text-center">
-                      <button onClick={() => removeRow(idx)} className="text-muted-soft hover:text-red-500 text-xs">✕</button>
+                      <button onClick={() => removeRow(idx)} aria-label="ลบแถว" className="text-muted-soft hover:text-error text-xs">✕</button>
                     </td>
                   </tr>
                 ))}

@@ -231,7 +231,7 @@ export default function ProfileForm({ user, instruments }: Props) {
             {saving ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
           {message && (
-            <span className={`text-sm ${message.includes("ผิด") || message.includes("รอ") ? "text-red-600" : "text-green-600"}`}>
+            <span className={`text-sm ${message.includes("ผิด") || message.includes("รอ") ? "text-error" : "text-success"}`}>
               {message}
             </span>
           )}

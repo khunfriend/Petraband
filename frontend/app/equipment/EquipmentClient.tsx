@@ -31,9 +31,9 @@ const CONDITION_LABELS: Record<EquipmentCondition, string> = {
 };
 
 const CONDITION_CLASSES: Record<EquipmentCondition, string> = {
-  GOOD: "bg-green-100 text-green-800",
-  FAIR: "bg-yellow-100 text-yellow-800",
-  NEEDS_REPAIR: "bg-red-100 text-red-800",
+  GOOD: "bg-success/15 text-success",
+  FAIR: "bg-warning/15 text-warning",
+  NEEDS_REPAIR: "bg-error/15 text-error",
   RETIRED: "bg-surface-cream-strong text-muted",
 };
 
@@ -381,7 +381,7 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-[var(--radius-md)] px-4 py-3 text-sm text-red-800">
+        <div className="bg-error/10 border border-error/30 rounded-[var(--radius-md)] px-4 py-3 text-sm text-error">
           {error}
           <button className="ml-3 underline" onClick={() => setError(null)}>ปิด</button>
         </div>
@@ -476,7 +476,7 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
                               <Button
                                 variant="text"
                                 size="sm"
-                                className="text-error hover:bg-red-50"
+                                className="text-error hover:bg-error/10"
                                 onClick={() => setDeleteConfirmId(eq.id)}
                               >
                                 ลบ

@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import EquipmentClient from "./EquipmentClient";
 import InstrumentEquipmentTab from "./InstrumentEquipmentTab";
 import EquipmentTabs from "./EquipmentTabs";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 
 export const metadata = { title: "อุปกรณ์ · PETRAband" };
 
@@ -33,9 +34,7 @@ export default async function EquipmentPage({
   return (
     <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
       <div className="mb-6">
-        <p className="text-xs font-bold tracking-[1.5px] uppercase text-muted mb-1">
-          คลังอุปกรณ์
-        </p>
+        <Eyebrow className="mb-1">คลังอุปกรณ์</Eyebrow>
         <h1 className="text-2xl font-bold text-ink">อุปกรณ์</h1>
       </div>
 

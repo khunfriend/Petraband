@@ -93,7 +93,7 @@ export default function SongListClient({ songs, categories, initialQ, initialCat
       {/* Create Song Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-canvas rounded-[var(--radius-lg)] shadow-xl w-full max-w-sm mx-4 p-6 flex flex-col gap-4">
+          <div className="bg-canvas rounded-[var(--radius-lg)] border border-hairline-soft w-full max-w-sm mx-4 p-6 flex flex-col gap-4">
             <h2 className="text-base font-bold text-ink">สร้างเพลงใหม่</h2>
             <div className="flex flex-col gap-3">
               <div>

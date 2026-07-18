@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { AlertBox } from "@/components/ui/AlertBox";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -34,11 +35,11 @@ export default function ForgotPasswordPage() {
 
       {submitted ? (
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-[var(--radius-md)] px-3 py-3">
+          <AlertBox variant="success">
             หากอีเมลนี้อยู่ในระบบ เราได้ส่งลิงก์รีเซ็ตรหัสผ่านให้แล้ว
             <br />
             กรุณาตรวจสอบกล่องขาเข้า (ลิงก์หมดอายุใน 30 นาที)
-          </p>
+          </AlertBox>
           <Link href="/login" className="text-center text-sm text-coral font-medium hover:underline">
             กลับหน้าเข้าสู่ระบบ
           </Link>

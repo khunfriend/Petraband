@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { AlertBox } from "@/components/ui/AlertBox";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -51,17 +52,17 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-[var(--radius-md)] px-3 py-3">
+      <AlertBox variant="error">
         ลิงก์ไม่ถูกต้อง — กรุณาขอลิงก์ใหม่ที่หน้าลืมรหัสผ่าน
-      </p>
+      </AlertBox>
     );
   }
 
   if (success) {
     return (
-      <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-[var(--radius-md)] px-3 py-3">
+      <AlertBox variant="success">
         รีเซ็ตรหัสผ่านสำเร็จ กำลังพาไปหน้าเข้าสู่ระบบ...
-      </p>
+      </AlertBox>
     );
   }
 

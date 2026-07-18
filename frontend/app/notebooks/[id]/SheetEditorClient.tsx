@@ -168,8 +168,8 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
         </button>
         <div className="ml-auto flex items-center gap-3">
           {saveStatus === "saving" && <span className="text-xs text-muted">กำลังบันทึก...</span>}
-          {saveStatus === "saved" && <span className="text-xs text-green-600">✓ บันทึกแล้ว</span>}
-          {saveStatus === "error" && <span className="text-xs text-red-500">บันทึกไม่สำเร็จ</span>}
+          {saveStatus === "saved" && <span className="text-xs text-success">✓ บันทึกแล้ว</span>}
+          {saveStatus === "error" && <span className="text-xs text-error">บันทึกไม่สำเร็จ</span>}
 
           {notebook.song && (
             <Link href={`/songs/${notebook.song.id}`} className="text-xs text-muted hover:text-ink">
@@ -186,7 +186,7 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
                 onClick={handlePublish}
                 className={`text-xs px-3 py-1 rounded-full border transition ${
                   published
-                    ? "bg-green-50 border-green-300 text-green-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+                    ? "bg-success/10 border-success/30 text-success hover:bg-error/10 hover:border-error/30 hover:text-error"
                     : "bg-surface-soft border-hairline text-muted hover:text-ink hover:border-coral"
                 }`}
                 title={published ? "คลิกเพื่อยกเลิกการแสดงในหน้าเพลง" : "คลิกเพื่อส่งออกไปหน้าเพลง"}

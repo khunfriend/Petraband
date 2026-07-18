@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { getInstrumentColor } from "@/lib/instrumentColors";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -99,19 +100,6 @@ function formatDate(iso: string) {
   });
 }
 
-// ─── Stage preview colors ──────────────────────────────────
-
-const ICON_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  ranat:   { bg: "#dbeafe", border: "#3b82f6", text: "#1e40af" },
-  khong:   { bg: "#dcfce7", border: "#22c55e", text: "#15803d" },
-  pi:      { bg: "#fef9c3", border: "#eab308", text: "#854d0e" },
-  so:      { bg: "#ede9fe", border: "#8b5cf6", text: "#5b21b6" },
-  khim:    { bg: "#fce7f3", border: "#ec4899", text: "#9d174d" },
-  chakhe:  { bg: "#fff7ed", border: "#f97316", text: "#9a3412" },
-  drum:    { bg: "#fee2e2", border: "#ef4444", text: "#991b1b" },
-  ching:   { bg: "#f0fdf4", border: "#86efac", text: "#166534" },
-  default: { bg: "#f1f5f9", border: "#94a3b8", text: "#334155" },
-};
 
 // ─── MiniStagePreview ──────────────────────────────────────
 
@@ -128,7 +116,7 @@ function MiniStagePreview({ layout }: { layout: StageLayout }) {
           </div>
         ) : (
           layout.items.map((item) => {
-            const c = ICON_COLORS[item.instrument.iconType] ?? ICON_COLORS.default;
+            const c = getInstrumentColor(item.instrument.iconType);
             const wPct = (item.instrument.footprintW / layout.widthUnits) * 100;
             const hPct = (item.instrument.footprintH / layout.heightUnits) * 100;
             const xPct = (item.x / layout.widthUnits) * 100;
@@ -198,7 +186,7 @@ function SongPickerPanel({ addedSongIds, onAdd, onClose }: SongPickerPanelProps)
     <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-hairline-soft">
         <p className="text-sm font-semibold text-ink">เพิ่มเพลง</p>
-        <button onClick={onClose} className="text-muted hover:text-ink text-lg leading-none">×</button>
+        <button onClick={onClose} aria-label="ปิด" className="text-muted hover:text-ink text-lg leading-none">×</button>
       </div>
       <div className="px-4 pt-3 pb-2">
         <input
@@ -793,7 +781,7 @@ export default function PerformanceClient({
                         className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-coral w-28"
                       />
                       <span className="text-xs text-muted-soft">น.</span>
-                      <button onClick={() => deleteDate(d.id)} className="ml-auto text-muted-soft hover:text-red-500 text-xs shrink-0">ลบ</button>
+                      <button onClick={() => deleteDate(d.id)} className="ml-auto text-muted-soft hover:text-error text-xs shrink-0">ลบ</button>
                     </div>
                   ))}
                   <div className="flex items-center gap-2 pt-1">

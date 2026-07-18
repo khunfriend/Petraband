@@ -353,7 +353,7 @@ export default function MembersClient({
 
           {createMode === "temporary" && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-ink">งานที่แสดง <span className="text-red-500">*</span></label>
+              <label className="text-sm font-medium text-ink">งานที่แสดง <span className="text-error">*</span></label>
               <select className={selectClass} value={form.linkedPerformanceId} onChange={(e) => setField("linkedPerformanceId", e.target.value)} required>
                 <option value="">-- เลือกงานแสดง --</option>
                 {upcomingPerformances.map((p) => {
@@ -456,7 +456,7 @@ export default function MembersClient({
                   ) : (
                     <button
                       onClick={() => setConfirmDeleteId(user.id)}
-                      className="text-xs text-muted-soft hover:text-red-500 transition-colors px-2 py-1"
+                      className="text-xs text-muted-soft hover:text-error transition-colors px-2 py-1"
                       aria-label="ลบบัญชี"
                     >
                       ลบ

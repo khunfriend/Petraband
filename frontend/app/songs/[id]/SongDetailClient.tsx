@@ -162,7 +162,7 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
               <Button variant="coral" size="sm" onClick={handleOpenNotebook} disabled={openingNotebook}>
                 {openingNotebook ? "กำลังเปิด..." : "สมุดโน้ต"}
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => { setShowDeleteModal(true); setDeleteConfirmInput(""); }} className="text-red-600 border-red-200 hover:bg-red-50">
+              <Button variant="secondary" size="sm" onClick={() => { setShowDeleteModal(true); setDeleteConfirmInput(""); }} className="text-error border-error/30 hover:bg-error/10">
                 ลบเพลง
               </Button>
               {saved && <span className="text-sm text-success">บันทึกเรียบร้อยแล้ว</span>}
@@ -237,7 +237,7 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
       {/* Delete confirmation modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-surface-card rounded-[var(--radius-lg)] border border-hairline shadow-lg p-6 w-full max-w-sm flex flex-col gap-4">
+          <div className="bg-surface-card rounded-[var(--radius-lg)] border border-hairline p-6 w-full max-w-sm flex flex-col gap-4">
             <h2 className="text-base font-bold text-ink">ยืนยันการลบเพลง</h2>
             <p className="text-sm text-muted">
               การลบจะลบสมุดโน้ตและข้อมูลทั้งหมดออกถาวร พิมพ์ชื่อเพลงเพื่อยืนยัน
@@ -262,7 +262,7 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleteConfirmInput !== song.title || deleting}
-                className="text-sm px-4 py-1.5 rounded-[var(--radius-sm)] bg-red-500 text-white font-medium disabled:opacity-40 hover:bg-red-600 transition"
+                className="text-sm px-4 py-1.5 rounded-[var(--radius-sm)] bg-error text-white font-medium disabled:opacity-40 hover:opacity-90 transition"
               >
                 {deleting ? "กำลังลบ..." : "ลบเพลง"}
               </button>

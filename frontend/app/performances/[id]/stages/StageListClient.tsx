@@ -185,7 +185,7 @@ export default function StageListClient({ performanceId, stages: initial, templa
               href={`/performances/${performanceId}/stages/${s.id}`}
               className="block group"
             >
-              <Card className="h-full transition-shadow hover:shadow-md">
+              <Card className="h-full hover:border-coral transition-colors">
                 <div className="flex flex-col gap-2">
                   <p className="text-base font-semibold text-ink group-hover:text-coral transition-colors">
                     {s.name}

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 
 function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString("th-TH", {
@@ -110,7 +111,7 @@ export default async function PerformancesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-xs font-bold tracking-[1.5px] uppercase text-muted mb-1">งานแสดง</p>
+          <Eyebrow className="mb-1">งานแสดง</Eyebrow>
           <h1 className="text-2xl font-bold text-ink">งานแสดง · Performances</h1>
         </div>
         {isAdmin && (
@@ -122,9 +123,7 @@ export default async function PerformancesPage() {
 
       {/* Upcoming */}
       <section className="mb-10">
-        <h2 className="text-xs font-bold tracking-[1.5px] uppercase text-muted mb-3">
-          ที่กำลังจะมา · Upcoming
-        </h2>
+        <Eyebrow as="h2" className="mb-3">ที่กำลังจะมา · Upcoming</Eyebrow>
         {upcoming.length === 0 ? (
           <Card>
             <p className="text-muted text-sm">ไม่มีงานแสดงที่กำลังจะมา</p>
@@ -141,9 +140,7 @@ export default async function PerformancesPage() {
       {/* History */}
       {past.length > 0 && (
         <section>
-          <h2 className="text-xs font-bold tracking-[1.5px] uppercase text-muted mb-3">
-            ประวัติการแสดง · History
-          </h2>
+          <Eyebrow as="h2" className="mb-3">ประวัติการแสดง · History</Eyebrow>
           <div className="flex flex-col gap-3">
             {past.map((p) => (
               <PerformanceCard key={p.id} p={p} past />

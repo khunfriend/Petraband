@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Eyebrow } from "@/components/ui/Eyebrow";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString("th-TH", {
@@ -122,9 +123,16 @@ export default async function PerformancesPage() {
       <section className="mb-10">
         <Eyebrow as="h2" className="mb-3">ที่กำลังจะมา</Eyebrow>
         {upcoming.length === 0 ? (
-          <Card>
-            <p className="text-muted text-sm">ไม่มีงานแสดงที่กำลังจะมา</p>
-          </Card>
+          <EmptyState
+            icon="🎵"
+            title="ไม่มีงานแสดงที่กำลังจะมา"
+            description={isAdmin ? "สร้างงานแสดงใหม่เพื่อเริ่มวางแผนซ้อมและจัดคิว" : undefined}
+            action={isAdmin ? (
+              <Link href="/performances/create">
+                <Button variant="coral" size="sm">+ สร้างงานแสดง</Button>
+              </Link>
+            ) : undefined}
+          />
         ) : (
           <div className="flex flex-col gap-3">
             {upcoming.map((p) => (
@@ -146,11 +154,6 @@ export default async function PerformancesPage() {
         </section>
       )}
 
-      {performances.length === 0 && (
-        <Card>
-          <p className="text-muted text-sm">ยังไม่มีงานแสดง</p>
-        </Card>
-      )}
     </div>
   );
 }

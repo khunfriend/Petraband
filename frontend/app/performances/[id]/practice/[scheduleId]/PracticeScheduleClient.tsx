@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import PracticeGrid from "@/components/practice/PracticeGrid";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 
 type Availability = {
   id: string;
@@ -87,6 +89,8 @@ export default function PracticeScheduleClient({
 }: Props) {
   const canEdit = isAdmin || isHead;
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [responseStatus, setResponseStatus] = useState<ResponseStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -165,7 +169,7 @@ export default function PracticeScheduleClient({
         router.refresh();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`เพิ่มวันไม่สำเร็จ: ${err.error ?? res.status}`);
+        toast.error(`เพิ่มวันไม่สำเร็จ: ${err.error ?? res.status}`);
       }
     } finally {
       setBusy(false);
@@ -173,12 +177,22 @@ export default function PracticeScheduleClient({
   }
 
   async function deleteDay(dayId: string) {
-    if (!confirm("ลบวันนี้ ยืนยันมั้ย? (ข้อมูลการตอบรับในวันนี้จะหายทั้งหมด)")) return;
+    const ok = await confirm({
+      title: "ลบวัน",
+      message: "ลบวันนี้ออกจากตารางซ้อม? ข้อมูลการตอบรับในวันนี้จะหายทั้งหมด",
+      confirmLabel: "ลบวัน",
+      variant: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/practice-days/${dayId}`, { method: "DELETE" });
-      if (res.ok) router.refresh();
-      else alert("ลบไม่สำเร็จ");
+      if (res.ok) {
+        toast.success("ลบวันแล้ว");
+        router.refresh();
+      } else {
+        toast.error("ลบไม่สำเร็จ");
+      }
     } finally {
       setBusy(false);
     }
@@ -198,7 +212,7 @@ export default function PracticeScheduleClient({
         setNewSlot({ startTime: "18:00", endTime: "20:00", label: "" });
         router.refresh();
       } else {
-        alert("เพิ่มช่วงเวลาไม่สำเร็จ");
+        toast.error("เพิ่มช่วงเวลาไม่สำเร็จ");
       }
     } finally {
       setBusy(false);
@@ -206,12 +220,22 @@ export default function PracticeScheduleClient({
   }
 
   async function deleteSlot(slotId: string) {
-    if (!confirm("ลบช่วงเวลานี้ ยืนยันมั้ย?")) return;
+    const ok = await confirm({
+      title: "ลบช่วงเวลา",
+      message: "ลบช่วงเวลานี้ออกจากวันซ้อม?",
+      confirmLabel: "ลบ",
+      variant: "danger",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/practice-slots/${slotId}`, { method: "DELETE" });
-      if (res.ok) router.refresh();
-      else alert("ลบไม่สำเร็จ");
+      if (res.ok) {
+        toast.success("ลบช่วงเวลาแล้ว");
+        router.refresh();
+      } else {
+        toast.error("ลบไม่สำเร็จ");
+      }
     } finally {
       setBusy(false);
     }

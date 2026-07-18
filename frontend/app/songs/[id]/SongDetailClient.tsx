@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 import { NotationGrid, type SheetData } from "@/components/songs/NotationGrid";
 
 interface Props {
@@ -48,6 +49,7 @@ function mmSsToSeconds(value: string): number | null {
 }
 
 export default function SongDetailClient({ song, isAdmin }: Props) {
+  const toast = useToast();
   const [editMode, setEditMode] = useState(false);
   const [sheetData, setSheetData] = useState<SheetData>(
     (song.sheetData as SheetData) ?? { rows: [] }
@@ -73,9 +75,9 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
     if (res.ok) {
       window.location.href = "/songs";
     } else {
-      alert("ลบเพลงไม่สำเร็จ กรุณาลองใหม่");
+      toast.error("ลบเพลงไม่สำเร็จ กรุณาลองใหม่");
     }
-  }, [song.id, song.title, deleteConfirmInput]);
+  }, [song.id, song.title, deleteConfirmInput, toast]);
 
   const handleOpenNotebook = useCallback(async () => {
     setOpeningNotebook(true);

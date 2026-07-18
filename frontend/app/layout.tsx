@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { TopNav } from "@/components/TopNav";
 import { SessionProvider } from "@/components/SessionProvider";
+import { ToastProvider } from "@/components/ui/Toast";
+import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
 import { auth } from "@/auth";
 import "./globals.css";
 
@@ -19,10 +21,14 @@ export default async function RootLayout({
     <html lang="th" className="h-full">
       <body className="min-h-full flex flex-col bg-canvas text-ink antialiased">
         <SessionProvider session={session}>
-          <TopNav />
-          <main className="flex-1 flex flex-col w-full">
-            {children}
-          </main>
+          <ToastProvider>
+            <ConfirmProvider>
+              <TopNav />
+              <main className="flex-1 flex flex-col w-full">
+                {children}
+              </main>
+            </ConfirmProvider>
+          </ToastProvider>
         </SessionProvider>
       </body>
     </html>

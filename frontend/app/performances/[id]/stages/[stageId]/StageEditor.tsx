@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 import { getInstrumentColor as getColors } from "@/lib/instrumentColors";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -157,6 +159,8 @@ function snap(v: number, grid = 0.1) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export default function StageEditor({ stageId, initialStage, instruments, isAdmin }: Props) {
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [stage, setStage] = useState<StageData>(initialStage);
   const [items, setItems] = useState<StageItemData[]>(initialStage.items);
@@ -311,6 +315,9 @@ export default function StageEditor({ stageId, initialStage, instruments, isAdmi
         setDirty(false);
         setShowSaveDialog(false);
         setChangeNote("");
+        toast.success("บันทึกผังเวทีแล้ว");
+      } else {
+        toast.error("บันทึกไม่สำเร็จ");
       }
     } finally {
       setSaving(false);
@@ -331,7 +338,13 @@ export default function StageEditor({ stageId, initialStage, instruments, isAdmi
       (it) => it.x + it.instrument.footprintW > w || it.y + it.instrument.footprintH > h
     );
     if (outOfBounds.length > 0) {
-      if (!confirm(`${outOfBounds.length} ชิ้นจะอยู่นอกขอบเวที ยืนยันหรือไม่?`)) return;
+      const ok = await confirm({
+        title: "ปรับขนาดเวที",
+        message: `${outOfBounds.length} ชิ้นจะอยู่นอกขอบเวทีใหม่ ต้องการดำเนินการต่อหรือไม่?`,
+        confirmLabel: "ปรับขนาด",
+        variant: "danger",
+      });
+      if (!ok) return;
     }
     setSizeUpdating(true);
     try {
@@ -376,7 +389,12 @@ export default function StageEditor({ stageId, initialStage, instruments, isAdmi
   }
 
   async function restoreVersion(version: VersionEntry) {
-    if (!confirm(`กู้คืนเวอร์ชัน #${version.versionNumber}?`)) return;
+    const ok = await confirm({
+      title: "กู้คืนเวอร์ชัน",
+      message: `กู้คืนเวอร์ชัน #${version.versionNumber}? การเปลี่ยนแปลงปัจจุบันจะถูกทับ`,
+      confirmLabel: "กู้คืน",
+    });
+    if (!ok) return;
     setRestoring(true);
     try {
       const res = await fetch(`/api/stages/${stageId}/versions/${version.id}/restore`, {

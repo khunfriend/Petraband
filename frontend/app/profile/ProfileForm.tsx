@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { useToast } from "@/components/ui/Toast";
 import Image from "next/image";
 
 interface Instrument {
@@ -39,6 +40,7 @@ function getGenerations() {
 }
 
 export default function ProfileForm({ user, instruments }: Props) {
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState(user.nickname);
   const [firstName, setFirstName] = useState(user.firstName ?? "");
@@ -76,7 +78,7 @@ export default function ProfileForm({ user, instruments }: Props) {
         setAvatarUrl(data.url);
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "อัปโหลดรูปไม่สำเร็จ");
+        toast.error(data.error || "อัปโหลดรูปไม่สำเร็จ");
         setAvatarPreview(user.avatarUrl);
       }
     } finally {

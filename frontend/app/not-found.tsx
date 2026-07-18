@@ -1,11 +1,24 @@
 import Link from "next/link";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 
 export default function NotFound() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <h1 className="text-4xl font-bold text-ink">404</h1>
-      <p className="text-muted">ไม่พบหน้าที่คุณต้องการ</p>
-      <Link href="/dashboard" className="text-coral hover:underline text-sm">กลับหน้าหลัก →</Link>
+    <div className="flex-1 flex items-center justify-center px-4 py-16">
+      <Card className="w-full max-w-md text-center">
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-5xl font-bold text-coral leading-none">404</p>
+          <h1 className="text-xl font-bold text-ink">ไม่พบหน้าที่คุณต้องการ</h1>
+          <p className="text-sm text-muted leading-relaxed">
+            หน้าอาจถูกย้ายหรือลบไปแล้ว ลองกลับไปหน้าหลักหรือย้อนกลับ
+          </p>
+          <div className="flex gap-2 mt-2">
+            <Link href="/">
+              <Button variant="primary" size="sm">กลับหน้าหลัก</Button>
+            </Link>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

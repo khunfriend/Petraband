@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 import { getInstrumentColor } from "@/lib/instrumentColors";
 
 // ─── Types ─────────────────────────────────────────────────
@@ -273,6 +275,8 @@ export default function PerformanceClient({
   practiceSchedules: PracticeScheduleEntry[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [performance, setPerformance] = useState(initial);
   const [participants, setParticipants] = useState(initialParticipants);
   const [hasJoined, setHasJoined] = useState(initialHasJoined);
@@ -298,9 +302,10 @@ export default function PerformanceClient({
       if (res.ok) {
         setPerformance((prev) => ({ ...prev, equipmentNotes: { ...notesForm } }));
         setEditingNotes(false);
+        toast.success("บันทึกหมายเหตุอุปกรณ์แล้ว");
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`บันทึกไม่สำเร็จ: ${err.error ?? res.status}`);
+        toast.error(`บันทึกไม่สำเร็จ: ${err.error ?? res.status}`);
       }
     } finally {
       setNotesLoading(false);
@@ -494,8 +499,13 @@ export default function PerformanceClient({
     try {
       const method = hasJoined ? "DELETE" : "POST";
       const res = await fetch(`/api/performances/${performance.id}/join`, { method });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "ไม่สำเร็จ");
+        return;
+      }
       setHasJoined((v) => !v);
+      toast.success(hasJoined ? "ยกเลิกการเข้าร่วมแล้ว" : "เข้าร่วมงานแสดงแล้ว");
       const membersRes = await fetch(`/api/performances/${performance.id}/members`);
       if (membersRes.ok) {
         const data = await membersRes.json();
@@ -508,12 +518,20 @@ export default function PerformanceClient({
 
   // ── Delete ────────────────────────────────────────────────
   async function deletePerformance() {
-    if (!confirm(`ลบงานแสดง "${performance.name}" ใช่หรือไม่?`)) return;
+    const ok = await confirm({
+      title: "ลบงานแสดง",
+      message: `ต้องการลบ "${performance.name}" ใช่หรือไม่? ข้อมูลการเข้าร่วมทั้งหมดจะหายไป`,
+      confirmLabel: "ลบ",
+      variant: "danger",
+    });
+    if (!ok) return;
     setDeleteLoading(true);
     const res = await fetch(`/api/performances/${performance.id}`, { method: "DELETE" });
     if (res.ok) {
+      toast.success("ลบงานแสดงแล้ว");
       router.push("/performances");
     } else {
+      toast.error("ลบไม่สำเร็จ");
       setDeleteLoading(false);
     }
   }

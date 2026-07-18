@@ -701,14 +701,33 @@ export default function PerformanceClient({
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-ink">{performance.name}</h1>
         <div className="flex gap-2 shrink-0 items-center">
-          <Button
-            size="sm"
-            variant={hasJoined ? "secondary" : "coral"}
-            onClick={toggleJoin}
-            disabled={joinLoading}
-          >
-            {joinLoading ? "..." : hasJoined ? "✓ เข้าร่วมแล้ว" : "เข้าร่วม"}
-          </Button>
+          {(() => {
+            const hasEnded = (() => {
+              if (performance.dates.length === 0) return false;
+              const latest = new Date(performance.dates[performance.dates.length - 1].date);
+              latest.setHours(0, 0, 0, 0);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              return latest.getTime() < today.getTime();
+            })();
+            if (hasEnded) {
+              return (
+                <span className="inline-flex items-center h-9 px-3 rounded-[var(--radius-md)] border border-hairline-soft bg-surface-cream-strong text-sm text-muted">
+                  งานแสดงสิ้นสุดแล้ว
+                </span>
+              );
+            }
+            return (
+              <Button
+                size="sm"
+                variant={hasJoined ? "secondary" : "coral"}
+                onClick={toggleJoin}
+                disabled={joinLoading}
+              >
+                {joinLoading ? "..." : hasJoined ? "✓ เข้าร่วมแล้ว" : "เข้าร่วม"}
+              </Button>
+            );
+          })()}
           {canEdit && (
             <a
               href={`/api/performances/${performance.id}/export`}

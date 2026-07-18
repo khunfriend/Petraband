@@ -324,6 +324,8 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     []
   );
 
+  const dragStartRef = useRef<CellRef | null>(null);
+
   const handleCellMouseDown = useCallback(
     (e: React.MouseEvent, row: number, col: number) => {
       if (editingCell) return;
@@ -340,10 +342,29 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         setAnchor({ row, col });
       } else {
         selectSingle(row, col);
+        dragStartRef.current = { row, col };
       }
     },
     [editingCell, anchor, selectRange, selectSingle]
   );
+
+  const handleCellMouseEnter = useCallback(
+    (row: number, col: number) => {
+      const start = dragStartRef.current;
+      if (!start) return;
+      if (start.row === row && start.col === col) return;
+      selectRange(start.row, start.col, row, col);
+    },
+    [selectRange]
+  );
+
+  useEffect(() => {
+    const onUp = () => {
+      dragStartRef.current = null;
+    };
+    window.addEventListener("mouseup", onUp);
+    return () => window.removeEventListener("mouseup", onUp);
+  }, []);
 
   // ============ Editing ============
 
@@ -880,6 +901,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                     rowSpan={merge ? merge.endRow - merge.startRow + 1 : undefined}
                     colSpan={merge ? merge.endCol - merge.startCol + 1 : undefined}
                     onMouseDown={(e) => handleCellMouseDown(e, r, c)}
+                    onMouseEnter={() => handleCellMouseEnter(r, c)}
                     onDoubleClick={() => startEditing(r, c)}
                     className={cn(
                       "border border-hairline cursor-cell relative",

@@ -10,8 +10,21 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
   const { id } = await params;
 
-  const performance = await prisma.performance.findUnique({ where: { id } });
+  const performance = await prisma.performance.findUnique({
+    where: { id },
+    include: { dates: { orderBy: { date: "desc" }, take: 1 } },
+  });
   if (!performance) return NextResponse.json({ error: "ไม่พบงานแสดง" }, { status: 404 });
+
+  if (performance.dates.length > 0) {
+    const latest = new Date(performance.dates[0].date);
+    latest.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (latest.getTime() < today.getTime()) {
+      return NextResponse.json({ error: "งานแสดงสิ้นสุดแล้ว" }, { status: 400 });
+    }
+  }
 
   await prisma.$executeRaw`
     INSERT INTO "PerformanceMember" ("id", "userId", "performanceId", "position", "joinedAt")

@@ -11,7 +11,7 @@ export default async function StageEditorPage({ params }: Params) {
   const session = await auth();
   const isAdmin = session?.user.role === "ADMIN";
 
-  const [stage, instruments, performance] = await Promise.all([
+  const [stage, instruments, performance, members] = await Promise.all([
     prisma.stageLayout.findUnique({
       where: { id: stageId },
       include: {
@@ -47,9 +47,30 @@ export default async function StageEditorPage({ params }: Params) {
       where: { id: performanceId },
       select: { id: true, name: true },
     }),
+    prisma.performanceMember.findMany({
+      where: { performanceId, position: "" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            generation: true,
+            primaryInstrumentId: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: "asc" },
+    }),
   ]);
 
   if (!stage || !performance) notFound();
+
+  const participants = members.map((m) => ({
+    userId: m.user.id,
+    nickname: m.user.nickname,
+    generation: m.user.generation,
+    primaryInstrumentId: m.user.primaryInstrumentId,
+  }));
 
   return (
     <div className="w-full max-w-[1400px] mx-auto px-4 py-4">
@@ -87,6 +108,7 @@ export default async function StageEditorPage({ params }: Params) {
           })),
         }}
         instruments={instruments}
+        participants={participants}
         isAdmin={isAdmin}
       />
     </div>

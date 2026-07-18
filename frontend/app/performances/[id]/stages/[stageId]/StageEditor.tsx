@@ -47,11 +47,19 @@ type VersionEntry = {
   createdBy: { nickname: string } | null;
 };
 
+type Participant = {
+  userId: string;
+  nickname: string;
+  generation: string;
+  primaryInstrumentId: string | null;
+};
+
 type Props = {
   stageId: string;
   performanceId: string;
   initialStage: StageData;
   instruments: InstrumentInfo[];
+  participants: Participant[];
   isAdmin: boolean;
 };
 
@@ -77,8 +85,8 @@ function InstrumentIcon({ iconType, color }: { iconType: string; color: { bg: st
           {Array.from({ length: 14 }).map((_, i) => {
             const angle = (i * 360) / 14;
             const rad = (angle * Math.PI) / 180;
-            const cx = 50 + 34 * Math.cos(rad);
-            const cy = 50 + 34 * Math.sin(rad);
+            const cx = (50 + 34 * Math.cos(rad)).toFixed(3);
+            const cy = (50 + 34 * Math.sin(rad)).toFixed(3);
             return <circle key={i} cx={cx} cy={cy} r="5" fill={color.border} opacity="0.85"/>;
           })}
           <circle cx="50" cy="50" r="8" fill={color.border} opacity="0.5"/>
@@ -158,13 +166,14 @@ function snap(v: number, grid = 0.1) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export default function StageEditor({ stageId, initialStage, instruments, isAdmin }: Props) {
+export default function StageEditor({ stageId, initialStage, instruments, participants, isAdmin }: Props) {
   const confirm = useConfirm();
   const toast = useToast();
 
   const [stage, setStage] = useState<StageData>(initialStage);
   const [items, setItems] = useState<StageItemData[]>(initialStage.items);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showMemberPicker, setShowMemberPicker] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [snapGrid, setSnapGrid] = useState(0.1);
   const newItemCounter = useRef(0);
@@ -266,8 +275,28 @@ export default function StageEditor({ stageId, initialStage, instruments, isAdmi
 
   function deleteItem(id: string) {
     setItems((prev) => prev.filter((it) => it.id !== id));
-    if (selectedId === id) setSelectedId(null);
+    if (selectedId === id) {
+      setSelectedId(null);
+      setShowMemberPicker(false);
+    }
     setDirty(true);
+  }
+
+  function setItemLabel(id: string, label: string) {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, label } : it)));
+    setDirty(true);
+  }
+
+  // Close picker when selection changes / is cleared
+  useEffect(() => {
+    if (!selectedId) setShowMemberPicker(false);
+  }, [selectedId]);
+
+  // Which member is currently assigned to which stage item (by label match)
+  const assignedByUser = new Map<string, string>();
+  for (const it of items) {
+    const p = participants.find((pp) => pp.nickname === it.label);
+    if (p) assignedByUser.set(p.userId, it.id);
   }
 
   // ── Save ────────────────────────────────────────────────────────────────────
@@ -687,10 +716,12 @@ export default function StageEditor({ stageId, initialStage, instruments, isAdmi
                 const selected = selectedId === item.id;
                 const w = (instr?.footprintW ?? 1) * cellW;
                 const h = (instr?.footprintH ?? 1) * cellH;
+                const centerX = item.x * cellW + w / 2;
+                const bottomY = item.y * cellH + h;
 
                 return (
+                  <div key={item.id} style={{ display: "contents" }}>
                   <div
-                    key={item.id}
                     style={{
                       position: "absolute",
                       left: item.x * cellW,
@@ -721,33 +752,120 @@ export default function StageEditor({ stageId, initialStage, instruments, isAdmi
                         className="text-center leading-tight font-medium mt-0.5 px-0.5 truncate w-full"
                         style={{ fontSize: Math.max(8, Math.min(11, h * 0.18)), color: colors.text }}
                       >
-                        {instr?.nameThai ?? item.label}
+                        {instr?.nameThai ?? ""}
                       </span>
                     </div>
 
+
                     {/* Controls when selected */}
                     {selected && isAdmin && (
-                      <div
-                        className="absolute flex gap-1 z-30"
-                        style={{ top: -28, left: "50%", transform: "translateX(-50%)" }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={(e) => { e.stopPropagation(); rotateItem(item.id); }}
-                          className="w-6 h-6 rounded bg-primary text-white text-xs flex items-center justify-center hover:bg-primary-active shadow"
-                          title="หมุน 90°"
+                      <>
+                        <div
+                          className="absolute flex gap-1 z-30"
+                          style={{ top: -28, left: "50%", transform: "translateX(-50%)" }}
+                          onPointerDown={(e) => e.stopPropagation()}
                         >
-                          ↻
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
-                          className="w-6 h-6 rounded bg-error text-white text-xs flex items-center justify-center hover:opacity-80 shadow"
-                          title="ลบ"
-                        >
-                          ✕
-                        </button>
-                      </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); rotateItem(item.id); }}
+                            className="w-6 h-6 rounded bg-primary text-white text-xs flex items-center justify-center hover:bg-primary-active shadow"
+                            title="หมุน 90°"
+                          >
+                            ↻
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setShowMemberPicker((v) => !v); }}
+                            className={`w-6 h-6 rounded text-xs flex items-center justify-center shadow ${
+                              item.label
+                                ? "bg-coral text-white hover:opacity-80"
+                                : "bg-surface-card border border-hairline text-ink hover:border-coral"
+                            }`}
+                            title="กำหนดสมาชิก"
+                          >
+                            👤
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
+                            className="w-6 h-6 rounded bg-error text-white text-xs flex items-center justify-center hover:opacity-80 shadow"
+                            title="ลบ"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        {showMemberPicker && (
+                          <div
+                            className="absolute z-40 bg-surface-card border border-hairline rounded-[var(--radius-md)] p-2 w-52 max-h-64 overflow-y-auto"
+                            style={{ top: h + 6, left: "50%", transform: "translateX(-50%)" }}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <p className="text-[11px] font-semibold text-muted uppercase tracking-[1.5px] px-1 pb-1">
+                              สมาชิกที่เข้าร่วม
+                            </p>
+                            {participants.length === 0 ? (
+                              <p className="text-xs text-muted-soft px-1 py-2">
+                                ยังไม่มีสมาชิกในงานแสดง
+                              </p>
+                            ) : (
+                              <>
+                                {item.label && (
+                                  <button
+                                    onClick={() => { setItemLabel(item.id, ""); setShowMemberPicker(false); }}
+                                    className="w-full text-left text-xs px-2 py-1 rounded hover:bg-surface-cream-strong text-error"
+                                  >
+                                    เอาออก ({item.label})
+                                  </button>
+                                )}
+                                {participants.map((p) => {
+                                  const assignedTo = assignedByUser.get(p.userId);
+                                  const isHere = assignedTo === item.id;
+                                  const isElsewhere = assignedTo && !isHere;
+                                  return (
+                                    <button
+                                      key={p.userId}
+                                      onClick={() => { setItemLabel(item.id, p.nickname); setShowMemberPicker(false); }}
+                                      disabled={isHere}
+                                      className={`w-full text-left text-xs px-2 py-1 rounded flex items-center justify-between gap-2 ${
+                                        isHere
+                                          ? "bg-coral/10 text-coral cursor-default"
+                                          : "hover:bg-surface-cream-strong text-ink"
+                                      }`}
+                                    >
+                                      <span className="truncate">
+                                        {p.nickname}
+                                        <span className="text-muted-soft ml-1">·{p.generation}</span>
+                                      </span>
+                                      {isElsewhere && <span className="text-[10px] text-muted-soft shrink-0">อยู่แล้ว</span>}
+                                      {isHere && <span className="text-[10px] shrink-0">✓</span>}
+                                    </button>
+                                  );
+                                })}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </>
                     )}
+                  </div>
+
+                  {/* Member label — sibling, unaffected by item rotation, centered under item */}
+                  {item.label && (
+                    <div
+                      className="absolute pointer-events-none flex justify-center"
+                      style={{
+                        left: centerX,
+                        top: bottomY + 6,
+                        transform: "translateX(-50%)",
+                        zIndex: selected ? 21 : (item.layerOrder + 1),
+                      }}
+                    >
+                      <span
+                        className="inline-block bg-surface-card border border-hairline text-ink text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                        title={item.label}
+                      >
+                        {item.label}
+                      </span>
+                    </div>
+                  )}
                   </div>
                 );
               })}

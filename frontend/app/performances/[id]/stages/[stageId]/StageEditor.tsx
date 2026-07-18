@@ -20,13 +20,16 @@ type InstrumentInfo = {
 
 type StageItemData = {
   id: string;
-  instrumentId: string;
+  instrumentId: string | null;
   x: number;
   y: number;
   rotation: number;
   layerOrder: number;
   label: string;
-  instrument: InstrumentInfo;
+  customName: string | null;
+  customWidth: number | null;
+  customHeight: number | null;
+  instrument: InstrumentInfo | null;
 };
 
 type StageData = {
@@ -174,6 +177,9 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
   const [items, setItems] = useState<StageItemData[]>(initialStage.items);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showMemberPicker, setShowMemberPicker] = useState(false);
+  const [equipmentInput, setEquipmentInput] = useState("");
+  const [equipmentW, setEquipmentW] = useState("2");
+  const [equipmentH, setEquipmentH] = useState("1");
   const [dirty, setDirty] = useState(false);
   const [snapGrid, setSnapGrid] = useState(0.1);
   const newItemCounter = useRef(0);
@@ -231,9 +237,13 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
     setItems((prev) =>
       prev.map((it) => {
         if (it.id !== d.itemId) return it;
-        const instr = instruments.find((i) => i.id === it.instrumentId) ?? it.instrument;
-        const newX = snap(Math.max(0, Math.min(stage.widthUnits - instr.footprintW, d.origX + dx)), snapGrid);
-        const newY = snap(Math.max(0, Math.min(stage.heightUnits - instr.footprintH, d.origY + dy)), snapGrid);
+        const instr = it.instrumentId
+          ? (instruments.find((i) => i.id === it.instrumentId) ?? it.instrument)
+          : null;
+        const fpW = instr?.footprintW ?? it.customWidth ?? 2;
+        const fpH = instr?.footprintH ?? it.customHeight ?? 1;
+        const newX = snap(Math.max(0, Math.min(stage.widthUnits - fpW, d.origX + dx)), snapGrid);
+        const newY = snap(Math.max(0, Math.min(stage.heightUnits - fpH, d.origY + dy)), snapGrid);
         return { ...it, x: newX, y: newY };
       })
     );
@@ -258,7 +268,37 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
       rotation: 0,
       layerOrder: maxLayer + 1,
       label: "",
+      customName: null,
+      customWidth: null,
+      customHeight: null,
       instrument: instr,
+    };
+    setItems((prev) => [...prev, newItem]);
+    setSelectedId(newItem.id);
+    setDirty(true);
+  }
+
+  function addEquipment(name: string, widthInput: number, heightInput: number) {
+    if (!isAdmin) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const width = Math.max(0.5, Math.min(stage.widthUnits, widthInput || 2));
+    const height = Math.max(0.5, Math.min(stage.heightUnits, heightInput || 1));
+    const x = snap(Math.max(0, stage.widthUnits / 2 - width / 2), snapGrid);
+    const y = snap(Math.max(0, stage.heightUnits / 2 - height / 2), snapGrid);
+    const maxLayer = items.reduce((m, it) => Math.max(m, it.layerOrder), 0);
+    const newItem: StageItemData = {
+      id: `new-${++newItemCounter.current}`,
+      instrumentId: null,
+      x,
+      y,
+      rotation: 0,
+      layerOrder: maxLayer + 1,
+      label: "",
+      customName: trimmed,
+      customWidth: width,
+      customHeight: height,
+      instrument: null,
     };
     setItems((prev) => [...prev, newItem]);
     setSelectedId(newItem.id);
@@ -318,6 +358,9 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
             rotation: it.rotation,
             layerOrder: it.layerOrder ?? idx,
             label: it.label ?? "",
+            customName: it.customName,
+            customWidth: it.customWidth,
+            customHeight: it.customHeight,
           })),
           changeNote: changeNote.trim() || undefined,
         }),
@@ -328,16 +371,21 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
         const serverItems: StageItemData[] = data.stage.items.map(
           (si: {
             id: string;
-            instrumentId: string;
+            instrumentId: string | null;
             x: number;
             y: number;
             rotation: number;
             layerOrder: number;
             label: string;
-            instrument: InstrumentInfo;
+            customName: string | null;
+            customWidth: number | null;
+            customHeight: number | null;
+            instrument: InstrumentInfo | null;
           }) => ({
             ...si,
-            instrument: instruments.find((i) => i.id === si.instrumentId) ?? si.instrument,
+            instrument: si.instrumentId
+              ? (instruments.find((i) => i.id === si.instrumentId) ?? si.instrument)
+              : null,
           })
         );
         setItems(serverItems);
@@ -363,9 +411,11 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
   async function saveSize() {
     const w = parseFloat(editW) || stage.widthUnits;
     const h = parseFloat(editH) || stage.heightUnits;
-    const outOfBounds = items.filter(
-      (it) => it.x + it.instrument.footprintW > w || it.y + it.instrument.footprintH > h
-    );
+    const outOfBounds = items.filter((it) => {
+      const fpW = it.instrument?.footprintW ?? it.customWidth ?? 2;
+      const fpH = it.instrument?.footprintH ?? it.customHeight ?? 1;
+      return it.x + fpW > w || it.y + fpH > h;
+    });
     if (outOfBounds.length > 0) {
       const ok = await confirm({
         title: "ปรับขนาดเวที",
@@ -477,12 +527,15 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
 
   // ── Preview canvas for a version ────────────────────────────────────────────
   type SnapshotItem = {
-    instrumentId: string;
+    instrumentId: string | null;
     x: number;
     y: number;
     rotation: number;
     layerOrder: number;
     label: string;
+    customName?: string | null;
+    customWidth?: number | null;
+    customHeight?: number | null;
   };
 
   function renderVersionPreview(version: VersionEntry) {
@@ -498,9 +551,11 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
         style={{ width: previewW, height: previewH, background: "#e8e0d0" }}
       >
         {snap.map((si, idx) => {
-          const instr = instruments.find((i) => i.id === si.instrumentId);
-          if (!instr) return null;
-          const colors = getColors(instr.iconType);
+          const instr = si.instrumentId ? instruments.find((i) => i.id === si.instrumentId) : null;
+          const isCustom = !instr;
+          const colors = instr ? getColors(instr.iconType) : { bg: "#f1f5f9", border: "#94a3b8", text: "#334155" };
+          const fpW = instr?.footprintW ?? si.customWidth ?? 2;
+          const fpH = instr?.footprintH ?? si.customHeight ?? 1;
           return (
             <div
               key={idx}
@@ -508,12 +563,12 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                 position: "absolute",
                 left: si.x * cW,
                 top: si.y * cH,
-                width: instr.footprintW * cW,
-                height: instr.footprintH * cH,
+                width: fpW * cW,
+                height: fpH * cH,
                 transform: `rotate(${si.rotation}deg)`,
                 transformOrigin: "center",
-                background: colors.bg,
-                border: `1px solid ${colors.border}`,
+                background: isCustom ? "transparent" : colors.bg,
+                border: `1px ${isCustom ? "dashed" : "solid"} ${colors.border}`,
                 borderRadius: 3,
               }}
             />
@@ -688,6 +743,61 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                 );
               })}
             </div>
+
+            <p className="text-[11px] font-semibold text-muted uppercase tracking-[1.5px] px-3 pt-2 pb-2 border-t border-hairline-soft">
+              อุปกรณ์
+            </p>
+            <div className="px-2 pb-4 flex flex-col gap-2">
+              <input
+                type="text"
+                value={equipmentInput}
+                onChange={(e) => setEquipmentInput(e.target.value)}
+                placeholder="เช่น โต๊ะ, ไมค์"
+                className="w-full px-2 py-1.5 text-xs border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && equipmentInput.trim()) {
+                    addEquipment(equipmentInput, parseFloat(equipmentW), parseFloat(equipmentH));
+                    setEquipmentInput("");
+                  }
+                }}
+              />
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  value={equipmentW}
+                  onChange={(e) => setEquipmentW(e.target.value)}
+                  min="0.5"
+                  step="0.5"
+                  aria-label="กว้าง"
+                  className="w-full min-w-0 px-2 py-1.5 text-xs border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral"
+                />
+                <span className="text-xs text-muted-soft shrink-0">×</span>
+                <input
+                  type="number"
+                  value={equipmentH}
+                  onChange={(e) => setEquipmentH(e.target.value)}
+                  min="0.5"
+                  step="0.5"
+                  aria-label="ยาว"
+                  className="w-full min-w-0 px-2 py-1.5 text-xs border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral"
+                />
+                <span className="text-[10px] text-muted-soft shrink-0">{stage.unitLabel}</span>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  addEquipment(equipmentInput, parseFloat(equipmentW), parseFloat(equipmentH));
+                  setEquipmentInput("");
+                }}
+                disabled={!equipmentInput.trim()}
+              >
+                + เพิ่ม
+              </Button>
+              <p className="text-[10px] text-muted-soft px-1 leading-relaxed">
+                อุปกรณ์นี้อยู่ในผังนี้เท่านั้น ไม่ข้ามงานแสดงอื่น
+              </p>
+            </div>
           </div>
         )}
 
@@ -711,11 +821,16 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
               onClick={(e) => { e.stopPropagation(); setSelectedId(null); }}
             >
               {items.map((item) => {
-                const instr = instruments.find((i) => i.id === item.instrumentId) ?? item.instrument;
+                const instr = item.instrumentId
+                  ? (instruments.find((i) => i.id === item.instrumentId) ?? item.instrument)
+                  : null;
+                const isCustom = !instr;
                 const colors = getColors(instr?.iconType ?? "default");
                 const selected = selectedId === item.id;
-                const w = (instr?.footprintW ?? 1) * cellW;
-                const h = (instr?.footprintH ?? 1) * cellH;
+                const fpW = instr?.footprintW ?? item.customWidth ?? 2;
+                const fpH = instr?.footprintH ?? item.customHeight ?? 1;
+                const w = fpW * cellW;
+                const h = fpH * cellH;
                 const centerX = item.x * cellW + w / 2;
                 const bottomY = item.y * cellH + h;
 
@@ -740,20 +855,32 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                     <div
                       className="w-full h-full rounded flex flex-col items-center justify-center overflow-hidden"
                       style={{
-                        background: colors.bg,
-                        border: `${selected ? "2px" : "1px"} solid ${selected ? "#dd5085" : colors.border}`,
+                        background: isCustom ? "transparent" : colors.bg,
+                        border: `${selected ? "2px" : "1px"} ${isCustom ? "dashed" : "solid"} ${selected ? "#dd5085" : (isCustom ? "#5c6b80" : colors.border)}`,
                         boxShadow: selected ? "0 0 0 3px rgba(221,80,133,0.25)" : undefined,
                       }}
                     >
-                      <div style={{ width: "80%", height: "60%" }}>
-                        <InstrumentIcon iconType={instr?.iconType ?? "default"} color={colors} />
-                      </div>
-                      <span
-                        className="text-center leading-tight font-medium mt-0.5 px-0.5 truncate w-full"
-                        style={{ fontSize: Math.max(8, Math.min(11, h * 0.18)), color: colors.text }}
-                      >
-                        {instr?.nameThai ?? ""}
-                      </span>
+                      {isCustom ? (
+                        <span
+                          className="text-center leading-tight font-semibold px-1 truncate w-full text-ink"
+                          style={{ fontSize: Math.max(10, Math.min(16, h * 0.28)) }}
+                          title={item.customName ?? ""}
+                        >
+                          {item.customName}
+                        </span>
+                      ) : (
+                        <>
+                          <div style={{ width: "80%", height: "60%" }}>
+                            <InstrumentIcon iconType={instr?.iconType ?? "default"} color={colors} />
+                          </div>
+                          <span
+                            className="text-center leading-tight font-medium mt-0.5 px-0.5 truncate w-full"
+                            style={{ fontSize: Math.max(8, Math.min(11, h * 0.18)), color: colors.text }}
+                          >
+                            {instr?.nameThai ?? ""}
+                          </span>
+                        </>
+                      )}
                     </div>
 
 
@@ -772,17 +899,19 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                           >
                             ↻
                           </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setShowMemberPicker((v) => !v); }}
-                            className={`w-6 h-6 rounded text-xs flex items-center justify-center shadow ${
-                              item.label
-                                ? "bg-coral text-white hover:opacity-80"
-                                : "bg-surface-card border border-hairline text-ink hover:border-coral"
-                            }`}
-                            title="กำหนดสมาชิก"
-                          >
-                            👤
-                          </button>
+                          {!isCustom && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setShowMemberPicker((v) => !v); }}
+                              className={`w-6 h-6 rounded text-xs flex items-center justify-center shadow ${
+                                item.label
+                                  ? "bg-coral text-white hover:opacity-80"
+                                  : "bg-surface-card border border-hairline text-ink hover:border-coral"
+                              }`}
+                              title="กำหนดสมาชิก"
+                            >
+                              👤
+                            </button>
+                          )}
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
                             className="w-6 h-6 rounded bg-error text-white text-xs flex items-center justify-center hover:opacity-80 shadow"
@@ -791,7 +920,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                             ✕
                           </button>
                         </div>
-                        {showMemberPicker && (
+                        {showMemberPicker && !isCustom && (
                           <div
                             className="absolute z-40 bg-surface-card border border-hairline rounded-[var(--radius-md)] p-2 w-52 max-h-64 overflow-y-auto"
                             style={{ top: h + 6, left: "50%", transform: "translateX(-50%)" }}
@@ -848,7 +977,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                   </div>
 
                   {/* Member label — sibling, unaffected by item rotation, centered under item */}
-                  {item.label && (
+                  {item.label && !isCustom && (
                     <div
                       className="absolute pointer-events-none flex justify-center"
                       style={{

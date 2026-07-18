@@ -3,6 +3,8 @@
 import { Fragment, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 
 type EquipmentCondition = "GOOD" | "FAIR" | "NEEDS_REPAIR" | "RETIRED";
 
@@ -226,6 +228,8 @@ function EquipmentForm({
 }
 
 export default function EquipmentClient({ equipment: initialEquipment, isAdmin }: Props) {
+  const confirm = useConfirm();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
 
   const [equipment, setEquipment] = useState<Equipment[]>(initialEquipment);
@@ -239,7 +243,6 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
 
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Client-side filtering
@@ -311,16 +314,28 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
   }
 
   async function handleDelete(id: string) {
+    const target = equipment.find((eq) => eq.id === id);
+    const name = target?.name ?? "";
+    const ok = await confirm({
+      title: "ลบอุปกรณ์",
+      message: `ต้องการลบอุปกรณ์ "${name}" ออกจากคลัง?`,
+      confirmLabel: "ลบอุปกรณ์",
+      variant: "danger",
+      requireText: name,
+    });
+    if (!ok) return;
     setError(null);
     startTransition(async () => {
       const res = await fetch(`/api/equipment/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error ?? "เกิดข้อผิดพลาด");
+        const msg = data.error ?? "เกิดข้อผิดพลาด";
+        setError(msg);
+        toast.error(msg);
         return;
       }
       setEquipment((prev) => prev.filter((eq) => eq.id !== id));
-      setDeleteConfirmId(null);
+      toast.success(`ลบ ${name} แล้ว`);
     });
   }
 
@@ -463,25 +478,15 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
                             >
                               แก้ไข
                             </Button>
-                            {deleteConfirmId === eq.id ? (
-                              <Button
-                                variant="coral"
-                                size="sm"
-                                onClick={() => handleDelete(eq.id)}
-                                disabled={isPending}
-                              >
-                                ยืนยันลบ
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="text"
-                                size="sm"
-                                className="text-error hover:bg-error/10"
-                                onClick={() => setDeleteConfirmId(eq.id)}
-                              >
-                                ลบ
-                              </Button>
-                            )}
+                            <Button
+                              variant="text"
+                              size="sm"
+                              className="text-error hover:bg-error/10"
+                              onClick={() => handleDelete(eq.id)}
+                              disabled={isPending}
+                            >
+                              ลบ
+                            </Button>
                           </div>
                         </td>
                       )}

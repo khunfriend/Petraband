@@ -6,12 +6,15 @@ import { canEditPerformance } from "@/lib/permissions";
 type Params = { params: Promise<{ stageId: string }> };
 
 type ItemInput = {
-  instrumentId: string;
+  instrumentId: string | null;
   x: number;
   y: number;
   rotation: number;
   layerOrder: number;
   label: string;
+  customName?: string | null;
+  customWidth?: number | null;
+  customHeight?: number | null;
 };
 
 export async function POST(req: Request, { params }: Params) {
@@ -53,12 +56,15 @@ export async function POST(req: Request, { params }: Params) {
       data: {
         items: {
           create: items.map((item, idx) => ({
-            instrumentId: item.instrumentId,
+            instrumentId: item.instrumentId ?? null,
             x: item.x,
             y: item.y,
             rotation: item.rotation ?? 0,
             layerOrder: item.layerOrder ?? idx,
             label: item.label ?? "",
+            customName: item.customName ?? null,
+            customWidth: item.customWidth ?? null,
+            customHeight: item.customHeight ?? null,
           })),
         },
       },

@@ -104,6 +104,9 @@ export default async function StageEditorPage({ params }: Params) {
             rotation: item.rotation,
             layerOrder: item.layerOrder,
             label: item.label ?? "",
+            customName: item.customName,
+            customWidth: item.customWidth,
+            customHeight: item.customHeight,
             instrument: item.instrument,
           })),
         }}

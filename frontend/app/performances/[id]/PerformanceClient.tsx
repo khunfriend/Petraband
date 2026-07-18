@@ -47,7 +47,10 @@ type StageItem = {
   y: number;
   rotation: number;
   label: string;
-  instrument: { id: string; name: string; nameThai: string; iconType: string; footprintW: number; footprintH: number };
+  customName?: string | null;
+  customWidth?: number | null;
+  customHeight?: number | null;
+  instrument: { id: string; name: string; nameThai: string; iconType: string; footprintW: number; footprintH: number } | null;
 };
 
 type StageLayout = {
@@ -118,29 +121,32 @@ function MiniStagePreview({ layout }: { layout: StageLayout }) {
           </div>
         ) : (
           layout.items.map((item) => {
-            const c = getInstrumentColor(item.instrument.iconType);
-            const wPct = (item.instrument.footprintW / layout.widthUnits) * 100;
-            const hPct = (item.instrument.footprintH / layout.heightUnits) * 100;
+            const isCustom = !item.instrument;
+            const c = getInstrumentColor(item.instrument?.iconType ?? "default");
+            const fpW = item.instrument?.footprintW ?? item.customWidth ?? 2;
+            const fpH = item.instrument?.footprintH ?? item.customHeight ?? 1;
+            const wPct = (fpW / layout.widthUnits) * 100;
+            const hPct = (fpH / layout.heightUnits) * 100;
             const xPct = (item.x / layout.widthUnits) * 100;
             const yPct = (item.y / layout.heightUnits) * 100;
             return (
               <div
                 key={item.id}
-                className="absolute flex items-center justify-center rounded text-[9px] font-semibold border leading-tight text-center overflow-hidden"
+                className="absolute flex items-center justify-center rounded text-[9px] font-semibold leading-tight text-center overflow-hidden"
                 style={{
                   left: `${xPct}%`,
                   top: `${yPct}%`,
                   width: `${wPct}%`,
                   height: `${hPct}%`,
                   transform: `rotate(${item.rotation}deg)`,
-                  backgroundColor: c.bg,
-                  borderColor: c.border,
+                  backgroundColor: isCustom ? "transparent" : c.bg,
+                  border: `1px ${isCustom ? "dashed" : "solid"} ${c.border}`,
                   color: c.text,
                   minWidth: "20px",
                   minHeight: "16px",
                 }}
               >
-                <span className="px-0.5 truncate">{item.label || item.instrument.nameThai}</span>
+                <span className="px-0.5 truncate">{item.customName || item.label || item.instrument?.nameThai || ""}</span>
               </div>
             );
           })
@@ -521,8 +527,9 @@ export default function PerformanceClient({
     const ok = await confirm({
       title: "ลบงานแสดง",
       message: `ต้องการลบ "${performance.name}" ใช่หรือไม่? ข้อมูลการเข้าร่วมทั้งหมดจะหายไป`,
-      confirmLabel: "ลบ",
+      confirmLabel: "ลบงานแสดง",
       variant: "danger",
+      requireText: performance.name,
     });
     if (!ok) return;
     setDeleteLoading(true);
@@ -595,13 +602,27 @@ export default function PerformanceClient({
   }
 
   async function removeMemberFromPerformance(userId: string) {
+    const target = participants.find((p) => p.userId === userId);
+    const nickname = target?.nickname ?? "";
+    const ok = await confirm({
+      title: "ลบสมาชิกออกจากงานแสดง",
+      message: `ต้องการลบ "${nickname}" ออกจากงานแสดงนี้? การเข้าร่วมทั้งหมดของสมาชิกคนนี้จะถูกลบ`,
+      confirmLabel: "ลบสมาชิก",
+      variant: "danger",
+      requireText: nickname,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/performances/${performance.id}/members`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast.error("ลบสมาชิกไม่สำเร็จ");
+      return;
+    }
     setParticipants((prev) => prev.filter((p) => p.userId !== userId));
+    toast.success(`ลบ ${nickname} แล้ว`);
   }
 
   // ── Position assignment panel ─────────────────────────────
@@ -689,13 +710,27 @@ export default function PerformanceClient({
   }
 
   async function removePositionEntry(userId: string, position: string) {
+    const target = participants.find((p) => p.userId === userId && p.position === position);
+    const nickname = target?.nickname ?? "";
+    const ok = await confirm({
+      title: "ลบสมาชิกจากตำแหน่ง",
+      message: `ลบ "${nickname}" ออกจากตำแหน่ง "${position}"?`,
+      confirmLabel: "ลบ",
+      variant: "danger",
+      requireText: nickname,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/performances/${performance.id}/members`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, position }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast.error("ลบไม่สำเร็จ");
+      return;
+    }
     setParticipants((prev) => prev.filter((p) => !(p.userId === userId && p.position === position)));
+    toast.success(`ลบ ${nickname} ออกจาก ${position}`);
   }
 
   // ─── Render ───────────────────────────────────────────────

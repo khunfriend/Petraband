@@ -258,15 +258,18 @@ model StageLayoutVersion {
 model StageItem {
   id            String  @id @default(cuid())
   stageLayoutId String
-  instrumentId  String
+  instrumentId  String?
   x             Float
   y             Float
   rotation      Float   @default(0)
   layerOrder    Int     @default(0)
   label         String?
+  customName    String?
+  customWidth   Float?
+  customHeight  Float?
 
   stageLayout StageLayout @relation(fields: [stageLayoutId], references: [id], onDelete: Cascade)
-  instrument  Instrument  @relation(fields: [instrumentId], references: [id])
+  instrument  Instrument? @relation(fields: [instrumentId], references: [id])
 }
 
 model StageTemplate {

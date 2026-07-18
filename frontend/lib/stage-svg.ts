@@ -6,7 +6,8 @@ type Item = {
   y: number;
   rotation: number;
   label: string | null;
-  instrument: { nameThai: string };
+  customName?: string | null;
+  instrument: { nameThai: string } | null;
 };
 
 type Layout = {
@@ -28,7 +29,7 @@ export function renderStageSvg(layout: Layout): string {
       const cx = PADDING + it.x * scale;
       const cy = PADDING + it.y * scale;
       const r = Math.max(18, Math.min(32, scale * 0.35));
-      const text = (it.label || it.instrument.nameThai || "").replace(/[<>&]/g, (c) =>
+      const text = (it.label || it.customName || it.instrument?.nameThai || "").replace(/[<>&]/g, (c) =>
         c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&amp;"
       );
       return `

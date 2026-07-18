@@ -150,6 +150,9 @@ export default async function PerformanceDetailPage({ params }: Params) {
                   y: it.y,
                   rotation: it.rotation,
                   label: it.label ?? "",
+                  customName: it.customName,
+                  customWidth: it.customWidth,
+                  customHeight: it.customHeight,
                   instrument: it.instrument,
                 })),
               }

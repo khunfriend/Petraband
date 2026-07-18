@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
 
 type Role = "MEMBER" | "HEAD" | "ADMIN";
 type Status = "ACTIVE" | "EXPIRED";
@@ -70,10 +72,11 @@ export default function MembersClient({
   upcomingPerformances: UpcomingPerformance[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [users, setUsers] = useState(initialUsers);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [showExpired, setShowExpired] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [showCreate, setShowCreate] = useState(false);
   const [createMode, setCreateMode] = useState<"regular" | "temporary">("regular");
@@ -158,12 +161,25 @@ export default function MembersClient({
   }
 
   async function deleteUser(userId: string) {
+    const target = users.find((u) => u.id === userId);
+    const nickname = target?.nickname ?? "";
+    const ok = await confirm({
+      title: "ลบบัญชีสมาชิก",
+      message: `ต้องการลบบัญชี "${nickname}" ทั้งหมด? การเข้าร่วมงาน ผังเวที และการซ้อมที่เกี่ยวข้องจะถูกลบไปด้วย`,
+      confirmLabel: "ลบบัญชี",
+      variant: "danger",
+      requireText: nickname,
+    });
+    if (!ok) return;
     setLoadingId(userId);
     try {
       const res = await fetch(`/api/users/${userId}`, { method: "DELETE" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        toast.error("ลบไม่สำเร็จ");
+        return;
+      }
       setUsers((prev) => prev.filter((u) => u.id !== userId));
-      setConfirmDeleteId(null);
+      toast.success(`ลบบัญชี ${nickname} แล้ว`);
     } finally {
       setLoadingId(null);
     }
@@ -444,24 +460,14 @@ export default function MembersClient({
 
               {isAdmin && user.id !== currentUserId && (
                 <div className="shrink-0">
-                  {confirmDeleteId === user.id ? (
-                    <div className="flex items-center gap-1">
-                      <Button size="sm" variant="coral" onClick={() => deleteUser(user.id)} disabled={loadingId === user.id} className="text-xs py-1 px-2">
-                        {loadingId === user.id ? "..." : "ยืนยันลบ"}
-                      </Button>
-                      <Button size="sm" variant="secondary" onClick={() => setConfirmDeleteId(null)} className="text-xs py-1 px-2">
-                        ยกเลิก
-                      </Button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmDeleteId(user.id)}
-                      className="text-xs text-muted-soft hover:text-error transition-colors px-2 py-1"
-                      aria-label="ลบบัญชี"
-                    >
-                      ลบ
-                    </button>
-                  )}
+                  <button
+                    onClick={() => deleteUser(user.id)}
+                    disabled={loadingId === user.id}
+                    className="text-xs text-muted-soft hover:text-error transition-colors px-2 py-1 disabled:opacity-50"
+                    aria-label="ลบบัญชี"
+                  >
+                    {loadingId === user.id ? "..." : "ลบ"}
+                  </button>
                 </div>
               )}
             </div>

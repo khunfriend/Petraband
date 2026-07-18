@@ -74,9 +74,6 @@ export default function CreatePerformancePage() {
   return (
     <div className="w-full max-w-[640px] mx-auto px-8 py-8">
       <div className="mb-6">
-        <p className="text-xs font-bold tracking-[1.5px] uppercase text-muted mb-1">
-          งานแสดง
-        </p>
         <h1 className="text-2xl font-bold text-ink">สร้างงานแสดงใหม่</h1>
       </div>
 

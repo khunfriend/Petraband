@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import SongListClient from "./SongListClient";
-import { Eyebrow } from "@/components/ui/Eyebrow";
 
 export default async function SongsPage({
   searchParams,
@@ -35,10 +34,7 @@ export default async function SongsPage({
   return (
     <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <Eyebrow className="mb-1">คลังเพลง</Eyebrow>
-          <h1 className="text-2xl font-bold text-ink">เพลง · Songs</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-ink">คลังเพลง</h1>
       </div>
 
       <SongListClient

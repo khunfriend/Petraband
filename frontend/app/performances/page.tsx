@@ -110,10 +110,7 @@ export default async function PerformancesPage() {
     <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <Eyebrow className="mb-1">งานแสดง</Eyebrow>
-          <h1 className="text-2xl font-bold text-ink">งานแสดง · Performances</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-ink">งานแสดง</h1>
         {isAdmin && (
           <Link href="/performances/create">
             <Button variant="coral" size="sm">+ สร้างงานแสดง</Button>
@@ -123,7 +120,7 @@ export default async function PerformancesPage() {
 
       {/* Upcoming */}
       <section className="mb-10">
-        <Eyebrow as="h2" className="mb-3">ที่กำลังจะมา · Upcoming</Eyebrow>
+        <Eyebrow as="h2" className="mb-3">ที่กำลังจะมา</Eyebrow>
         {upcoming.length === 0 ? (
           <Card>
             <p className="text-muted text-sm">ไม่มีงานแสดงที่กำลังจะมา</p>
@@ -140,7 +137,7 @@ export default async function PerformancesPage() {
       {/* History */}
       {past.length > 0 && (
         <section>
-          <Eyebrow as="h2" className="mb-3">ประวัติการแสดง · History</Eyebrow>
+          <Eyebrow as="h2" className="mb-3">ประวัติการแสดง</Eyebrow>
           <div className="flex flex-col gap-3">
             {past.map((p) => (
               <PerformanceCard key={p.id} p={p} past />

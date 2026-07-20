@@ -6,14 +6,6 @@ import { Input } from "@/components/ui/Input";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 
-interface ActiveLoan {
-  id: string;
-  quantity: number;
-  counterparty: string;
-  borrowedAt: string;
-  note: string | null;
-}
-
 interface Equipment {
   id: string;
   name: string;
@@ -24,22 +16,10 @@ interface Equipment {
   widthCm: number | null;
   heightCm: number | null;
   note: string | null;
-  lentOut: number;
-  lentOutLoans: ActiveLoan[];
-}
-
-interface BorrowedInLoan {
-  id: string;
-  equipmentName: string;
-  quantity: number;
-  counterparty: string;
-  borrowedAt: string;
-  note: string | null;
 }
 
 interface Props {
   equipment: Equipment[];
-  borrowedIn: BorrowedInLoan[];
   isAdmin: boolean;
 }
 
@@ -180,26 +160,6 @@ function EquipmentForm({
   );
 }
 
-function LoanSummary({ loans }: { loans: ActiveLoan[] }) {
-  if (loans.length === 0) return null;
-  return (
-    <div className="flex flex-col gap-1.5 pt-1 border-t border-hairline-soft">
-      <div className="flex gap-2 flex-wrap items-start">
-        <span className="text-xs text-muted mt-0.5">ให้ยืม</span>
-        <div className="flex flex-col gap-1">
-          {loans.map((l) => (
-            <span key={l.id} className="text-ink text-sm">
-              <span className="tabular-nums font-medium">{l.quantity}</span> ชิ้น กับ{" "}
-              <span className="font-medium">{l.counterparty}</span>
-              {l.note && <span className="text-muted"> — {l.note}</span>}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function BrokenQuantityEditor({
   equipment,
   isAdmin,
@@ -269,11 +229,7 @@ function BrokenQuantityEditor({
   );
 }
 
-function formatDateShort(iso: string): string {
-  return new Date(iso).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" });
-}
-
-export default function EquipmentClient({ equipment: initialEquipment, borrowedIn, isAdmin }: Props) {
+export default function EquipmentClient({ equipment: initialEquipment, isAdmin }: Props) {
   const confirm = useConfirm();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
@@ -411,38 +367,6 @@ export default function EquipmentClient({ equipment: initialEquipment, borrowedI
         </div>
       )}
 
-      {/* Borrowed-in items (temporary loans from others) */}
-      {borrowedIn.length > 0 && (
-        <div className="bg-info/5 border border-info/30 rounded-[var(--radius-lg)] overflow-hidden">
-          <div className="px-5 py-3 border-b border-info/20 bg-info/10 flex items-baseline justify-between">
-            <h3 className="text-sm font-bold text-ink">ของยืมมาใช้ชั่วคราว</h3>
-            <span className="text-xs text-muted">{borrowedIn.length} รายการ ค้างอยู่</span>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="text-left border-b border-info/20">
-                <th className="px-5 py-2 text-xs font-semibold text-muted">อุปกรณ์</th>
-                <th className="px-4 py-2 text-xs font-semibold text-muted text-center w-20">จำนวน</th>
-                <th className="px-4 py-2 text-xs font-semibold text-muted">ยืมจาก</th>
-                <th className="px-4 py-2 text-xs font-semibold text-muted w-32">วันที่ยืม</th>
-                <th className="px-4 py-2 text-xs font-semibold text-muted">หมายเหตุ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {borrowedIn.map((l) => (
-                <tr key={l.id} className="border-b border-info/10 last:border-0">
-                  <td className="px-5 py-2.5 text-sm font-medium text-ink">{l.equipmentName}</td>
-                  <td className="px-4 py-2.5 text-sm text-ink text-center tabular-nums">{l.quantity}</td>
-                  <td className="px-4 py-2.5 text-sm text-ink">{l.counterparty}</td>
-                  <td className="px-4 py-2.5 text-sm text-muted tabular-nums">{formatDateShort(l.borrowedAt)}</td>
-                  <td className="px-4 py-2.5 text-sm text-muted whitespace-pre-wrap">{l.note ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       {/* Summary */}
       <p className="text-xs text-muted">
         แสดง {filtered.length} รายการ จากทั้งหมด {equipment.length} รายการ
@@ -466,8 +390,7 @@ export default function EquipmentClient({ equipment: initialEquipment, borrowedI
               <tbody>
                 {filtered.map((eq) => {
                   const broken = eq.brokenQuantity ?? 0;
-                  const lentOut = eq.lentOut ?? 0;
-                  const usable = Math.max(0, eq.quantity - broken - lentOut);
+                  const usable = Math.max(0, eq.quantity - broken);
                   return (
                   <Fragment key={eq.id}>
                     <tr className="border-b border-hairline-soft last:border-0 hover:bg-surface-cream-strong/40 transition-colors">
@@ -538,7 +461,6 @@ export default function EquipmentClient({ equipment: initialEquipment, borrowedI
                               <span className="text-xs text-muted">หมายเหตุ</span>
                               <span className="text-ink whitespace-pre-wrap">{eq.note ?? "—"}</span>
                             </div>
-                            <LoanSummary loans={eq.lentOutLoans ?? []} />
                             <BrokenQuantityEditor
                               equipment={eq}
                               isAdmin={isAdmin}

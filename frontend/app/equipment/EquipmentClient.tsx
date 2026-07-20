@@ -28,8 +28,18 @@ interface Equipment {
   lentOutLoans: ActiveLoan[];
 }
 
+interface BorrowedInLoan {
+  id: string;
+  equipmentName: string;
+  quantity: number;
+  counterparty: string;
+  borrowedAt: string;
+  note: string | null;
+}
+
 interface Props {
   equipment: Equipment[];
+  borrowedIn: BorrowedInLoan[];
   isAdmin: boolean;
 }
 
@@ -259,7 +269,11 @@ function BrokenQuantityEditor({
   );
 }
 
-export default function EquipmentClient({ equipment: initialEquipment, isAdmin }: Props) {
+function formatDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" });
+}
+
+export default function EquipmentClient({ equipment: initialEquipment, borrowedIn, isAdmin }: Props) {
   const confirm = useConfirm();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
@@ -394,6 +408,38 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
             submitLabel="เพิ่มอุปกรณ์"
             isPending={isPending}
           />
+        </div>
+      )}
+
+      {/* Borrowed-in items (temporary loans from others) */}
+      {borrowedIn.length > 0 && (
+        <div className="bg-info/5 border border-info/30 rounded-[var(--radius-lg)] overflow-hidden">
+          <div className="px-5 py-3 border-b border-info/20 bg-info/10 flex items-baseline justify-between">
+            <h3 className="text-sm font-bold text-ink">ของยืมมาใช้ชั่วคราว</h3>
+            <span className="text-xs text-muted">{borrowedIn.length} รายการ ค้างอยู่</span>
+          </div>
+          <table className="w-full">
+            <thead>
+              <tr className="text-left border-b border-info/20">
+                <th className="px-5 py-2 text-xs font-semibold text-muted">อุปกรณ์</th>
+                <th className="px-4 py-2 text-xs font-semibold text-muted text-center w-20">จำนวน</th>
+                <th className="px-4 py-2 text-xs font-semibold text-muted">ยืมจาก</th>
+                <th className="px-4 py-2 text-xs font-semibold text-muted w-32">วันที่ยืม</th>
+                <th className="px-4 py-2 text-xs font-semibold text-muted">หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {borrowedIn.map((l) => (
+                <tr key={l.id} className="border-b border-info/10 last:border-0">
+                  <td className="px-5 py-2.5 text-sm font-medium text-ink">{l.equipmentName}</td>
+                  <td className="px-4 py-2.5 text-sm text-ink text-center tabular-nums">{l.quantity}</td>
+                  <td className="px-4 py-2.5 text-sm text-ink">{l.counterparty}</td>
+                  <td className="px-4 py-2.5 text-sm text-muted tabular-nums">{formatDateShort(l.borrowedAt)}</td>
+                  <td className="px-4 py-2.5 text-sm text-muted whitespace-pre-wrap">{l.note ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

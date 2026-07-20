@@ -41,19 +41,25 @@ export default async function EquipmentPage({
 }
 
 async function EquipmentListTab({ search, type, isAdmin }: { search: string; type: string; isAdmin: boolean }) {
-  const equipment = await prisma.equipment.findMany({
-    where: {
-      ...(search && { name: { contains: search, mode: "insensitive" as const } }),
-      ...(type && { type }),
-    },
-    include: {
-      loans: {
-        where: { direction: "LENT_OUT", returnedAt: null },
-        select: { id: true, quantity: true, counterparty: true, borrowedAt: true, note: true },
+  const [equipment, borrowedIn] = await Promise.all([
+    prisma.equipment.findMany({
+      where: {
+        ...(search && { name: { contains: search, mode: "insensitive" as const } }),
+        ...(type && { type }),
       },
-    },
-    orderBy: [{ type: "asc" }, { name: "asc" }],
-  });
+      include: {
+        loans: {
+          where: { direction: "LENT_OUT", returnedAt: null },
+          select: { id: true, quantity: true, counterparty: true, borrowedAt: true, note: true },
+        },
+      },
+      orderBy: [{ type: "asc" }, { name: "asc" }],
+    }),
+    prisma.equipmentLoan.findMany({
+      where: { direction: "BORROWED_IN", returnedAt: null },
+      orderBy: { borrowedAt: "desc" },
+    }),
+  ]);
 
   const items = equipment.map((eq) => {
     const lentOut = eq.loans.reduce((s, l) => s + l.quantity, 0);
@@ -78,7 +84,16 @@ async function EquipmentListTab({ search, type, isAdmin }: { search: string; typ
     };
   });
 
-  return <EquipmentClient equipment={items} isAdmin={isAdmin} />;
+  const borrowedInSerialized = borrowedIn.map((l) => ({
+    id: l.id,
+    equipmentName: l.equipmentName,
+    quantity: l.quantity,
+    counterparty: l.counterparty,
+    borrowedAt: l.borrowedAt.toISOString(),
+    note: l.note,
+  }));
+
+  return <EquipmentClient equipment={items} borrowedIn={borrowedInSerialized} isAdmin={isAdmin} />;
 }
 
 async function LoansTabContent({ direction, canEdit }: { direction: "BORROWED_IN" | "LENT_OUT"; canEdit: boolean }) {

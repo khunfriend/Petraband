@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
@@ -39,6 +40,7 @@ const LABELS = {
     title: "ยืมของ",
     counterpartyLabel: "ยืมจาก",
     addLabel: "+ บันทึกการยืม",
+    countLabel: "รายการยืมของ",
     emptyActive: "ยังไม่มีของที่ยืมมาค้างอยู่",
     emptyAll: "ยังไม่มีประวัติการยืม",
   },
@@ -46,6 +48,7 @@ const LABELS = {
     title: "ให้ยืมของ",
     counterpartyLabel: "ให้ยืมกับ",
     addLabel: "+ บันทึกการให้ยืม",
+    countLabel: "รายการให้ยืม",
     emptyActive: "ยังไม่มีของที่ให้ยืมค้างอยู่",
     emptyAll: "ยังไม่มีประวัติการให้ยืม",
   },
@@ -79,6 +82,7 @@ const emptyForm: FormState = {
 };
 
 export default function LoansClient({ direction, loans: initialLoans, equipment, canEdit }: Props) {
+  const router = useRouter();
   const confirm = useConfirm();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
@@ -137,6 +141,7 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
       setForm(emptyForm);
       setShowForm(false);
       toast.success("บันทึกแล้ว");
+      router.refresh();
     });
   }
 
@@ -161,6 +166,7 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
       const { loan: updated } = await res.json();
       setLoans((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
       toast.success("คืนแล้ว");
+      router.refresh();
     });
   }
 
@@ -178,6 +184,7 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
       }
       const { loan: updated } = await res.json();
       setLoans((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+      router.refresh();
     });
   }
 
@@ -198,6 +205,7 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
       }
       setLoans((prev) => prev.filter((l) => l.id !== loan.id));
       toast.success("ลบแล้ว");
+      router.refresh();
     });
   }
 
@@ -331,7 +339,7 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
         </div>
       )}
 
-      <p className="text-xs text-muted">แสดง {filtered.length} รายการ</p>
+      <p className="text-xs text-muted">แสดง {filtered.length} {L.countLabel}</p>
 
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-muted">

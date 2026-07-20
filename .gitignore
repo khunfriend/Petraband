@@ -12,4 +12,5 @@ frontend/node_modules/.prisma/
 
 # Misc
 *.sql
+!frontend/prisma/migrations/**/*.sql
 .claude/

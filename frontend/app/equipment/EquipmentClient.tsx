@@ -6,14 +6,12 @@ import { Input } from "@/components/ui/Input";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 
-type EquipmentCondition = "GOOD" | "FAIR" | "NEEDS_REPAIR" | "RETIRED";
-
 interface Equipment {
   id: string;
   name: string;
   type: string | null;
   quantity: number;
-  condition: EquipmentCondition;
+  brokenQuantity: number;
   lengthCm: number | null;
   widthCm: number | null;
   heightCm: number | null;
@@ -23,32 +21,6 @@ interface Equipment {
 interface Props {
   equipment: Equipment[];
   isAdmin: boolean;
-}
-
-const CONDITION_LABELS: Record<EquipmentCondition, string> = {
-  GOOD: "พร้อมใช้งาน",
-  FAIR: "ใช้งานระวัง",
-  NEEDS_REPAIR: "ต้องซ่อม",
-  RETIRED: "ปลดระวาง",
-};
-
-const CONDITION_CLASSES: Record<EquipmentCondition, string> = {
-  GOOD: "bg-success/15 text-success",
-  FAIR: "bg-warning/15 text-warning",
-  NEEDS_REPAIR: "bg-error/15 text-error",
-  RETIRED: "bg-surface-cream-strong text-muted",
-};
-
-const CONDITIONS: EquipmentCondition[] = ["GOOD", "FAIR", "NEEDS_REPAIR", "RETIRED"];
-
-function ConditionBadge({ condition }: { condition: EquipmentCondition }) {
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium ${CONDITION_CLASSES[condition]}`}
-    >
-      {CONDITION_LABELS[condition]}
-    </span>
-  );
 }
 
 function formatDimensions(l: number | null, w: number | null, h: number | null): string {
@@ -61,7 +33,6 @@ interface FormState {
   name: string;
   type: string;
   quantity: string;
-  condition: EquipmentCondition;
   lengthCm: string;
   widthCm: string;
   heightCm: string;
@@ -72,7 +43,6 @@ const emptyForm: FormState = {
   name: "",
   type: "อุปกรณ์",
   quantity: "1",
-  condition: "GOOD",
   lengthCm: "",
   widthCm: "",
   heightCm: "",
@@ -84,7 +54,6 @@ function equipmentToForm(eq: Equipment): FormState {
     name: eq.name,
     type: eq.type ?? "",
     quantity: String(eq.quantity),
-    condition: eq.condition,
     lengthCm: eq.lengthCm !== null ? String(eq.lengthCm) : "",
     widthCm: eq.widthCm !== null ? String(eq.widthCm) : "",
     heightCm: eq.heightCm !== null ? String(eq.heightCm) : "",
@@ -97,7 +66,6 @@ function parseFormToBody(form: FormState) {
     name: form.name.trim(),
     type: form.type || null,
     quantity: parseInt(form.quantity) || 0,
-    condition: form.condition,
     lengthCm: form.lengthCm ? parseFloat(form.lengthCm) : null,
     widthCm: form.widthCm ? parseFloat(form.widthCm) : null,
     heightCm: form.heightCm ? parseFloat(form.heightCm) : null,
@@ -129,22 +97,9 @@ function EquipmentForm({
         <Input label="ชื่ออุปกรณ์ *" value={form.name} onChange={set("name")} placeholder="ชื่ออุปกรณ์" />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-ink">สภาพ</label>
-        <select
-          value={form.condition}
-          onChange={set("condition")}
-          className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
-        >
-          {CONDITIONS.map((c) => (
-            <option key={c} value={c}>{CONDITION_LABELS[c]}</option>
-          ))}
-        </select>
-      </div>
-
       <div>
         <Input
-          label="จำนวน"
+          label="จำนวนทั้งหมด"
           type="number"
           min="0"
           value={form.quantity}
@@ -152,7 +107,7 @@ function EquipmentForm({
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className="col-span-2 flex flex-col gap-1.5">
         <label className="text-sm font-medium text-ink">ขนาด (ซม.) ก × ว × ส</label>
         <div className="flex gap-2">
           <input
@@ -205,6 +160,75 @@ function EquipmentForm({
   );
 }
 
+function BrokenQuantityEditor({
+  equipment,
+  isAdmin,
+  onUpdated,
+  onError,
+}: {
+  equipment: Equipment;
+  isAdmin: boolean;
+  onUpdated: (eq: Equipment) => void;
+  onError: (msg: string) => void;
+}) {
+  const current = equipment.brokenQuantity ?? 0;
+  const [value, setValue] = useState<string>(String(current));
+  const [saving, setSaving] = useState(false);
+
+  const parsed = parseInt(value);
+  const next = Number.isFinite(parsed) ? parsed : 0;
+  const invalid = next < 0 || next > equipment.quantity;
+  const dirty = next !== current;
+
+  async function save() {
+    if (invalid || !dirty) return;
+    setSaving(true);
+    const res = await fetch(`/api/equipment/${equipment.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ brokenQuantity: next }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      onError(data.error ?? "บันทึกไม่สำเร็จ");
+      return;
+    }
+    const { equipment: updated } = await res.json();
+    onUpdated(updated);
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex gap-2 flex-wrap">
+        <span className="text-xs text-muted">ต้องซ่อม</span>
+        <span className={current > 0 ? "text-warning font-medium tabular-nums" : "text-ink tabular-nums"}>
+          {current} ชิ้น
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-xs text-muted">จำนวนที่ต้องซ่อม</span>
+      <input
+        type="number"
+        min="0"
+        max={equipment.quantity}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="h-8 w-20 rounded-[var(--radius-md)] border border-hairline bg-surface-card px-2 text-sm text-ink tabular-nums text-center focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+      />
+      <span className="text-xs text-muted">/ {equipment.quantity}</span>
+      <Button variant="coral" size="sm" onClick={save} disabled={saving || invalid || !dirty}>
+        {saving ? "บันทึก..." : "บันทึก"}
+      </Button>
+      {invalid && <span className="text-xs text-error">ต้องอยู่ระหว่าง 0–{equipment.quantity}</span>}
+    </div>
+  );
+}
+
 export default function EquipmentClient({ equipment: initialEquipment, isAdmin }: Props) {
   const confirm = useConfirm();
   const toast = useToast();
@@ -212,8 +236,7 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
 
   const [equipment, setEquipment] = useState<Equipment[]>(initialEquipment);
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [conditionFilter, setConditionFilter] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState<FormState>(emptyForm);
@@ -223,13 +246,9 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
 
   const [error, setError] = useState<string | null>(null);
 
-  // Client-side filtering
-  const filtered = equipment.filter((eq) => {
-    const matchSearch =
-      !search || eq.name.toLowerCase().includes(search.toLowerCase());
-    const matchCondition = !conditionFilter || eq.condition === conditionFilter;
-    return matchSearch && matchCondition;
-  });
+  const filtered = equipment.filter(
+    (eq) => !search || eq.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   async function handleAdd() {
     setError(null);
@@ -309,19 +328,6 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <select
-              value={conditionFilter}
-              onChange={(e) => setConditionFilter(e.target.value)}
-              className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
-            >
-              <option value="">ทุกสภาพ</option>
-              {CONDITIONS.map((c) => (
-                <option key={c} value={c}>{CONDITION_LABELS[c]}</option>
-              ))}
-            </select>
-          </div>
-
           {isAdmin && (
             <Button
               variant="coral"
@@ -374,34 +380,44 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
           <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-hairline-soft">
-                  <th className="px-5 py-2.5 text-xs font-semibold text-muted w-[35%]">ชื่อ</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-muted text-center w-16">จำนวน</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-muted w-28">สภาพ</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-muted">ขนาด (ยาว × กว้าง × สูง)</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-muted">หมายเหตุ</th>
+                  <th className="px-5 py-2.5 text-xs font-semibold text-muted">ชื่อ</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-muted text-center w-24">ทั้งหมด</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-muted text-center w-24">ใช้ได้</th>
+                  <th className="px-2 py-2.5 w-8"></th>
                   {isAdmin && <th className="px-4 py-2.5 text-xs font-semibold text-muted w-28"></th>}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((eq) => (
+                {filtered.map((eq) => {
+                  const broken = eq.brokenQuantity ?? 0;
+                  const usable = Math.max(0, eq.quantity - broken);
+                  return (
                   <Fragment key={eq.id}>
                     <tr className="border-b border-hairline-soft last:border-0 hover:bg-surface-cream-strong/40 transition-colors">
-                      <td className="px-5 py-3 text-sm font-medium text-ink">{eq.name}</td>
+                      <td
+                        className="px-5 py-3 text-sm font-medium text-ink cursor-pointer"
+                        onClick={() => setExpandedId((prev) => (prev === eq.id ? null : eq.id))}
+                      >
+                        {eq.name}
+                      </td>
                       <td className="px-4 py-3 text-sm text-ink text-center tabular-nums">
-                        {eq.quantity === 0 ? (
-                          <span className="text-muted">—</span>
+                        {eq.quantity === 0 ? <span className="text-muted">—</span> : eq.quantity}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-center tabular-nums">
+                        {usable === 0 ? (
+                          <span className="text-muted">0</span>
                         ) : (
-                          eq.quantity
+                          <span className="text-ink font-medium">{usable}</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
-                        <ConditionBadge condition={eq.condition} />
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted tabular-nums">
-                        {formatDimensions(eq.lengthCm, eq.widthCm, eq.heightCm)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted max-w-[200px] truncate" title={eq.note ?? undefined}>
-                        {eq.note ?? "—"}
+                      <td className="px-2 py-3 text-center">
+                        <button
+                          onClick={() => setExpandedId((prev) => (prev === eq.id ? null : eq.id))}
+                          aria-label={expandedId === eq.id ? "ซ่อนรายละเอียด" : "แสดงรายละเอียด"}
+                          className="text-muted-soft hover:text-ink transition-colors text-xs"
+                        >
+                          {expandedId === eq.id ? "▲" : "▼"}
+                        </button>
                       </td>
                       {isAdmin && (
                         <td className="px-4 py-3">
@@ -412,6 +428,7 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
                               onClick={() => {
                                 setEditingId(eq.id);
                                 setEditForm(equipmentToForm(eq));
+                                setExpandedId(null);
                                 setShowAddForm(false);
                               }}
                             >
@@ -430,9 +447,38 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
                         </td>
                       )}
                     </tr>
+                    {expandedId === eq.id && editingId !== eq.id && (
+                      <tr className="border-b border-hairline-soft bg-surface-soft">
+                        <td colSpan={isAdmin ? 5 : 4} className="px-5 py-3">
+                          <div className="flex flex-col gap-3 text-sm">
+                            <div className="flex gap-2 flex-wrap">
+                              <span className="text-xs text-muted">ขนาด (ยาว × กว้าง × สูง)</span>
+                              <span className="text-ink tabular-nums">
+                                {formatDimensions(eq.lengthCm, eq.widthCm, eq.heightCm)}
+                              </span>
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                              <span className="text-xs text-muted">หมายเหตุ</span>
+                              <span className="text-ink whitespace-pre-wrap">{eq.note ?? "—"}</span>
+                            </div>
+                            <BrokenQuantityEditor
+                              equipment={eq}
+                              isAdmin={isAdmin}
+                              onUpdated={(updated) =>
+                                setEquipment((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
+                              }
+                              onError={(msg) => {
+                                setError(msg);
+                                toast.error(msg);
+                              }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     {editingId === eq.id && isAdmin && (
                       <tr className="border-b border-hairline-soft bg-surface-cream-strong/30">
-                        <td colSpan={isAdmin ? 6 : 5} className="px-5 py-4">
+                        <td colSpan={isAdmin ? 5 : 4} className="px-5 py-4">
                           <EquipmentForm
                             form={editForm}
                             onChange={setEditForm}
@@ -445,7 +491,8 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
                       </tr>
                     )}
                   </Fragment>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
         </div>

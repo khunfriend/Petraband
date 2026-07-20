@@ -10,9 +10,9 @@ export const metadata = { title: "อุปกรณ์ · PETRAband" };
 export default async function EquipmentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; search?: string; type?: string; condition?: string }>;
+  searchParams: Promise<{ tab?: string; search?: string; type?: string }>;
 }) {
-  const { tab = "list", search = "", type = "", condition = "" } = await searchParams;
+  const { tab = "list", search = "", type = "" } = await searchParams;
   const session = await auth();
   if (!session) redirect("/login");
   const isAdmin = session.user.role === "ADMIN";
@@ -23,9 +23,6 @@ export default async function EquipmentPage({
     where: {
       ...(search && { name: { contains: search, mode: "insensitive" as const } }),
       ...(type && { type }),
-      ...(condition && {
-        condition: condition as "GOOD" | "FAIR" | "NEEDS_REPAIR" | "RETIRED",
-      }),
     },
     orderBy: [{ type: "asc" }, { name: "asc" }],
   });

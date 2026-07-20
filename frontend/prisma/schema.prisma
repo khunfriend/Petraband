@@ -31,13 +31,6 @@ enum AttendanceStatus {
   EXCUSED
 }
 
-enum EquipmentCondition {
-  GOOD
-  FAIR
-  NEEDS_REPAIR
-  RETIRED
-}
-
 // ─── User & Auth ───────────────────────────────────────────
 
 model User {
@@ -321,14 +314,14 @@ model Equipment {
   id        String             @id @default(cuid())
   name      String
   type      String?
-  quantity  Int                @default(1)
-  condition EquipmentCondition @default(GOOD)
-  lengthCm  Float?
-  widthCm   Float?
-  heightCm  Float?
-  note      String?
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  quantity        Int      @default(1)
+  brokenQuantity  Int      @default(0)
+  lengthCm        Float?
+  widthCm         Float?
+  heightCm        Float?
+  note            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 // ─── Performance Head Assignment ──────────────────────────

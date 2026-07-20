@@ -18,7 +18,7 @@ const patchSchema = z.object({
   name: z.string().min(1).optional(),
   type: z.string().nullable().optional(),
   quantity: z.number().int().min(0).optional(),
-  condition: z.enum(["GOOD", "FAIR", "NEEDS_REPAIR", "RETIRED"]).optional(),
+  brokenQuantity: z.number().int().min(0).optional(),
   lengthCm: z.number().positive().nullable().optional(),
   widthCm: z.number().positive().nullable().optional(),
   heightCm: z.number().positive().nullable().optional(),
@@ -44,6 +44,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const existing = await prisma.equipment.findUnique({ where: { id } });
   if (!existing) {
     return NextResponse.json({ error: "ไม่พบอุปกรณ์" }, { status: 404 });
+  }
+
+  const nextQuantity = parsed.data.quantity ?? existing.quantity;
+  const nextBroken = parsed.data.brokenQuantity ?? existing.brokenQuantity;
+  if (nextBroken > nextQuantity) {
+    return NextResponse.json(
+      { error: "จำนวนที่ต้องซ่อมต้องไม่เกินจำนวนทั้งหมด" },
+      { status: 400 }
+    );
   }
 
   const equipment = await prisma.equipment.update({

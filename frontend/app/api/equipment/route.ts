@@ -7,13 +7,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const search = searchParams.get("search") ?? "";
   const type = searchParams.get("type") ?? "";
-  const condition = searchParams.get("condition") ?? "";
 
   const equipment = await prisma.equipment.findMany({
     where: {
       ...(search && { name: { contains: search, mode: "insensitive" as const } }),
       ...(type && { type }),
-      ...(condition && { condition: condition as "GOOD" | "FAIR" | "NEEDS_REPAIR" | "RETIRED" }),
     },
     orderBy: [{ type: "asc" }, { name: "asc" }],
   });
@@ -25,11 +23,14 @@ const createSchema = z.object({
   name: z.string().min(1),
   type: z.string().optional(),
   quantity: z.number().int().min(0).default(1),
-  condition: z.enum(["GOOD", "FAIR", "NEEDS_REPAIR", "RETIRED"]).default("GOOD"),
+  brokenQuantity: z.number().int().min(0).default(0),
   lengthCm: z.number().positive().nullable().optional(),
   widthCm: z.number().positive().nullable().optional(),
   heightCm: z.number().positive().nullable().optional(),
   note: z.string().nullable().optional(),
+}).refine((d) => d.brokenQuantity <= d.quantity, {
+  message: "จำนวนที่ต้องซ่อมต้องไม่เกินจำนวนทั้งหมด",
+  path: ["brokenQuantity"],
 });
 
 export async function POST(req: NextRequest) {

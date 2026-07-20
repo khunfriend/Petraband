@@ -48,16 +48,15 @@ async function EquipmentListTab({ search, type, isAdmin }: { search: string; typ
     },
     include: {
       loans: {
-        where: { returnedAt: null },
-        select: { id: true, direction: true, quantity: true, counterparty: true, borrowedAt: true, note: true },
+        where: { direction: "LENT_OUT", returnedAt: null },
+        select: { id: true, quantity: true, counterparty: true, borrowedAt: true, note: true },
       },
     },
     orderBy: [{ type: "asc" }, { name: "asc" }],
   });
 
   const items = equipment.map((eq) => {
-    const borrowedIn = eq.loans.filter((l) => l.direction === "BORROWED_IN").reduce((s, l) => s + l.quantity, 0);
-    const lentOut = eq.loans.filter((l) => l.direction === "LENT_OUT").reduce((s, l) => s + l.quantity, 0);
+    const lentOut = eq.loans.reduce((s, l) => s + l.quantity, 0);
     return {
       id: eq.id,
       name: eq.name,
@@ -68,11 +67,9 @@ async function EquipmentListTab({ search, type, isAdmin }: { search: string; typ
       widthCm: eq.widthCm,
       heightCm: eq.heightCm,
       note: eq.note,
-      borrowedIn,
       lentOut,
-      activeLoans: eq.loans.map((l) => ({
+      lentOutLoans: eq.loans.map((l) => ({
         id: l.id,
-        direction: l.direction,
         quantity: l.quantity,
         counterparty: l.counterparty,
         borrowedAt: l.borrowedAt.toISOString(),
@@ -88,27 +85,26 @@ async function LoansTabContent({ direction, canEdit }: { direction: "BORROWED_IN
   const [loans, equipment] = await Promise.all([
     prisma.equipmentLoan.findMany({
       where: { direction },
-      include: {
-        equipment: { select: { id: true, name: true, type: true, quantity: true } },
-      },
       orderBy: [{ returnedAt: "asc" }, { borrowedAt: "desc" }],
     }),
-    prisma.equipment.findMany({
-      select: { id: true, name: true, type: true, quantity: true },
-      orderBy: [{ type: "asc" }, { name: "asc" }],
-    }),
+    direction === "LENT_OUT"
+      ? prisma.equipment.findMany({
+          select: { id: true, name: true, type: true, quantity: true },
+          orderBy: [{ type: "asc" }, { name: "asc" }],
+        })
+      : Promise.resolve([]),
   ]);
 
   const serialized = loans.map((l) => ({
     id: l.id,
     equipmentId: l.equipmentId,
+    equipmentName: l.equipmentName,
     direction: l.direction,
     quantity: l.quantity,
     counterparty: l.counterparty,
     borrowedAt: l.borrowedAt.toISOString(),
     returnedAt: l.returnedAt ? l.returnedAt.toISOString() : null,
     note: l.note,
-    equipment: l.equipment,
   }));
 
   return <LoansClient direction={direction} loans={serialized} equipment={equipment} canEdit={canEdit} />;

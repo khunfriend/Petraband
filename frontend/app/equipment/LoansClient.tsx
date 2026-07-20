@@ -17,14 +17,14 @@ interface EquipmentOption {
 
 interface Loan {
   id: string;
-  equipmentId: string;
+  equipmentId: string | null;
+  equipmentName: string;
   direction: Direction;
   quantity: number;
   counterparty: string;
   borrowedAt: string;
   returnedAt: string | null;
   note: string | null;
-  equipment: EquipmentOption;
 }
 
 interface Props {
@@ -62,6 +62,7 @@ function todayIso(): string {
 
 interface FormState {
   equipmentId: string;
+  equipmentName: string;
   quantity: string;
   counterparty: string;
   borrowedAt: string;
@@ -70,6 +71,7 @@ interface FormState {
 
 const emptyForm: FormState = {
   equipmentId: "",
+  equipmentName: "",
   quantity: "1",
   counterparty: "",
   borrowedAt: todayIso(),
@@ -98,8 +100,12 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
 
   async function handleAdd() {
     setError(null);
-    if (!form.equipmentId || !form.counterparty.trim()) {
-      setError("กรุณาเลือกอุปกรณ์และระบุผู้ติดต่อ");
+    const name =
+      direction === "LENT_OUT"
+        ? equipment.find((e) => e.id === form.equipmentId)?.name ?? ""
+        : form.equipmentName.trim();
+    if (!name || !form.counterparty.trim()) {
+      setError(direction === "LENT_OUT" ? "กรุณาเลือกอุปกรณ์และระบุผู้ยืม" : "กรุณาระบุชื่ออุปกรณ์และผู้ให้ยืม");
       return;
     }
     const qty = parseInt(form.quantity) || 0;
@@ -112,8 +118,9 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          equipmentId: form.equipmentId,
           direction,
+          equipmentId: direction === "LENT_OUT" ? form.equipmentId : null,
+          equipmentName: name,
           quantity: qty,
           counterparty: form.counterparty.trim(),
           borrowedAt: new Date(form.borrowedAt).toISOString(),
@@ -136,7 +143,7 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
   async function handleReturn(loan: Loan) {
     const ok = await confirm({
       title: "ยืนยันการคืน",
-      message: `ทำเครื่องหมาย "${loan.equipment.name}" (${loan.quantity} ชิ้น) ว่าคืนแล้ว?`,
+      message: `ทำเครื่องหมาย "${loan.equipmentName}" (${loan.quantity} ชิ้น) ว่าคืนแล้ว?`,
       confirmLabel: "คืนแล้ว",
     });
     if (!ok) return;
@@ -240,21 +247,32 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
         <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5">
           <h3 className="text-sm font-bold text-ink mb-4">{L.addLabel.replace("+", "").trim()}</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-ink">อุปกรณ์ *</label>
-              <select
-                value={form.equipmentId}
-                onChange={(e) => setForm({ ...form, equipmentId: e.target.value })}
-                className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
-              >
-                <option value="">— เลือกอุปกรณ์ —</option>
-                {equipment.map((eq) => (
-                  <option key={eq.id} value={eq.id}>
-                    {eq.name}
-                    {eq.type ? ` (${eq.type})` : ""}
-                  </option>
-                ))}
-              </select>
+            <div className="col-span-2">
+              {direction === "LENT_OUT" ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-ink">อุปกรณ์ *</label>
+                  <select
+                    value={form.equipmentId}
+                    onChange={(e) => setForm({ ...form, equipmentId: e.target.value })}
+                    className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+                  >
+                    <option value="">— เลือกอุปกรณ์จากคลัง —</option>
+                    {equipment.map((eq) => (
+                      <option key={eq.id} value={eq.id}>
+                        {eq.name}
+                        {eq.type ? ` (${eq.type})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <Input
+                  label="ชื่ออุปกรณ์ *"
+                  value={form.equipmentName}
+                  onChange={(e) => setForm({ ...form, equipmentName: e.target.value })}
+                  placeholder="เช่น เก้าอี้พลาสติก, ขาตั้งไมค์"
+                />
+              )}
             </div>
 
             <div>
@@ -336,7 +354,7 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
             <tbody>
               {filtered.map((loan) => (
                 <tr key={loan.id} className="border-b border-hairline-soft last:border-0 hover:bg-surface-cream-strong/40 transition-colors">
-                  <td className="px-5 py-3 text-sm font-medium text-ink">{loan.equipment.name}</td>
+                  <td className="px-5 py-3 text-sm font-medium text-ink">{loan.equipmentName}</td>
                   <td className="px-4 py-3 text-sm text-ink text-center tabular-nums">{loan.quantity}</td>
                   <td className="px-4 py-3 text-sm text-ink">{loan.counterparty}</td>
                   <td className="px-4 py-3 text-sm text-muted tabular-nums">{formatDate(loan.borrowedAt)}</td>

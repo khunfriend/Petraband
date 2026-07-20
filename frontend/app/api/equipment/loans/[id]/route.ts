@@ -6,6 +6,8 @@ import { z } from "zod";
 type Params = { params: Promise<{ id: string }> };
 
 const patchSchema = z.object({
+  equipmentName: z.string().min(1).optional(),
+  equipmentId: z.string().min(1).nullable().optional(),
   quantity: z.number().int().positive().optional(),
   counterparty: z.string().min(1).optional(),
   borrowedAt: z.string().datetime().optional(),
@@ -35,6 +37,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 
   const data: Record<string, unknown> = {};
+  if (parsed.data.equipmentName !== undefined) data.equipmentName = parsed.data.equipmentName;
+  if (parsed.data.equipmentId !== undefined) data.equipmentId = parsed.data.equipmentId;
   if (parsed.data.quantity !== undefined) data.quantity = parsed.data.quantity;
   if (parsed.data.counterparty !== undefined) data.counterparty = parsed.data.counterparty;
   if (parsed.data.borrowedAt !== undefined) data.borrowedAt = new Date(parsed.data.borrowedAt);
@@ -46,9 +50,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const loan = await prisma.equipmentLoan.update({
     where: { id },
     data,
-    include: {
-      equipment: { select: { id: true, name: true, type: true, quantity: true } },
-    },
   });
 
   return NextResponse.json({ loan });

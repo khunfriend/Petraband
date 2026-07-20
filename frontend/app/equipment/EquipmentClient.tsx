@@ -8,7 +8,6 @@ import { useToast } from "@/components/ui/Toast";
 
 interface ActiveLoan {
   id: string;
-  direction: "BORROWED_IN" | "LENT_OUT";
   quantity: number;
   counterparty: string;
   borrowedAt: string;
@@ -25,9 +24,8 @@ interface Equipment {
   widthCm: number | null;
   heightCm: number | null;
   note: string | null;
-  borrowedIn: number;
   lentOut: number;
-  activeLoans: ActiveLoan[];
+  lentOutLoans: ActiveLoan[];
 }
 
 interface Props {
@@ -174,39 +172,20 @@ function EquipmentForm({
 
 function LoanSummary({ loans }: { loans: ActiveLoan[] }) {
   if (loans.length === 0) return null;
-  const borrowedIn = loans.filter((l) => l.direction === "BORROWED_IN");
-  const lentOut = loans.filter((l) => l.direction === "LENT_OUT");
-
   return (
     <div className="flex flex-col gap-1.5 pt-1 border-t border-hairline-soft">
-      {borrowedIn.length > 0 && (
-        <div className="flex gap-2 flex-wrap items-start">
-          <span className="text-xs text-muted mt-0.5">ยืมมา</span>
-          <div className="flex flex-col gap-1">
-            {borrowedIn.map((l) => (
-              <span key={l.id} className="text-ink text-sm">
-                <span className="tabular-nums font-medium">{l.quantity}</span> ชิ้น จาก{" "}
-                <span className="font-medium">{l.counterparty}</span>
-                {l.note && <span className="text-muted"> — {l.note}</span>}
-              </span>
-            ))}
-          </div>
+      <div className="flex gap-2 flex-wrap items-start">
+        <span className="text-xs text-muted mt-0.5">ให้ยืม</span>
+        <div className="flex flex-col gap-1">
+          {loans.map((l) => (
+            <span key={l.id} className="text-ink text-sm">
+              <span className="tabular-nums font-medium">{l.quantity}</span> ชิ้น กับ{" "}
+              <span className="font-medium">{l.counterparty}</span>
+              {l.note && <span className="text-muted"> — {l.note}</span>}
+            </span>
+          ))}
         </div>
-      )}
-      {lentOut.length > 0 && (
-        <div className="flex gap-2 flex-wrap items-start">
-          <span className="text-xs text-muted mt-0.5">ให้ยืม</span>
-          <div className="flex flex-col gap-1">
-            {lentOut.map((l) => (
-              <span key={l.id} className="text-ink text-sm">
-                <span className="tabular-nums font-medium">{l.quantity}</span> ชิ้น กับ{" "}
-                <span className="font-medium">{l.counterparty}</span>
-                {l.note && <span className="text-muted"> — {l.note}</span>}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -441,9 +420,8 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
               <tbody>
                 {filtered.map((eq) => {
                   const broken = eq.brokenQuantity ?? 0;
-                  const borrowedIn = eq.borrowedIn ?? 0;
                   const lentOut = eq.lentOut ?? 0;
-                  const usable = Math.max(0, eq.quantity - broken + borrowedIn - lentOut);
+                  const usable = Math.max(0, eq.quantity - broken - lentOut);
                   return (
                   <Fragment key={eq.id}>
                     <tr className="border-b border-hairline-soft last:border-0 hover:bg-surface-cream-strong/40 transition-colors">
@@ -514,7 +492,7 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
                               <span className="text-xs text-muted">หมายเหตุ</span>
                               <span className="text-ink whitespace-pre-wrap">{eq.note ?? "—"}</span>
                             </div>
-                            <LoanSummary loans={eq.activeLoans ?? []} />
+                            <LoanSummary loans={eq.lentOutLoans ?? []} />
                             <BrokenQuantityEditor
                               equipment={eq}
                               isAdmin={isAdmin}

@@ -19,9 +19,6 @@ export async function GET(req: NextRequest) {
           ? { returnedAt: { not: null } }
           : {}),
     },
-    include: {
-      equipment: { select: { id: true, name: true, type: true, quantity: true } },
-    },
     orderBy: [{ returnedAt: "asc" }, { borrowedAt: "desc" }],
   });
 
@@ -29,13 +26,17 @@ export async function GET(req: NextRequest) {
 }
 
 const createSchema = z.object({
-  equipmentId: z.string().min(1),
   direction: z.enum(["BORROWED_IN", "LENT_OUT"]),
+  equipmentId: z.string().min(1).nullable().optional(),
+  equipmentName: z.string().min(1),
   quantity: z.number().int().positive(),
   counterparty: z.string().min(1),
   borrowedAt: z.string().datetime().optional(),
   note: z.string().nullable().optional(),
-});
+}).refine(
+  (d) => d.direction === "BORROWED_IN" || (d.equipmentId && d.equipmentId.length > 0),
+  { message: "ต้องเลือกอุปกรณ์จากคลังสำหรับการให้ยืม", path: ["equipmentId"] }
+);
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -52,21 +53,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const equipment = await prisma.equipment.findUnique({
-    where: { id: parsed.data.equipmentId },
-  });
-  if (!equipment) {
-    return NextResponse.json({ error: "ไม่พบอุปกรณ์" }, { status: 404 });
+  if (parsed.data.equipmentId) {
+    const equipment = await prisma.equipment.findUnique({
+      where: { id: parsed.data.equipmentId },
+    });
+    if (!equipment) {
+      return NextResponse.json({ error: "ไม่พบอุปกรณ์" }, { status: 404 });
+    }
   }
 
   const loan = await prisma.equipmentLoan.create({
     data: {
-      ...parsed.data,
+      direction: parsed.data.direction,
+      equipmentId: parsed.data.equipmentId ?? null,
+      equipmentName: parsed.data.equipmentName,
+      quantity: parsed.data.quantity,
+      counterparty: parsed.data.counterparty,
       borrowedAt: parsed.data.borrowedAt ? new Date(parsed.data.borrowedAt) : undefined,
       note: parsed.data.note ?? null,
-    },
-    include: {
-      equipment: { select: { id: true, name: true, type: true, quantity: true } },
     },
   });
 

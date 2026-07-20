@@ -37,20 +37,38 @@ interface Props {
 
 const LABELS = {
   BORROWED_IN: {
-    title: "ยืมของ",
+    heroTitle: "ของที่เรายืมจากคนอื่น",
+    heroSub: "รายการอุปกรณ์ที่รับมาใช้ชั่วคราวจากคนอื่น",
+    arrow: "←",
     counterpartyLabel: "ยืมจาก",
+    rowPartyPrefix: "จาก",
     addLabel: "+ บันทึกการยืม",
     countLabel: "รายการยืมของ",
     emptyActive: "ยังไม่มีของที่ยืมมาค้างอยู่",
     emptyAll: "ยังไม่มีประวัติการยืม",
+    accent: {
+      panel: "bg-info/5 border-info/40",
+      band: "bg-info/15 border-info/40",
+      rowHover: "hover:bg-info/5",
+      chip: "bg-info/15 text-info",
+    },
   },
   LENT_OUT: {
-    title: "ให้ยืมของ",
+    heroTitle: "ของที่เราให้คนอื่นยืม",
+    heroSub: "อุปกรณ์ในคลังของเราที่ถูกยืมออกไป จะไม่นับใน 'ใช้ได้'",
+    arrow: "→",
     counterpartyLabel: "ให้ยืมกับ",
+    rowPartyPrefix: "ให้",
     addLabel: "+ บันทึกการให้ยืม",
     countLabel: "รายการให้ยืม",
     emptyActive: "ยังไม่มีของที่ให้ยืมค้างอยู่",
     emptyAll: "ยังไม่มีประวัติการให้ยืม",
+    accent: {
+      panel: "bg-coral/5 border-coral/40",
+      band: "bg-coral/15 border-coral/40",
+      rowHover: "hover:bg-coral/5",
+      chip: "bg-coral/15 text-coral",
+    },
   },
 } as const;
 
@@ -211,6 +229,17 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
 
   return (
     <div className="space-y-6">
+      {/* Hero banner — makes the direction unmistakable at a glance */}
+      <div className={`border rounded-[var(--radius-lg)] px-5 py-4 flex items-center gap-4 ${L.accent.panel}`}>
+        <div className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center text-xl font-bold ${L.accent.chip}`}>
+          {L.arrow}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-base font-bold text-ink">{L.heroTitle}</h2>
+          <p className="text-xs text-muted mt-0.5">{L.heroSub}</p>
+        </div>
+      </div>
+
       <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-4">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex gap-1 rounded-[var(--radius-md)] bg-surface-cream-strong/50 p-1">
@@ -346,8 +375,11 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
           {filter === "active" ? L.emptyActive : L.emptyAll}
         </div>
       ) : (
-        <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">
-          <table className="w-full">
+        <div className={`border rounded-[var(--radius-lg)] overflow-hidden ${L.accent.panel}`}>
+          <div className={`px-5 py-2 border-b text-xs font-semibold uppercase tracking-wide ${L.accent.band}`}>
+            {L.arrow} {L.heroTitle}
+          </div>
+          <table className="w-full bg-surface-card">
             <thead>
               <tr className="text-left border-b border-hairline-soft">
                 <th className="px-5 py-2.5 text-xs font-semibold text-muted">อุปกรณ์</th>
@@ -361,10 +393,13 @@ export default function LoansClient({ direction, loans: initialLoans, equipment,
             </thead>
             <tbody>
               {filtered.map((loan) => (
-                <tr key={loan.id} className="border-b border-hairline-soft last:border-0 hover:bg-surface-cream-strong/40 transition-colors">
+                <tr key={loan.id} className={`border-b border-hairline-soft last:border-0 transition-colors ${L.accent.rowHover}`}>
                   <td className="px-5 py-3 text-sm font-medium text-ink">{loan.equipmentName}</td>
                   <td className="px-4 py-3 text-sm text-ink text-center tabular-nums">{loan.quantity}</td>
-                  <td className="px-4 py-3 text-sm text-ink">{loan.counterparty}</td>
+                  <td className="px-4 py-3 text-sm text-ink">
+                    <span className="text-xs text-muted mr-1">{L.rowPartyPrefix}</span>
+                    {loan.counterparty}
+                  </td>
                   <td className="px-4 py-3 text-sm text-muted tabular-nums">{formatDate(loan.borrowedAt)}</td>
                   <td className="px-4 py-3 text-sm">
                     {loan.returnedAt ? (

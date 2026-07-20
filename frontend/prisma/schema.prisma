@@ -31,6 +31,11 @@ enum AttendanceStatus {
   EXCUSED
 }
 
+enum LoanDirection {
+  BORROWED_IN
+  LENT_OUT
+}
+
 // ─── User & Auth ───────────────────────────────────────────
 
 model User {
@@ -322,6 +327,25 @@ model Equipment {
   note            String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  loans           EquipmentLoan[]
+}
+
+model EquipmentLoan {
+  id           String        @id @default(cuid())
+  equipmentId  String
+  equipment    Equipment     @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  direction    LoanDirection
+  quantity     Int
+  counterparty String
+  borrowedAt   DateTime      @default(now())
+  returnedAt   DateTime?
+  note         String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([equipmentId, returnedAt])
+  @@index([direction, returnedAt])
 }
 
 // ─── Performance Head Assignment ──────────────────────────

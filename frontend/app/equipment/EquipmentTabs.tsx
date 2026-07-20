@@ -5,6 +5,8 @@ import { type ReactNode } from "react";
 
 const TABS = [
   { key: "list", label: "รายการอุปกรณ์" },
+  { key: "borrowed-in", label: "ยืมของ" },
+  { key: "lent-out", label: "ให้ยืมของ" },
   { key: "settings", label: "ตั้งค่าอุปกรณ์ในการแสดง" },
 ];
 

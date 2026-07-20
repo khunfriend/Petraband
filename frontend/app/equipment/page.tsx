@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import EquipmentClient from "./EquipmentClient";
 import InstrumentEquipmentTab from "./InstrumentEquipmentTab";
 import EquipmentTabs from "./EquipmentTabs";
+import LoansClient from "./LoansClient";
 
 export const metadata = { title: "อุปกรณ์ · PETRAband" };
 
@@ -18,14 +19,7 @@ export default async function EquipmentPage({
   const isAdmin = session.user.role === "ADMIN";
   const isHead = session.user.role === "HEAD";
   if (!isAdmin && !isHead) notFound();
-
-  const equipment = await prisma.equipment.findMany({
-    where: {
-      ...(search && { name: { contains: search, mode: "insensitive" as const } }),
-      ...(type && { type }),
-    },
-    orderBy: [{ type: "asc" }, { name: "asc" }],
-  });
+  const canEdit = isAdmin || isHead;
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
@@ -36,10 +30,86 @@ export default async function EquipmentPage({
       <EquipmentTabs activeTab={tab}>
         {tab === "settings" ? (
           <InstrumentEquipmentTab isAdmin={isAdmin} />
+        ) : tab === "borrowed-in" || tab === "lent-out" ? (
+          <LoansTabContent direction={tab === "borrowed-in" ? "BORROWED_IN" : "LENT_OUT"} canEdit={canEdit} />
         ) : (
-          <EquipmentClient equipment={equipment} isAdmin={isAdmin} />
+          <EquipmentListTab search={search} type={type} isAdmin={isAdmin} />
         )}
       </EquipmentTabs>
     </div>
   );
+}
+
+async function EquipmentListTab({ search, type, isAdmin }: { search: string; type: string; isAdmin: boolean }) {
+  const equipment = await prisma.equipment.findMany({
+    where: {
+      ...(search && { name: { contains: search, mode: "insensitive" as const } }),
+      ...(type && { type }),
+    },
+    include: {
+      loans: {
+        where: { returnedAt: null },
+        select: { id: true, direction: true, quantity: true, counterparty: true, borrowedAt: true, note: true },
+      },
+    },
+    orderBy: [{ type: "asc" }, { name: "asc" }],
+  });
+
+  const items = equipment.map((eq) => {
+    const borrowedIn = eq.loans.filter((l) => l.direction === "BORROWED_IN").reduce((s, l) => s + l.quantity, 0);
+    const lentOut = eq.loans.filter((l) => l.direction === "LENT_OUT").reduce((s, l) => s + l.quantity, 0);
+    return {
+      id: eq.id,
+      name: eq.name,
+      type: eq.type,
+      quantity: eq.quantity,
+      brokenQuantity: eq.brokenQuantity,
+      lengthCm: eq.lengthCm,
+      widthCm: eq.widthCm,
+      heightCm: eq.heightCm,
+      note: eq.note,
+      borrowedIn,
+      lentOut,
+      activeLoans: eq.loans.map((l) => ({
+        id: l.id,
+        direction: l.direction,
+        quantity: l.quantity,
+        counterparty: l.counterparty,
+        borrowedAt: l.borrowedAt.toISOString(),
+        note: l.note,
+      })),
+    };
+  });
+
+  return <EquipmentClient equipment={items} isAdmin={isAdmin} />;
+}
+
+async function LoansTabContent({ direction, canEdit }: { direction: "BORROWED_IN" | "LENT_OUT"; canEdit: boolean }) {
+  const [loans, equipment] = await Promise.all([
+    prisma.equipmentLoan.findMany({
+      where: { direction },
+      include: {
+        equipment: { select: { id: true, name: true, type: true, quantity: true } },
+      },
+      orderBy: [{ returnedAt: "asc" }, { borrowedAt: "desc" }],
+    }),
+    prisma.equipment.findMany({
+      select: { id: true, name: true, type: true, quantity: true },
+      orderBy: [{ type: "asc" }, { name: "asc" }],
+    }),
+  ]);
+
+  const serialized = loans.map((l) => ({
+    id: l.id,
+    equipmentId: l.equipmentId,
+    direction: l.direction,
+    quantity: l.quantity,
+    counterparty: l.counterparty,
+    borrowedAt: l.borrowedAt.toISOString(),
+    returnedAt: l.returnedAt ? l.returnedAt.toISOString() : null,
+    note: l.note,
+    equipment: l.equipment,
+  }));
+
+  return <LoansClient direction={direction} loans={serialized} equipment={equipment} canEdit={canEdit} />;
 }

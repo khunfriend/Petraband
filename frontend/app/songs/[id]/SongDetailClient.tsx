@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { NotationGrid, type SheetData } from "@/components/songs/NotationGrid";
+import { Metronome } from "@/components/songs/Metronome";
+
+type TimeSig = "4/4" | "3/4" | "6/8" | "12/8" | "7/8";
+const TIME_SIGS: TimeSig[] = ["4/4", "3/4", "6/8", "12/8", "7/8"];
 
 interface Props {
   song: {
@@ -13,6 +17,8 @@ interface Props {
     category: string;
     duration: number | null;
     sheetData: unknown;
+    defaultBpm: number | null;
+    defaultTimeSig: string | null;
   };
   isAdmin: boolean;
 }
@@ -59,6 +65,12 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
   const [currentDuration, setCurrentDuration] = useState<number | null>(song.duration);
   const [durationInput, setDurationInput] = useState(secondsToMmSs(song.duration));
   const [durationError, setDurationError] = useState("");
+  const [currentBpm, setCurrentBpm] = useState<number | null>(song.defaultBpm);
+  const [currentSig, setCurrentSig] = useState<string | null>(song.defaultTimeSig);
+  const [bpmInput, setBpmInput] = useState(song.defaultBpm != null ? String(song.defaultBpm) : "");
+  const [sigInput, setSigInput] = useState<TimeSig | "">(
+    (song.defaultTimeSig as TimeSig | null) ?? ""
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [openingNotebook, setOpeningNotebook] = useState(false);
@@ -112,6 +124,9 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
       return;
     }
     if (!titleInput.trim()) return;
+    const parsedBpm = bpmInput.trim() ? parseInt(bpmInput, 10) : null;
+    const validBpm = parsedBpm === null ? null : Math.max(30, Math.min(240, parsedBpm));
+    const validSig = sigInput || null;
     setDurationError("");
     setSaving(true);
     const res = await fetch(`/api/songs/${song.id}`, {
@@ -122,12 +137,16 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
         category: categoryInput,
         sheetData,
         duration,
+        defaultBpm: validBpm,
+        defaultTimeSig: validSig,
         commitMessage: "แก้ไขข้อมูลเพลง",
       }),
     });
     setSaving(false);
     if (res.ok) {
       setCurrentDuration(duration);
+      setCurrentBpm(validBpm);
+      setCurrentSig(validSig);
       setSaved(true);
       setEditMode(false);
       setTimeout(() => setSaved(false), 3000);
@@ -140,6 +159,8 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
     setTitleInput(song.title);
     setCategoryInput(song.category);
     setDurationInput(secondsToMmSs(song.duration));
+    setBpmInput(currentBpm != null ? String(currentBpm) : "");
+    setSigInput((currentSig as TimeSig | null) ?? "");
     setDurationError("");
     setEditMode(false);
   }
@@ -219,6 +240,30 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
             />
             {durationError && <span className="text-xs text-error">{durationError}</span>}
           </div>
+          {/* Metronome defaults */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-muted w-24 shrink-0">Metronome</label>
+            <select
+              value={sigInput}
+              onChange={(e) => setSigInput(e.target.value as TimeSig | "")}
+              className="text-sm border border-hairline rounded-[var(--radius-sm)] px-2 py-1.5 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
+            >
+              <option value="">— ประเภท —</option>
+              {TIME_SIGS.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min={30}
+              max={240}
+              value={bpmInput}
+              onChange={(e) => setBpmInput(e.target.value)}
+              placeholder="BPM"
+              className="w-20 text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-1.5 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
+            />
+            <span className="text-xs text-muted-soft">30-240</span>
+          </div>
           {/* Actions */}
           <div className="flex items-center gap-2 pt-1">
             <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
@@ -230,6 +275,15 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
           </div>
         </div>
       )}
+
+      {/* Metronome */}
+      <div className="mb-4">
+        <Metronome
+          key={`${currentBpm ?? "d"}-${currentSig ?? "d"}`}
+          initialBpm={currentBpm}
+          initialSig={currentSig as TimeSig | null}
+        />
+      </div>
 
       {/* Notation Grid */}
       {sheetData.rows.length > 0 && (

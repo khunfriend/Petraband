@@ -58,6 +58,8 @@ export default async function SongDetailPage({ params }: Params) {
             category: song.category,
             duration: song.duration,
             sheetData: song.sheetData,
+            defaultBpm: song.defaultBpm,
+            defaultTimeSig: song.defaultTimeSig,
           }}
           isAdmin={isAdmin}
         />

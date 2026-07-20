@@ -39,14 +39,6 @@ const CONDITION_CLASSES: Record<EquipmentCondition, string> = {
   RETIRED: "bg-surface-cream-strong text-muted",
 };
 
-const EQUIPMENT_TYPES = [
-  "เครื่องดนตรี ปี่พาทย์",
-  "เครื่องดนตรี เครื่องสาย",
-  "เครื่องดนตรี เครื่องเป่า",
-  "เครื่องดนตรี ประกอบจังหวะ",
-  "อุปกรณ์",
-];
-
 const CONDITIONS: EquipmentCondition[] = ["GOOD", "FAIR", "NEEDS_REPAIR", "RETIRED"];
 
 function ConditionBadge({ condition }: { condition: EquipmentCondition }) {
@@ -135,20 +127,6 @@ function EquipmentForm({
     <div className="grid grid-cols-2 gap-4">
       <div className="col-span-2">
         <Input label="ชื่ออุปกรณ์ *" value={form.name} onChange={set("name")} placeholder="ชื่ออุปกรณ์" />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-ink">ประเภท</label>
-        <select
-          value={form.type}
-          onChange={set("type")}
-          className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
-        >
-          <option value="">— ไม่ระบุ —</option>
-          {EQUIPMENT_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -249,30 +227,9 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
   const filtered = equipment.filter((eq) => {
     const matchSearch =
       !search || eq.name.toLowerCase().includes(search.toLowerCase());
-    const matchType = !typeFilter || eq.type === typeFilter;
     const matchCondition = !conditionFilter || eq.condition === conditionFilter;
-    return matchSearch && matchType && matchCondition;
+    return matchSearch && matchCondition;
   });
-
-  // Group by type
-  const grouped = filtered.reduce<Record<string, Equipment[]>>((acc, eq) => {
-    const key = eq.type ?? "ไม่ระบุประเภท";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(eq);
-    return acc;
-  }, {});
-
-  const typeOrder = [
-    "เครื่องดนตรี ปี่พาทย์",
-    "เครื่องดนตรี เครื่องสาย",
-    "เครื่องดนตรี เครื่องเป่า",
-    "เครื่องดนตรี ประกอบจังหวะ",
-    "อุปกรณ์",
-    "ไม่ระบุประเภท",
-  ];
-  const sortedGroups = Object.keys(grouped).sort(
-    (a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b)
-  );
 
   async function handleAdd() {
     setError(null);
@@ -354,19 +311,6 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
 
           <div className="flex flex-col gap-1.5">
             <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
-            >
-              <option value="">ทุกประเภท</option>
-              {EQUIPMENT_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <select
               value={conditionFilter}
               onChange={(e) => setConditionFilter(e.target.value)}
               className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
@@ -422,17 +366,12 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
         แสดง {filtered.length} รายการ จากทั้งหมด {equipment.length} รายการ
       </p>
 
-      {/* Grouped Tables */}
-      {sortedGroups.length === 0 ? (
+      {/* Table */}
+      {filtered.length === 0 ? (
         <div className="text-center py-12 text-muted">ไม่พบรายการที่ค้นหา</div>
       ) : (
-        sortedGroups.map((groupType) => (
-          <div key={groupType} className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">
-            <div className="px-5 py-3 border-b border-hairline-soft bg-surface-cream-strong">
-              <h2 className="text-xs font-bold tracking-[1px] uppercase text-muted">{groupType}</h2>
-            </div>
-
-            <table className="w-full">
+        <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">
+          <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-hairline-soft">
                   <th className="px-5 py-2.5 text-xs font-semibold text-muted w-[35%]">ชื่อ</th>
@@ -444,7 +383,7 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
                 </tr>
               </thead>
               <tbody>
-                {grouped[groupType].map((eq) => (
+                {filtered.map((eq) => (
                   <Fragment key={eq.id}>
                     <tr className="border-b border-hairline-soft last:border-0 hover:bg-surface-cream-strong/40 transition-colors">
                       <td className="px-5 py-3 text-sm font-medium text-ink">{eq.name}</td>
@@ -509,8 +448,7 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
                 ))}
               </tbody>
             </table>
-          </div>
-        ))
+        </div>
       )}
     </div>
   );

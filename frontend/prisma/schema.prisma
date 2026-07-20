@@ -121,14 +121,16 @@ model Instrument {
 // ─── Songs ─────────────────────────────────────────────────
 
 model Song {
-  id        String   @id @default(cuid())
-  songCode  String   @unique
-  title     String
-  category  String   @default("ดนตรีไทย")
-  duration  Int?     // seconds, null = N/A
-  sheetData Json?    // rows/cols grid format from songs_full_export.json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  songCode        String   @unique
+  title           String
+  category        String   @default("ดนตรีไทย")
+  duration        Int?     // seconds, null = N/A
+  sheetData       Json?    // rows/cols grid format from songs_full_export.json
+  defaultBpm      Int?     // metronome default BPM
+  defaultTimeSig  String?  // metronome default time signature: "4/4", "3/4", "6/8", "12/8", "7/8"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   performanceSongs PerformanceSong[]
   versions         SongVersion[]

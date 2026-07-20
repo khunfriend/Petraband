@@ -17,6 +17,8 @@ const updateSchema = z.object({
   category: z.string().optional(),
   duration: z.number().int().positive().nullable().optional(),
   sheetData: z.any().optional(),
+  defaultBpm: z.number().int().min(30).max(240).nullable().optional(),
+  defaultTimeSig: z.enum(["4/4", "3/4", "6/8", "12/8", "7/8"]).nullable().optional(),
   commitMessage: z.string().optional(),
 });
 

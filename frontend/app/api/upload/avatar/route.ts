@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { supabaseAdmin, AVATAR_BUCKET } from "@/lib/supabase";
+
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -22,9 +23,22 @@ export async function POST(req: NextRequest) {
 
   const ext = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
   const filename = `${session.user.id}.${ext}`;
-  const dir = path.join(process.cwd(), "public", "uploads", "avatars");
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), Buffer.from(await file.arrayBuffer()));
+  const buffer = Buffer.from(await file.arrayBuffer());
 
-  return NextResponse.json({ url: `/uploads/avatars/${filename}` });
+  const { error } = await supabaseAdmin.storage
+    .from(AVATAR_BUCKET)
+    .upload(filename, buffer, {
+      contentType: file.type,
+      upsert: true,
+      cacheControl: "3600",
+    });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const { data } = supabaseAdmin.storage.from(AVATAR_BUCKET).getPublicUrl(filename);
+  const url = `${data.publicUrl}?v=${Date.now()}`;
+
+  return NextResponse.json({ url });
 }

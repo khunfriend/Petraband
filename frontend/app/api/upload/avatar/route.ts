@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { supabaseAdmin, AVATAR_BUCKET } from "@/lib/supabase";
+import { getSupabaseAdmin, AVATAR_BUCKET } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
@@ -24,8 +24,9 @@ export async function POST(req: NextRequest) {
   const ext = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
   const filename = `${session.user.id}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
+  const supabase = getSupabaseAdmin();
 
-  const { error } = await supabaseAdmin.storage
+  const { error } = await supabase.storage
     .from(AVATAR_BUCKET)
     .upload(filename, buffer, {
       contentType: file.type,
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const { data } = supabaseAdmin.storage.from(AVATAR_BUCKET).getPublicUrl(filename);
+  const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(filename);
   const url = `${data.publicUrl}?v=${Date.now()}`;
 
   return NextResponse.json({ url });

@@ -114,6 +114,7 @@ export function Metronome({ initialBpm, initialSig }: Props = {}) {
   useEffect(() => {
     if (playing) {
       beatIndexRef.current = 0;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentBeat(0);
     }
   }, [sig, playing]);

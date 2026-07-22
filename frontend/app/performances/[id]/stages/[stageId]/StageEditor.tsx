@@ -329,6 +329,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
 
   // Close picker when selection changes / is cleared
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!selectedId) setShowMemberPicker(false);
   }, [selectedId]);
 

@@ -55,23 +55,49 @@ export default async function MemberDetailPage({
 
   if (!user) notFound();
 
-  const performanceMembers = canSeeFull
-    ? await prisma.performanceMember.findMany({
+  const assignments = canSeeFull
+    ? await prisma.songAssignment.findMany({
         where: { userId: user.id },
         include: {
-          performance: {
+          instrument: { select: { nameThai: true } },
+          performanceSong: {
             select: {
-              id: true,
-              name: true,
-              location: true,
-              dates: { select: { date: true }, orderBy: { date: "asc" }, take: 1 },
+              performance: {
+                select: {
+                  id: true,
+                  name: true,
+                  location: true,
+                  dates: { select: { date: true }, orderBy: { date: "asc" }, take: 1 },
+                },
+              },
             },
           },
         },
-        orderBy: { joinedAt: "desc" },
-        take: 20,
       })
     : [];
+
+  const performanceHistory = Array.from(
+    assignments
+      .reduce((acc, a) => {
+        const perf = a.performanceSong.performance;
+        const existing = acc.get(perf.id);
+        if (existing) {
+          existing.instruments.add(a.instrument.nameThai);
+        } else {
+          acc.set(perf.id, {
+            id: perf.id,
+            name: perf.name,
+            location: perf.location,
+            firstDate: perf.dates[0]?.date ?? null,
+            instruments: new Set([a.instrument.nameThai]),
+          });
+        }
+        return acc;
+      }, new Map<string, { id: string; name: string; location: string | null; firstDate: Date | null; instruments: Set<string> }>())
+      .values(),
+  )
+    .sort((a, b) => (b.firstDate?.getTime() ?? 0) - (a.firstDate?.getTime() ?? 0))
+    .slice(0, 20);
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6 py-4 px-8">
@@ -170,27 +196,28 @@ export default async function MemberDetailPage({
       {canSeeFull && (
         <Card>
           <h2 className="text-base font-semibold text-ink mb-4">ประวัติการแสดง</h2>
-          {performanceMembers.length === 0 ? (
+          {performanceHistory.length === 0 ? (
             <p className="text-sm text-muted">ยังไม่มีประวัติการแสดง</p>
           ) : (
             <div className="flex flex-col gap-3">
-              {performanceMembers.map((m) => {
-                const firstDate = m.performance.dates[0]?.date;
-                return (
-                  <div key={m.id} className="flex items-start justify-between gap-4 py-2 border-b border-hairline-soft last:border-0">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink truncate">{m.performance.name}</p>
-                      <p className="text-xs text-muted mt-0.5">
-                        {m.performance.location && `${m.performance.location} · `}
-                        {firstDate
-                          ? new Date(firstDate).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
-                          : "ยังไม่มีวันที่"}
-                      </p>
-                    </div>
-                    {m.position && <Badge variant="pill">{m.position}</Badge>}
+              {performanceHistory.map((p) => (
+                <div key={p.id} className="flex items-start justify-between gap-4 py-2 border-b border-hairline-soft last:border-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink truncate">{p.name}</p>
+                    <p className="text-xs text-muted mt-0.5">
+                      {p.location && `${p.location} · `}
+                      {p.firstDate
+                        ? new Date(p.firstDate).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
+                        : "ยังไม่มีวันที่"}
+                    </p>
                   </div>
-                );
-              })}
+                  <div className="flex flex-wrap justify-end gap-1 shrink-0">
+                    {Array.from(p.instruments).map((inst) => (
+                      <Badge key={inst} variant="pill">{inst}</Badge>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </Card>

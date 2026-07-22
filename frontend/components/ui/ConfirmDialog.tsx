@@ -41,12 +41,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const requireText = options?.requireText;
   const matches = !requireText || typedText.trim() === requireText;
 
+  const handleClose = useCallback(() => finish(false), [finish]);
+
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
       <Modal
         open={options !== null}
-        onClose={() => finish(false)}
+        onClose={handleClose}
         title={options?.title ?? "ยืนยัน"}
         size="sm"
         footer={

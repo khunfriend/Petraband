@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Card } from "@/components/ui/Card";
+import { ChevronRight, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
@@ -38,7 +38,6 @@ export default async function MemberDetailPage({
       role: true,
       status: true,
       isTemporary: true,
-      // Full-view-only fields
       email: canSeeFull ? true : false,
       firstName: canSeeFull ? true : false,
       lastName: canSeeFull ? true : false,
@@ -67,7 +66,11 @@ export default async function MemberDetailPage({
                   id: true,
                   name: true,
                   location: true,
-                  dates: { select: { date: true }, orderBy: { date: "asc" }, take: 1 },
+                  dates: {
+                    select: { date: true },
+                    orderBy: { date: "asc" },
+                    take: 1,
+                  },
                 },
               },
             },
@@ -94,134 +97,193 @@ export default async function MemberDetailPage({
         }
         return acc;
       }, new Map<string, { id: string; name: string; location: string | null; firstDate: Date | null; instruments: Set<string> }>())
-      .values(),
+      .values()
   )
-    .sort((a, b) => (b.firstDate?.getTime() ?? 0) - (a.firstDate?.getTime() ?? 0))
+    .sort(
+      (a, b) =>
+        (b.firstDate?.getTime() ?? 0) - (a.firstDate?.getTime() ?? 0)
+    )
     .slice(0, 20);
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col gap-6 py-4 px-8">
-      <Link href="/members" className="text-sm text-muted hover:text-coral">← กลับหน้าสมาชิก</Link>
+    <div className="w-full max-w-3xl mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-8">
+      {/* Breadcrumb */}
+      <nav
+        aria-label="breadcrumb"
+        className="flex items-center gap-1.5 text-xs text-muted"
+      >
+        <Link
+          href="/members"
+          className="hover:text-ink transition-colors duration-[var(--duration-pb-base)] inline-flex items-center gap-1"
+        >
+          <ArrowLeft size={12} strokeWidth={1.75} />
+          สมาชิก
+        </Link>
+        <ChevronRight size={12} strokeWidth={1.75} className="text-muted-soft" />
+        <span className="text-ink font-medium truncate">{user.nickname}</span>
+      </nav>
 
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-surface-cream-strong border border-hairline overflow-hidden flex items-center justify-center text-xl font-bold text-ink shrink-0">
+      {/* Hero — bone bg + hairline (no shadow), avatar + name + meta */}
+      <header className="bg-bone border border-hairline rounded-[var(--radius-lg)] p-6 md:p-8 flex items-center gap-5 flex-wrap">
+        <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-surface-cream-strong border border-hairline overflow-hidden flex items-center justify-center text-2xl font-bold text-ink shrink-0">
           {canSeeFull && user.avatarUrl ? (
-            <Image src={user.avatarUrl} alt={user.nickname} width={56} height={56} className="object-cover w-full h-full" />
+            <Image
+              src={user.avatarUrl}
+              alt={user.nickname}
+              width={80}
+              height={80}
+              className="object-cover w-full h-full"
+            />
           ) : (
             user.nickname.charAt(0).toUpperCase()
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-ink">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+            {user.role === "ADMIN"
+              ? "Admin"
+              : user.role === "HEAD"
+              ? "Head"
+              : "Member"}
+          </p>
+          <h1 className="mt-1 text-2xl md:text-3xl font-bold text-ink leading-tight truncate">
             {user.nickname}
             {canSeeFull && (user.firstName || user.lastName) && (
-              <span className="ml-2 text-sm font-normal text-muted">
+              <span className="ml-2 text-base font-normal text-muted">
                 ({[user.firstName, user.lastName].filter(Boolean).join(" ")})
               </span>
             )}
           </h1>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <div className="flex items-center gap-1.5 mt-3 flex-wrap">
             {user.generation && <Badge variant="pill">{user.generation}</Badge>}
+            {user.primaryInstrument && (
+              <Badge variant="pill">{user.primaryInstrument.nameThai}</Badge>
+            )}
             {user.isTemporary && (
-              <Badge variant="pill">
-                บัญชีชั่วคราว
-                {canSeeFull && user.linkedPerformance && ` · ${user.linkedPerformance.name}`}
+              <Badge variant="warning">
+                ชั่วคราว
+                {canSeeFull &&
+                  user.linkedPerformance &&
+                  ` · ${user.linkedPerformance.name}`}
               </Badge>
             )}
-            {user.status === "EXPIRED" && (
-              <Badge variant="pill">หมดอายุ</Badge>
-            )}
-            <Badge variant="coral">{user.role}</Badge>
+            {user.status === "EXPIRED" && <Badge variant="slate">หมดอายุ</Badge>}
           </div>
         </div>
         {isAdmin && !isSelf && (
           <Link href={`/members/${user.id}/edit`}>
-            <Button size="sm" variant="secondary">แก้ไข</Button>
+            <Button size="sm" variant="secondary">
+              แก้ไข
+            </Button>
           </Link>
         )}
         {isSelf && (
           <Link href="/profile">
-            <Button size="sm" variant="secondary">แก้ไขโปรไฟล์</Button>
+            <Button size="sm" variant="secondary">
+              แก้ไขโปรไฟล์
+            </Button>
           </Link>
         )}
-      </div>
+      </header>
 
       {/* Info */}
-      <Card>
-        <h2 className="text-base font-semibold text-ink mb-4">ข้อมูล</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          {canSeeFull && (
-            <>
-              <div>
-                <p className="text-xs text-muted mb-0.5">ชื่อจริง - นามสกุล</p>
-                <p className="text-ink">
+      <section>
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+          ข้อมูล · Info
+        </p>
+        <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 md:p-6">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+            {canSeeFull && (
+              <>
+                <InfoRow label="ชื่อจริง - นามสกุล">
                   {user.firstName || user.lastName
                     ? [user.firstName, user.lastName].filter(Boolean).join(" ")
-                    : <span className="text-muted-soft">ไม่ได้ระบุ</span>}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted mb-0.5">อีเมล</p>
-                <p className="text-ink">{user.email || <span className="text-muted-soft">ไม่ได้ระบุ</span>}</p>
-              </div>
-            </>
-          )}
-          <div>
-            <p className="text-xs text-muted mb-0.5">Contact</p>
-            <p className="text-ink">{user.contact || <span className="text-muted-soft">ไม่ได้ระบุ</span>}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted mb-0.5">รุ่น Petra</p>
-            <p className="text-ink">{user.generation || <span className="text-muted-soft">ไม่ได้ระบุ</span>}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted mb-0.5">เครื่องดนตรีหลัก</p>
-            <p className="text-ink">
-              {user.primaryInstrument?.nameThai || <span className="text-muted-soft">ไม่ได้ระบุ</span>}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted mb-0.5">เครื่องดนตรีที่เล่นเป็น</p>
-            <p className="text-ink">
+                    : null}
+                </InfoRow>
+                <InfoRow label="อีเมล">{user.email || null}</InfoRow>
+              </>
+            )}
+            <InfoRow label="Contact">{user.contact || null}</InfoRow>
+            <InfoRow label="รุ่น Petra">{user.generation || null}</InfoRow>
+            <InfoRow label="เครื่องดนตรีหลัก">
+              {user.primaryInstrument?.nameThai || null}
+            </InfoRow>
+            <InfoRow label="เครื่องดนตรีที่เล่นเป็น">
               {user.secondaryInstruments.length > 0
-                ? user.secondaryInstruments.map((s) => s.instrument.nameThai).join(", ")
-                : <span className="text-muted-soft">ไม่ได้ระบุ</span>}
-            </p>
-          </div>
+                ? user.secondaryInstruments
+                    .map((s) => s.instrument.nameThai)
+                    .join(", ")
+                : null}
+            </InfoRow>
+          </dl>
         </div>
-      </Card>
+      </section>
 
-      {/* Performance history — Admin/Head only */}
+      {/* Performance history */}
       {canSeeFull && (
-        <Card>
-          <h2 className="text-base font-semibold text-ink mb-4">ประวัติการแสดง</h2>
-          {performanceHistory.length === 0 ? (
-            <p className="text-sm text-muted">ยังไม่มีประวัติการแสดง</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {performanceHistory.map((p) => (
-                <div key={p.id} className="flex items-start justify-between gap-4 py-2 border-b border-hairline-soft last:border-0">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink truncate">{p.name}</p>
-                    <p className="text-xs text-muted mt-0.5">
-                      {p.location && `${p.location} · `}
-                      {p.firstDate
-                        ? new Date(p.firstDate).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })
-                        : "ยังไม่มีวันที่"}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap justify-end gap-1 shrink-0">
-                    {Array.from(p.instruments).map((inst) => (
-                      <Badge key={inst} variant="pill">{inst}</Badge>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        <section>
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+            ประวัติการแสดง · Performance history
+          </p>
+          <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">
+            {performanceHistory.length === 0 ? (
+              <p className="text-sm text-muted p-6">ยังไม่มีประวัติการแสดง</p>
+            ) : (
+              <ul className="divide-y divide-hairline-soft">
+                {performanceHistory.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-start justify-between gap-4 px-5 py-4"
+                  >
+                    <div className="min-w-0">
+                      <Link
+                        href={`/performances/${p.id}`}
+                        className="text-sm font-semibold text-ink hover:text-primary transition-colors duration-[var(--duration-pb-base)] truncate block"
+                      >
+                        {p.name}
+                      </Link>
+                      <p className="text-xs text-muted mt-0.5">
+                        {p.location && `${p.location} · `}
+                        {p.firstDate
+                          ? new Date(p.firstDate).toLocaleDateString("th-TH", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "ยังไม่มีวันที่"}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-1 shrink-0">
+                      {Array.from(p.instruments).map((inst) => (
+                        <Badge key={inst} variant="pill">
+                          {inst}
+                        </Badge>
+                      ))}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
       )}
+    </div>
+  );
+}
+
+function InfoRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <dt className="text-xs text-muted mb-1">{label}</dt>
+      <dd className="text-ink">
+        {children ?? <span className="text-muted-soft">ไม่ได้ระบุ</span>}
+      </dd>
     </div>
   );
 }

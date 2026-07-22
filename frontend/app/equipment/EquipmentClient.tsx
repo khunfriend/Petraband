@@ -116,7 +116,7 @@ function EquipmentForm({
             placeholder="ยาว"
             value={form.lengthCm}
             onChange={set("lengthCm")}
-            className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3 text-sm text-ink placeholder:text-muted-soft focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+            className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3 text-sm text-ink placeholder:text-muted-soft focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
           />
           <input
             type="number"
@@ -124,7 +124,7 @@ function EquipmentForm({
             placeholder="กว้าง"
             value={form.widthCm}
             onChange={set("widthCm")}
-            className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3 text-sm text-ink placeholder:text-muted-soft focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+            className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3 text-sm text-ink placeholder:text-muted-soft focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
           />
           <input
             type="number"
@@ -132,7 +132,7 @@ function EquipmentForm({
             placeholder="สูง"
             value={form.heightCm}
             onChange={set("heightCm")}
-            className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3 text-sm text-ink placeholder:text-muted-soft focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+            className="h-10 w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3 text-sm text-ink placeholder:text-muted-soft focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
           />
         </div>
       </div>
@@ -144,7 +144,7 @@ function EquipmentForm({
           value={form.note}
           onChange={set("note")}
           placeholder="หมายเหตุ (ถ้ามี)"
-          className="w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 py-2 text-sm text-ink placeholder:text-muted-soft focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20 resize-none"
+          className="w-full rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 py-2 text-sm text-ink placeholder:text-muted-soft focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15 resize-none"
         />
       </div>
 
@@ -152,7 +152,7 @@ function EquipmentForm({
         <Button variant="secondary" size="sm" onClick={onCancel} disabled={isPending}>
           ยกเลิก
         </Button>
-        <Button variant="coral" size="sm" onClick={onSubmit} disabled={isPending || !form.name.trim()}>
+        <Button variant="primary" size="sm" onClick={onSubmit} disabled={isPending || !form.name.trim()}>
           {isPending ? "กำลังบันทึก..." : submitLabel}
         </Button>
       </div>
@@ -218,10 +218,10 @@ function BrokenQuantityEditor({
         max={equipment.quantity}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="h-8 w-20 rounded-[var(--radius-md)] border border-hairline bg-surface-card px-2 text-sm text-ink tabular-nums text-center focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+        className="h-8 w-20 rounded-[var(--radius-md)] border border-hairline bg-surface-card px-2 text-sm text-ink tabular-nums text-center focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
       />
       <span className="text-xs text-muted">/ {equipment.quantity}</span>
-      <Button variant="coral" size="sm" onClick={save} disabled={saving || invalid || !dirty}>
+      <Button variant="primary" size="sm" onClick={save} disabled={saving || invalid || !dirty}>
         {saving ? "บันทึก..." : "บันทึก"}
       </Button>
       {invalid && <span className="text-xs text-error">ต้องอยู่ระหว่าง 0–{equipment.quantity}</span>}
@@ -330,7 +330,7 @@ export default function EquipmentClient({ equipment: initialEquipment, isAdmin }
 
           {isAdmin && (
             <Button
-              variant="coral"
+              variant="primary"
               size="sm"
               onClick={() => {
                 setShowAddForm(true);

@@ -33,9 +33,10 @@ export default function EquipmentTabs({ activeTab, children }: Props) {
             key={t.key}
             type="button"
             onClick={() => switchTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            aria-pressed={activeTab === t.key}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors duration-[var(--duration-pb-base)] border-b-2 -mb-px ${
               activeTab === t.key
-                ? "border-coral text-coral"
+                ? "border-primary text-ink"
                 : "border-transparent text-muted hover:text-ink"
             }`}
           >

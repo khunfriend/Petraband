@@ -2,10 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Card } from "@/components/ui/Card";
+import { Plus, ChevronRight, Music, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Eyebrow } from "@/components/ui/Eyebrow";
+import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString("th-TH", {
@@ -27,44 +28,94 @@ async function getPerformances() {
   });
 }
 
-function PerformanceCard({ p, past }: { p: Performance; past?: boolean }) {
+function PerformanceCard({
+  p,
+  past,
+  isNext,
+}: {
+  p: Performance;
+  past?: boolean;
+  isNext?: boolean;
+}) {
   const earliest = p.dates[0];
   const latest = p.dates[p.dates.length - 1];
 
   return (
-    <Link href={`/performances/${p.id}`} className="block">
-      <Card className={`hover:border-coral transition-colors cursor-pointer ${past ? "opacity-70" : ""}`}>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-ink truncate">{p.name}</h2>
-              {past && (
-                <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-surface-cream-strong text-muted border border-hairline-soft">
-                  เสร็จสิ้น
-                </span>
-              )}
-            </div>
-            {p.location && (
-              <p className="text-sm text-muted mt-0.5">{p.location}</p>
-            )}
-            <div className="flex items-center gap-3 mt-2 text-xs text-muted-soft">
-              {earliest ? (
-                <span>
-                  {formatDate(earliest.date)}
-                  {latest && String(latest.date) !== String(earliest.date) && ` – ${formatDate(latest.date)}`}
-                  {earliest.startTime && ` · ${earliest.startTime}`}
-                </span>
-              ) : (
-                <span>ยังไม่มีวันที่</span>
-              )}
-              {p.dates.length > 1 && <span>· {p.dates.length} วัน</span>}
-              <span>· {p._count.songs} เพลง</span>
-            </div>
+    <Link
+      href={`/performances/${p.id}`}
+      className={`group block rounded-[var(--radius-lg)] border bg-surface-card transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)] ${
+        past
+          ? "border-hairline-soft opacity-70 hover:opacity-100 hover:border-hairline"
+          : "border-hairline hover:border-primary/60"
+      }`}
+    >
+      <div className="flex items-center gap-4 p-5 md:p-6">
+        {/* Date badge — coral only on `isNext`, else navy */}
+        {earliest ? (
+          <DateBadge date={new Date(earliest.date)} coral={isNext} />
+        ) : (
+          <div className="shrink-0 w-14 h-14 rounded-[var(--radius-md)] border border-dashed border-hairline flex flex-col items-center justify-center text-muted-soft">
+            <CalendarDays size={16} strokeWidth={1.75} />
           </div>
-          <span className="text-muted-soft text-sm shrink-0">→</span>
+        )}
+
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-base font-semibold text-ink group-hover:text-primary transition-colors truncate">
+              {p.name}
+            </h2>
+            {past && <Badge variant="slate">เสร็จสิ้น</Badge>}
+            {isNext && <Badge variant="coral">งานถัดไป</Badge>}
+          </div>
+          {p.location && (
+            <p className="text-sm text-muted truncate">{p.location}</p>
+          )}
+          <div className="flex items-center gap-2 mt-1 text-xs text-muted-soft flex-wrap">
+            {earliest ? (
+              <span>
+                {formatDate(earliest.date)}
+                {latest &&
+                  String(latest.date) !== String(earliest.date) &&
+                  ` – ${formatDate(latest.date)}`}
+                {earliest.startTime && ` · ${earliest.startTime}`}
+              </span>
+            ) : (
+              <span>ยังไม่มีวันที่</span>
+            )}
+            {p.dates.length > 1 && <span>· {p.dates.length} วัน</span>}
+            <span className="inline-flex items-center gap-1">
+              · <Music size={11} strokeWidth={1.75} />
+              {p._count.songs} เพลง
+            </span>
+          </div>
         </div>
-      </Card>
+
+        <ChevronRight
+          size={18}
+          strokeWidth={1.75}
+          className="shrink-0 text-muted-soft transition-transform duration-[var(--duration-pb-base)] group-hover:translate-x-0.5 group-hover:text-primary"
+        />
+      </div>
     </Link>
+  );
+}
+
+function DateBadge({ date, coral }: { date: Date; coral?: boolean }) {
+  const day = date.toLocaleDateString("th-TH", { day: "numeric" });
+  const month = date.toLocaleDateString("th-TH", { month: "short" });
+  return (
+    <div
+      className={`shrink-0 w-14 h-14 rounded-[var(--radius-md)] flex flex-col items-center justify-center border ${
+        coral
+          ? "bg-[color:var(--color-coral-100)] border-[color:var(--color-coral-500)]/40 text-[color:var(--color-coral-700)]"
+          : "bg-surface-cream-strong border-hairline text-ink"
+      }`}
+    >
+      <span className="text-[10px] font-bold uppercase tracking-[0.08em] leading-none">
+        {month}
+      </span>
+      <span className="text-lg font-bold leading-none mt-1">{day}</span>
+    </div>
   );
 }
 
@@ -73,7 +124,6 @@ export default async function PerformancesPage() {
   if (!session) redirect("/login");
   const isAdmin = session.user.role === "ADMIN";
 
-  // Temp accounts see only their assigned performance — redirect out of list
   const currentUser = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { isTemporary: true, linkedPerformanceId: true },
@@ -107,36 +157,62 @@ export default async function PerformancesPage() {
     }
   }
 
+  // Determine "งานถัดไป" — the ONE coral point in this viewport
+  const nextId = upcoming
+    .filter((p) => p.dates.length > 0)
+    .sort(
+      (a, b) =>
+        new Date(a.dates[0].date).getTime() -
+        new Date(b.dates[0].date).getTime()
+    )[0]?.id;
+
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-ink">งานแสดง</h1>
-        {isAdmin && (
-          <Link href="/performances/create">
-            <Button variant="coral" size="sm">+ สร้างงานแสดง</Button>
-          </Link>
-        )}
-      </div>
+    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-10">
+      <PageHeader
+        eyebrow="Performances · งานแสดง"
+        title="งานแสดงของวง"
+        description="ตารางงานที่กำลังจะมาและประวัติการแสดงย้อนหลัง"
+        actions={
+          isAdmin && (
+            <Link href="/performances/create">
+              <Button variant="primary">
+                <Plus size={16} strokeWidth={1.75} />
+                สร้างงานแสดง
+              </Button>
+            </Link>
+          )
+        }
+      />
 
       {/* Upcoming */}
-      <section className="mb-10">
-        <Eyebrow as="h2" className="mb-3">ที่กำลังจะมา</Eyebrow>
+      <section>
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+          ที่กำลังจะมา · Upcoming
+        </p>
         {upcoming.length === 0 ? (
           <EmptyState
-            icon="🎵"
+            icon={<CalendarDays size={28} strokeWidth={1.75} />}
             title="ไม่มีงานแสดงที่กำลังจะมา"
-            description={isAdmin ? "สร้างงานแสดงใหม่เพื่อเริ่มวางแผนซ้อมและจัดคิว" : undefined}
-            action={isAdmin ? (
-              <Link href="/performances/create">
-                <Button variant="coral" size="sm">+ สร้างงานแสดง</Button>
-              </Link>
-            ) : undefined}
+            description={
+              isAdmin
+                ? "สร้างงานแสดงใหม่เพื่อเริ่มวางแผนซ้อมและจัดคิว"
+                : undefined
+            }
+            action={
+              isAdmin ? (
+                <Link href="/performances/create">
+                  <Button variant="primary" size="sm">
+                    <Plus size={14} strokeWidth={1.75} />
+                    สร้างงานแสดง
+                  </Button>
+                </Link>
+              ) : undefined
+            }
           />
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {upcoming.map((p) => (
-              <PerformanceCard key={p.id} p={p} />
+              <PerformanceCard key={p.id} p={p} isNext={p.id === nextId} />
             ))}
           </div>
         )}
@@ -145,15 +221,16 @@ export default async function PerformancesPage() {
       {/* History */}
       {past.length > 0 && (
         <section>
-          <Eyebrow as="h2" className="mb-3">ประวัติการแสดง</Eyebrow>
-          <div className="flex flex-col gap-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+            ประวัติการแสดง · History
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {past.map((p) => (
               <PerformanceCard key={p.id} p={p} past />
             ))}
           </div>
         </section>
       )}
-
     </div>
   );
 }

@@ -2,17 +2,26 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Plus, Trash2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { AlertBox } from "@/components/ui/AlertBox";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 type DateEntry = { date: string; startTime: string; endTime: string };
+
+const fieldClass =
+  "w-full px-3 py-2 text-sm text-ink bg-white border border-hairline rounded-[var(--radius-md)] placeholder:text-muted-soft transition-colors duration-[var(--duration-pb-base)] focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15";
 
 export default function CreatePerformancePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
-  const [dates, setDates] = useState<DateEntry[]>([{ date: "", startTime: "", endTime: "" }]);
+  const [dates, setDates] = useState<DateEntry[]>([
+    { date: "", startTime: "", endTime: "" },
+  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,7 +34,9 @@ export default function CreatePerformancePage() {
   }
 
   function updateDate(i: number, field: keyof DateEntry, value: string) {
-    setDates((prev) => prev.map((d, idx) => (idx === i ? { ...d, [field]: value } : d)));
+    setDates((prev) =>
+      prev.map((d, idx) => (idx === i ? { ...d, [field]: value } : d))
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -72,43 +83,54 @@ export default function CreatePerformancePage() {
   }
 
   return (
-    <div className="w-full max-w-[640px] mx-auto px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-ink">สร้างงานแสดงใหม่</h1>
-      </div>
+    <div className="w-full max-w-2xl mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-8">
+      <nav
+        aria-label="breadcrumb"
+        className="flex items-center gap-1.5 text-xs text-muted"
+      >
+        <Link
+          href="/performances"
+          className="hover:text-ink transition-colors duration-[var(--duration-pb-base)]"
+        >
+          งานแสดง
+        </Link>
+        <ChevronRight size={12} strokeWidth={1.75} className="text-muted-soft" />
+        <span className="text-ink font-medium">สร้างใหม่</span>
+      </nav>
+
+      <PageHeader
+        eyebrow="Create · สร้างงานแสดง"
+        title="สร้างงานแสดงใหม่"
+        description="กำหนดชื่องาน สถานที่ และวันที่แสดง — เพิ่มเพลง/สมาชิกภายหลังได้"
+      />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1.5">
-            ชื่องาน <span className="text-coral">*</span>
-          </label>
+        <Field label="ชื่องาน" required>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="เช่น งานไหว้ครูดนตรีไทย 2569"
             required
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1.5">สถานที่</label>
+        <Field label="สถานที่">
           <Input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="เช่น หอประชุมใหญ่ มหาวิทยาลัย..."
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1.5">รายละเอียด</label>
+        <Field label="รายละเอียด">
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="รายละเอียดเพิ่มเติม..."
             rows={3}
-            className="w-full px-3 py-2 text-sm text-ink bg-canvas border border-hairline rounded-[var(--radius-md)] placeholder:text-muted-soft focus:outline-none focus:ring-2 focus:ring-coral focus:ring-offset-1 resize-none"
+            className={`${fieldClass} resize-none`}
           />
-        </div>
+        </Field>
 
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -116,54 +138,62 @@ export default function CreatePerformancePage() {
             <button
               type="button"
               onClick={addDate}
-              className="text-xs text-coral hover:underline font-medium"
+              className="inline-flex items-center gap-1 text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
             >
-              + เพิ่มวัน
+              <Plus size={12} strokeWidth={1.75} />
+              เพิ่มวัน
             </button>
           </div>
           <div className="flex flex-col gap-3">
             {dates.map((d, i) => (
               <div
                 key={i}
-                className="bg-surface-card border border-hairline-soft rounded-[var(--radius-md)] p-4"
+                className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-4"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-muted">วันที่ {i + 1}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+                    วันที่ {i + 1}
+                  </span>
                   {dates.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeDate(i)}
-                      className="text-xs text-muted hover:text-error"
+                      aria-label={`ลบวันที่ ${i + 1}`}
+                      className="text-muted hover:text-error transition-colors duration-[var(--duration-pb-base)] p-1 rounded-[var(--radius-sm)]"
                     >
-                      ลบ
+                      <Trash2 size={14} strokeWidth={1.75} />
                     </button>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-3">
-                    <input
-                      type="date"
-                      value={d.date}
-                      onChange={(e) => updateDate(i, "date", e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-ink bg-canvas border border-hairline rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-coral focus:ring-offset-1"
-                    />
-                  </div>
+                  <input
+                    type="date"
+                    value={d.date}
+                    onChange={(e) => updateDate(i, "date", e.target.value)}
+                    className={`${fieldClass} col-span-3`}
+                  />
                   <div>
-                    <label className="block text-xs text-muted mb-1">เริ่ม</label>
+                    <label className="block text-xs text-muted mb-1">
+                      เริ่ม
+                    </label>
                     <input
                       type="time"
                       value={d.startTime}
-                      onChange={(e) => updateDate(i, "startTime", e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-ink bg-canvas border border-hairline rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-coral focus:ring-offset-1"
+                      onChange={(e) =>
+                        updateDate(i, "startTime", e.target.value)
+                      }
+                      className={fieldClass}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-muted mb-1">สิ้นสุด</label>
+                    <label className="block text-xs text-muted mb-1">
+                      สิ้นสุด
+                    </label>
                     <input
                       type="time"
                       value={d.endTime}
                       onChange={(e) => updateDate(i, "endTime", e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-ink bg-canvas border border-hairline rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-coral focus:ring-offset-1"
+                      className={fieldClass}
                     />
                   </div>
                 </div>
@@ -172,14 +202,10 @@ export default function CreatePerformancePage() {
           </div>
         </div>
 
-        {error && (
-          <p className="text-sm text-error bg-surface-card border border-hairline-soft rounded-[var(--radius-md)] px-4 py-3">
-            {error}
-          </p>
-        )}
+        {error && <AlertBox variant="danger">{error}</AlertBox>}
 
-        <div className="flex gap-3 pt-2">
-          <Button type="submit" variant="coral" disabled={loading}>
+        <div className="flex gap-2 pt-2">
+          <Button type="submit" variant="primary" disabled={loading}>
             {loading ? "กำลังบันทึก..." : "สร้างงานแสดง"}
           </Button>
           <Button
@@ -191,6 +217,26 @@ export default function CreatePerformancePage() {
           </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-ink mb-1.5">
+        {label}
+        {required && <span className="text-error ml-1">*</span>}
+      </label>
+      {children}
     </div>
   );
 }

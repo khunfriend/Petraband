@@ -1,11 +1,33 @@
 import type { ReactNode } from "react";
+import { CheckCircle2, AlertTriangle, XCircle, Info } from "lucide-react";
 
-type Variant = "success" | "error" | "warning";
+type Variant = "success" | "warning" | "danger" | "info";
 
-const VARIANT_CLASSES: Record<Variant, string> = {
-  success: "text-success bg-success/10 border-success/30",
-  error: "text-error bg-error/10 border-error/30",
-  warning: "text-warning bg-warning/10 border-warning/30",
+// design-only §2.8 semantic palette
+const VARIANT: Record<
+  Variant,
+  { fg: string; bg: string; Icon: typeof CheckCircle2 }
+> = {
+  success: {
+    fg: "var(--color-success-fg)",
+    bg: "var(--color-success-bg)",
+    Icon: CheckCircle2,
+  },
+  warning: {
+    fg: "var(--color-warning-fg)",
+    bg: "var(--color-warning-bg)",
+    Icon: AlertTriangle,
+  },
+  danger: {
+    fg: "var(--color-danger-fg)",
+    bg: "var(--color-danger-bg)",
+    Icon: XCircle,
+  },
+  info: {
+    fg: "var(--color-info-fg)",
+    bg: "var(--color-info-bg)",
+    Icon: Info,
+  },
 };
 
 type Props = {
@@ -15,12 +37,15 @@ type Props = {
 };
 
 export function AlertBox({ variant, children, className = "" }: Props) {
+  const { fg, bg, Icon } = VARIANT[variant];
   return (
-    <p
-      role={variant === "error" ? "alert" : "status"}
-      className={`text-sm rounded-[var(--radius-md)] border px-3 py-3 ${VARIANT_CLASSES[variant]} ${className}`}
+    <div
+      role={variant === "danger" ? "alert" : "status"}
+      className={`flex items-start gap-2.5 text-sm rounded-[var(--radius-md)] border px-3 py-3 ${className}`}
+      style={{ color: fg, backgroundColor: bg, borderColor: `${fg}33` }}
     >
-      {children}
-    </p>
+      <Icon size={18} strokeWidth={1.75} className="shrink-0 mt-0.5" />
+      <div className="flex-1 leading-[1.5]">{children}</div>
+    </div>
   );
 }

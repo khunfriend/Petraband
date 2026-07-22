@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TopNav } from "@/components/TopNav";
+import { RouteFade } from "@/components/RouteFade";
 import { SessionProvider } from "@/components/SessionProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
@@ -24,9 +25,7 @@ export default async function RootLayout({
           <ToastProvider>
             <ConfirmProvider>
               <TopNav />
-              <main className="flex-1 flex flex-col w-full">
-                {children}
-              </main>
+              <RouteFade>{children}</RouteFade>
             </ConfirmProvider>
           </ToastProvider>
         </SessionProvider>

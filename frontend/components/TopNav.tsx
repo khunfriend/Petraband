@@ -37,20 +37,24 @@ export function TopNav() {
         </Link>
 
         <div className="flex items-center gap-1 flex-1">
-          {visibleLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "px-3.5 py-2 rounded-[var(--radius-md)] text-sm font-medium transition-colors duration-150",
-                pathname.startsWith(link.href)
-                  ? "bg-surface-cream-strong text-ink"
-                  : "text-muted hover:text-ink hover:bg-surface-cream-strong"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {visibleLinks.map((link) => {
+            const active = pathname.startsWith(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative px-3.5 py-2 text-sm font-medium transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)]",
+                  active
+                    ? "text-ink after:content-[''] after:absolute after:left-3.5 after:right-3.5 after:-bottom-[calc(1rem+1px)] after:h-[2px] after:bg-primary"
+                    : "text-muted hover:text-ink"
+                )}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="relative shrink-0">

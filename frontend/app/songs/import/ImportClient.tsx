@@ -2,8 +2,10 @@
 
 import { useState, useCallback } from "react";
 import * as XLSX from "xlsx";
+import { Check, FileSpreadsheet, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { AlertBox } from "@/components/ui/AlertBox";
 import { cn } from "@/lib/utils";
 
 interface ParsedSong {
@@ -15,29 +17,48 @@ interface ParsedSong {
   errors: string[];
 }
 
-const CATEGORIES = ["ดนตรีไทย", "ไทย สมัยเก่า", "ตะวันตก สมัยเก่า", "ตะวันตก สมัยใหม่", "ออริจินัล", "เซต"];
+const CATEGORIES = [
+  "ดนตรีไทย",
+  "ไทย สมัยเก่า",
+  "ตะวันตก สมัยเก่า",
+  "ตะวันตก สมัยใหม่",
+  "ออริจินัล",
+  "เซต",
+];
 
 function parseRows(rows: unknown[][]): ParsedSong[] {
-  return rows.slice(1).map((row) => {
-    const errors: string[] = [];
-    const songCode = String(row[0] ?? "").trim();
-    const title = String(row[1] ?? "").trim();
-    const category = String(row[2] ?? "ดนตรีไทย").trim();
-    const durationRaw = row[3];
+  return rows
+    .slice(1)
+    .map((row) => {
+      const errors: string[] = [];
+      const songCode = String(row[0] ?? "").trim();
+      const title = String(row[1] ?? "").trim();
+      const category = String(row[2] ?? "ดนตรีไทย").trim();
+      const durationRaw = row[3];
 
-    if (!songCode) errors.push("ไม่มีรหัสเพลง");
-    if (!title) errors.push("ไม่มีชื่อเพลง");
-    if (category && !CATEGORIES.includes(category)) errors.push(`ประเภทไม่ถูกต้อง: "${category}"`);
+      if (!songCode) errors.push("ไม่มีรหัสเพลง");
+      if (!title) errors.push("ไม่มีชื่อเพลง");
+      if (category && !CATEGORIES.includes(category))
+        errors.push(`ประเภทไม่ถูกต้อง: "${category}"`);
 
-    let duration: number | null = null;
-    if (durationRaw !== undefined && durationRaw !== "") {
-      const n = Number(durationRaw);
-      if (isNaN(n) || n < 0) errors.push("เวลา (วินาที) ต้องเป็นตัวเลขบวก");
-      else duration = n;
-    }
+      let duration: number | null = null;
+      if (durationRaw !== undefined && durationRaw !== "") {
+        const n = Number(durationRaw);
+        if (isNaN(n) || n < 0)
+          errors.push("เวลา (วินาที) ต้องเป็นตัวเลขบวก");
+        else duration = n;
+      }
 
-    return { songCode, title, category: category || "ดนตรีไทย", duration, valid: errors.length === 0, errors };
-  }).filter((r) => r.songCode || r.title);
+      return {
+        songCode,
+        title,
+        category: category || "ดนตรีไทย",
+        duration,
+        valid: errors.length === 0,
+        errors,
+      };
+    })
+    .filter((r) => r.songCode || r.title);
 }
 
 export default function ImportClient() {
@@ -61,12 +82,15 @@ export default function ImportClient() {
     reader.readAsBinaryString(f);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (f?.name.endsWith(".xlsx") || f?.name.endsWith(".xls")) processFile(f);
-  }, [processFile]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragging(false);
+      const f = e.dataTransfer.files[0];
+      if (f?.name.endsWith(".xlsx") || f?.name.endsWith(".xls")) processFile(f);
+    },
+    [processFile]
+  );
 
   async function handleImport() {
     if (!preview) return;
@@ -96,11 +120,16 @@ export default function ImportClient() {
       {/* Drop zone */}
       <div
         onDrop={handleDrop}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
         onDragLeave={() => setDragging(false)}
         className={cn(
-          "border-2 border-dashed rounded-[var(--radius-xl)] p-12 text-center transition-colors cursor-pointer",
-          dragging ? "border-coral bg-coral/5" : "border-hairline hover:border-primary bg-surface-soft"
+          "border-2 border-dashed rounded-[var(--radius-xl)] p-10 md:p-12 text-center transition-colors duration-[var(--duration-pb-base)] cursor-pointer flex flex-col items-center gap-3",
+          dragging
+            ? "border-primary bg-primary/5"
+            : "border-hairline hover:border-primary bg-surface-soft"
         )}
         onClick={() => document.getElementById("file-input")?.click()}
       >
@@ -109,47 +138,76 @@ export default function ImportClient() {
           type="file"
           accept=".xlsx,.xls"
           className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) processFile(f);
+          }}
         />
-        <p className="text-sm font-medium text-ink mb-1">
+        <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-surface-cream-strong text-primary flex items-center justify-center">
+          {file ? (
+            <FileSpreadsheet size={24} strokeWidth={1.75} />
+          ) : (
+            <Upload size={24} strokeWidth={1.75} />
+          )}
+        </div>
+        <p className="text-sm font-semibold text-ink">
           {file ? file.name : "วาง .xlsx ที่นี่ หรือคลิกเพื่อเลือกไฟล์"}
         </p>
-        <p className="text-xs text-muted">รูปแบบ: คอลัมน์ A=รหัสเพลง, B=ชื่อเพลง, C=ประเภท, D=เวลา(วินาที)</p>
+        <p className="text-xs text-muted leading-[1.7]">
+          รูปแบบ: คอลัมน์ A=รหัสเพลง · B=ชื่อเพลง · C=ประเภท · D=เวลา (วินาที)
+        </p>
       </div>
 
       {/* Preview */}
       {preview && preview.length > 0 && (
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <Badge variant="pill">{validCount} แถวถูกต้อง</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="success">{validCount} แถวถูกต้อง</Badge>
             {errorCount > 0 && (
-              <Badge variant="coral">{errorCount} แถวมีข้อผิดพลาด</Badge>
+              <Badge variant="danger">{errorCount} แถวมีข้อผิดพลาด</Badge>
             )}
           </div>
 
-          <div className="border border-hairline-soft rounded-[var(--radius-lg)] overflow-hidden">
+          <div className="border border-hairline rounded-[var(--radius-lg)] overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-surface-cream-strong">
                 <tr>
-                  <th className="text-left px-4 py-2 text-xs font-bold uppercase tracking-wide text-muted">รหัส</th>
-                  <th className="text-left px-4 py-2 text-xs font-bold uppercase tracking-wide text-muted">ชื่อเพลง</th>
-                  <th className="text-left px-4 py-2 text-xs font-bold uppercase tracking-wide text-muted">ประเภท</th>
-                  <th className="text-left px-4 py-2 text-xs font-bold uppercase tracking-wide text-muted">เวลา</th>
-                  <th className="text-left px-4 py-2 text-xs font-bold uppercase tracking-wide text-muted">สถานะ</th>
+                  {["รหัส", "ชื่อเพลง", "ประเภท", "เวลา", "สถานะ"].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline-soft">
                 {preview.map((song, i) => (
-                  <tr key={i} className={cn(!song.valid && "bg-error/5")}>
-                    <td className="px-4 py-2 text-muted-soft font-mono text-xs">{song.songCode}</td>
+                  <tr
+                    key={i}
+                    className={cn(
+                      !song.valid && "bg-[color:var(--color-danger-bg)]/40"
+                    )}
+                  >
+                    <td className="px-4 py-2 text-muted-soft font-mono text-xs">
+                      {song.songCode}
+                    </td>
                     <td className="px-4 py-2 text-ink">{song.title}</td>
                     <td className="px-4 py-2 text-muted">{song.category}</td>
-                    <td className="px-4 py-2 text-muted">{song.duration ?? "—"}</td>
+                    <td className="px-4 py-2 text-muted tabular-nums">
+                      {song.duration ?? "—"}
+                    </td>
                     <td className="px-4 py-2">
                       {song.valid ? (
-                        <span className="text-success text-xs font-medium">✓ ถูกต้อง</span>
+                        <span className="inline-flex items-center gap-1 text-[color:var(--color-success-fg)] text-xs font-medium">
+                          <Check size={14} strokeWidth={1.75} />
+                          ถูกต้อง
+                        </span>
                       ) : (
-                        <span className="text-error text-xs">{song.errors.join(", ")}</span>
+                        <span className="text-[color:var(--color-danger-fg)] text-xs">
+                          {song.errors.join(", ")}
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -159,11 +217,21 @@ export default function ImportClient() {
           </div>
 
           {validCount > 0 && (
-            <div className="flex gap-3">
-              <Button variant="primary" onClick={handleImport} disabled={importing}>
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                onClick={handleImport}
+                disabled={importing}
+              >
                 {importing ? "กำลัง Import..." : `Import ${validCount} เพลง`}
               </Button>
-              <Button variant="secondary" onClick={() => { setPreview(null); setFile(null); }}>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setPreview(null);
+                  setFile(null);
+                }}
+              >
                 ยกเลิก
               </Button>
             </div>
@@ -173,13 +241,10 @@ export default function ImportClient() {
 
       {/* Result */}
       {result && (
-        <div className="bg-surface-card border border-hairline-soft rounded-[var(--radius-lg)] p-6">
-          <p className="text-base font-semibold text-ink mb-1">Import เสร็จแล้ว</p>
-          <p className="text-sm text-muted">
-            สำเร็จ {result.success} เพลง
-            {result.failed > 0 && ` · ล้มเหลว ${result.failed} เพลง`}
-          </p>
-        </div>
+        <AlertBox variant="success">
+          Import เสร็จแล้ว — สำเร็จ {result.success} เพลง
+          {result.failed > 0 && ` · ล้มเหลว ${result.failed} เพลง`}
+        </AlertBox>
       )}
     </div>
   );

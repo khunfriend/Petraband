@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { SheetTabs } from "@/components/sheets/SheetTabs";
 import { Toolbar } from "@/components/sheets/Toolbar";
 import { SheetGrid, type SheetGridHandle } from "@/components/sheets/SheetGrid";
@@ -161,18 +162,23 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
         <button
           type="button"
           onClick={handleRenameNotebook}
-          className="text-base font-bold text-ink hover:text-coral"
+          className="text-base font-bold text-ink hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
           title="คลิกเพื่อเปลี่ยนชื่อ"
         >
           {notebook.name}
         </button>
         <div className="ml-auto flex items-center gap-3">
           {saveStatus === "saving" && <span className="text-xs text-muted">กำลังบันทึก...</span>}
-          {saveStatus === "saved" && <span className="text-xs text-success">✓ บันทึกแล้ว</span>}
+          {saveStatus === "saved" && (
+            <span className="inline-flex items-center gap-1 text-xs text-success">
+              <Check size={12} strokeWidth={1.75} />
+              บันทึกแล้ว
+            </span>
+          )}
           {saveStatus === "error" && <span className="text-xs text-error">บันทึกไม่สำเร็จ</span>}
 
           {notebook.song && (
-            <Link href={`/songs/${notebook.song.id}`} className="text-xs text-muted hover:text-ink">
+            <Link href={`/songs/${notebook.song.id}`} className="text-xs text-muted hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
               ดูหน้าเพลง →
             </Link>
           )}
@@ -184,14 +190,15 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
               <button
                 type="button"
                 onClick={handlePublish}
-                className={`text-xs px-3 py-1 rounded-full border transition ${
+                className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded-[var(--radius-pill)] border transition-colors duration-[var(--duration-pb-base)] ${
                   published
                     ? "bg-success/10 border-success/30 text-success hover:bg-error/10 hover:border-error/30 hover:text-error"
-                    : "bg-surface-soft border-hairline text-muted hover:text-ink hover:border-coral"
+                    : "bg-surface-soft border-hairline text-muted hover:text-ink hover:border-primary"
                 }`}
                 title={published ? "คลิกเพื่อยกเลิกการแสดงในหน้าเพลง" : "คลิกเพื่อส่งออกไปหน้าเพลง"}
               >
-                {published ? "✓ แสดงในหน้าเพลงแล้ว" : "ส่งออกไปหน้าเพลง"}
+                {published && <Check size={12} strokeWidth={1.75} />}
+                {published ? "แสดงในหน้าเพลงแล้ว" : "ส่งออกไปหน้าเพลง"}
               </button>
             );
           })()}

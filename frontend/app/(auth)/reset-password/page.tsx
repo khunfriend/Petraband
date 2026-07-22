@@ -3,9 +3,11 @@
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AlertBox } from "@/components/ui/AlertBox";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -52,7 +54,7 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <AlertBox variant="error">
+      <AlertBox variant="danger">
         ลิงก์ไม่ถูกต้อง — กรุณาขอลิงก์ใหม่ที่หน้าลืมรหัสผ่าน
       </AlertBox>
     );
@@ -67,7 +69,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
       <Input
         label="รหัสผ่านใหม่"
         id="password"
@@ -89,7 +91,12 @@ function ResetPasswordForm() {
         autoComplete="new-password"
         error={error}
       />
-      <Button type="submit" variant="primary" disabled={loading} className="mt-2 w-full">
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={loading}
+        className="mt-2 w-full h-11"
+      >
         {loading ? "กำลังบันทึก..." : "ตั้งรหัสผ่านใหม่"}
       </Button>
     </form>
@@ -98,17 +105,28 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="bg-surface-card border border-hairline-soft rounded-[var(--radius-xl)] p-8 w-full max-w-md mx-auto">
-      <h1 className="text-xl font-bold text-ink mb-1">ตั้งรหัสผ่านใหม่</h1>
-      <p className="text-sm text-muted mb-6">กรอกรหัสผ่านใหม่ที่ต้องการใช้</p>
+    <div>
+      <Eyebrow>Reset · รหัสผ่านใหม่</Eyebrow>
+      <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">
+        ตั้งรหัสผ่านใหม่
+      </h1>
+      <p className="mt-2 text-sm text-body leading-[1.7]">
+        กรอกรหัสผ่านใหม่ที่ต้องการใช้
+      </p>
 
-      <Suspense fallback={<p className="text-sm text-muted">กำลังโหลด...</p>}>
+      <Suspense
+        fallback={<p className="mt-8 text-sm text-muted">กำลังโหลด...</p>}
+      >
         <ResetPasswordForm />
       </Suspense>
 
-      <p className="mt-6 text-center text-sm text-muted">
-        <Link href="/login" className="hover:text-coral">กลับหน้าเข้าสู่ระบบ</Link>
-      </p>
+      <Link
+        href="/login"
+        className="mt-6 inline-flex items-center gap-2 text-sm text-body-strong font-medium hover:text-primary transition-colors"
+      >
+        <ArrowLeft size={16} strokeWidth={1.75} />
+        กลับหน้าเข้าสู่ระบบ
+      </Link>
     </div>
   );
 }

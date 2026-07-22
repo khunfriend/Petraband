@@ -14,7 +14,8 @@ export const authConfig: NextAuthConfig = {
         nextUrl.pathname.startsWith("/forgot-password") ||
         nextUrl.pathname.startsWith("/reset-password") ||
         nextUrl.pathname.startsWith("/api/auth") ||
-        nextUrl.pathname.startsWith("/uploads");
+        nextUrl.pathname.startsWith("/uploads") ||
+        nextUrl.pathname.startsWith("/design");
 
       if (isPublic) return true;
       if (isLoggedIn) return true;

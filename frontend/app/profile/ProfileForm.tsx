@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import Image from "next/image";
 
@@ -116,8 +116,7 @@ export default function ProfileForm({ user, instruments }: Props) {
   const secondaryOptions = instruments.filter((i) => i.id !== primaryId);
 
   return (
-    <Card>
-      <h2 className="text-base font-semibold text-ink mb-5">ข้อมูลส่วนตัว</h2>
+    <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 md:p-6">
       <form onSubmit={handleSave} className="flex flex-col gap-4">
 
         {/* Avatar — regular only */}
@@ -126,16 +125,18 @@ export default function ProfileForm({ user, instruments }: Props) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="relative w-16 h-16 rounded-full bg-surface-cream-strong border-2 border-dashed border-hairline hover:border-coral transition-colors overflow-hidden group shrink-0"
+              className="relative w-16 h-16 rounded-full bg-surface-cream-strong border-2 border-dashed border-hairline hover:border-primary transition-colors duration-[var(--duration-pb-base)] overflow-hidden group shrink-0"
             >
               {avatarPreview ? (
                 <Image src={avatarPreview} alt="avatar" fill className="object-cover" />
               ) : (
-                <span className="text-xl text-muted group-hover:text-coral transition-colors select-none">+</span>
+                <span className="inline-flex text-muted group-hover:text-primary transition-colors duration-[var(--duration-pb-base)] select-none">
+                  <Plus size={20} strokeWidth={1.75} />
+                </span>
               )}
               {uploadingAvatar && (
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <span className="text-white text-[10px]">อัปโหลด...</span>
+                <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "var(--color-scrim)" }}>
+                  <span className="text-on-primary text-[10px]">อัปโหลด...</span>
                 </div>
               )}
             </button>
@@ -163,7 +164,7 @@ export default function ProfileForm({ user, instruments }: Props) {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-ink">รุ่น Petra</label>
             <select
-              className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+              className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
               value={generation}
               onChange={(e) => setGeneration(e.target.value)}
             >
@@ -176,7 +177,7 @@ export default function ProfileForm({ user, instruments }: Props) {
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-ink">เครื่องดนตรีหลัก</label>
           <select
-            className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+            className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
             value={primaryId}
             onChange={(e) => {
               setPrimaryId(e.target.value);
@@ -205,10 +206,10 @@ export default function ProfileForm({ user, instruments }: Props) {
                     key={i.id}
                     type="button"
                     onClick={() => toggleSecondary(i.id)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    className={`px-3 py-1 rounded-[var(--radius-pill)] text-xs font-medium border transition-colors duration-[var(--duration-pb-base)] ${
                       selected
-                        ? "bg-coral text-white border-coral"
-                        : "bg-canvas border-hairline text-ink hover:border-coral hover:text-coral"
+                        ? "bg-primary text-on-primary border-primary"
+                        : "bg-canvas border-hairline text-ink hover:border-primary hover:text-primary"
                     }`}
                   >
                     {i.nameThai}
@@ -239,6 +240,6 @@ export default function ProfileForm({ user, instruments }: Props) {
           )}
         </div>
       </form>
-    </Card>
+    </div>
   );
 }

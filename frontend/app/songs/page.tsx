@@ -32,11 +32,7 @@ export default async function SongsPage({
   ]);
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-ink">คลังเพลง</h1>
-      </div>
-
+    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10">
       <SongListClient
         songs={songs}
         categories={categories.map((c) => c.category)}

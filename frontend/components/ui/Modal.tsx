@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { X } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -83,7 +84,8 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-[8px]"
+      style={{ backgroundColor: "var(--color-scrim)" }}
       onClick={closeOnBackdrop ? onClose : undefined}
       role="presentation"
     >
@@ -102,9 +104,9 @@ export function Modal({
             <button
               onClick={onClose}
               aria-label="ปิด"
-              className="text-muted hover:text-ink text-lg leading-none px-1"
+              className="text-muted hover:text-ink transition-colors duration-[var(--duration-pb-base)] p-1 rounded-[var(--radius-sm)]"
             >
-              ×
+              <X size={18} strokeWidth={1.75} />
             </button>
           </div>
         )}

@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft, ChevronRight } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
 import ProfileForm from "@/app/profile/ProfileForm";
 
 export default async function MemberEditPage({
@@ -41,11 +43,35 @@ export default async function MemberEditPage({
   if (!user) notFound();
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col gap-4 py-4 px-8">
-      <Link href={`/members/${user.id}`} className="text-sm text-muted hover:text-coral">
-        ← กลับหน้าโปรไฟล์
-      </Link>
-      <h1 className="text-xl font-bold text-ink">แก้ไขโปรไฟล์ · {user.nickname}</h1>
+    <div className="w-full max-w-3xl mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-8">
+      <nav
+        aria-label="breadcrumb"
+        className="flex items-center gap-1.5 text-xs text-muted"
+      >
+        <Link
+          href="/members"
+          className="hover:text-ink transition-colors duration-[var(--duration-pb-base)]"
+        >
+          สมาชิก
+        </Link>
+        <ChevronRight size={12} strokeWidth={1.75} className="text-muted-soft" />
+        <Link
+          href={`/members/${user.id}`}
+          className="hover:text-ink transition-colors duration-[var(--duration-pb-base)] inline-flex items-center gap-1"
+        >
+          <ArrowLeft size={12} strokeWidth={1.75} />
+          {user.nickname}
+        </Link>
+        <ChevronRight size={12} strokeWidth={1.75} className="text-muted-soft" />
+        <span className="text-ink font-medium">แก้ไข</span>
+      </nav>
+
+      <PageHeader
+        eyebrow="Edit · แก้ไขโปรไฟล์"
+        title={user.nickname}
+        description="แก้ไขข้อมูลสมาชิก"
+      />
+
       <ProfileForm
         user={{
           id: user.id,
@@ -58,7 +84,9 @@ export default async function MemberEditPage({
           isTemporary: user.isTemporary,
           email: user.email,
           primaryInstrumentId: user.primaryInstrumentId,
-          secondaryInstrumentIds: user.secondaryInstruments.map((s) => s.instrumentId),
+          secondaryInstrumentIds: user.secondaryInstruments.map(
+            (s) => s.instrumentId
+          ),
         }}
         instruments={instruments}
       />

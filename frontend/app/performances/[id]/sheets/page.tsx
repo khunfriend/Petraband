@@ -90,7 +90,7 @@ export default async function PerformanceSheetsPage({ params }: Params) {
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/songs/${song.id}`}
-                      className="text-xl font-bold text-ink hover:text-coral transition-colors"
+                      className="text-xl font-bold text-ink hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
                     >
                       {song.title}
                     </Link>

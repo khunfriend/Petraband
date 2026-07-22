@@ -5,18 +5,24 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 import { loginAction } from "./actions";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant="primary" disabled={pending} className="mt-2 w-full">
+    <Button
+      type="submit"
+      variant="primary"
+      disabled={pending}
+      className="mt-2 w-full h-11"
+    >
       {pending ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
     </Button>
   );
 }
 
-function LoginForm() {
+export default function LoginPage() {
   const [state, action] = useActionState(loginAction, null);
 
   useEffect(() => {
@@ -26,11 +32,16 @@ function LoginForm() {
   }, [state]);
 
   return (
-    <div className="bg-surface-card border border-hairline-soft rounded-[var(--radius-xl)] p-8">
-      <h1 className="text-xl font-bold text-ink mb-1">เข้าสู่ระบบ</h1>
-      <p className="text-sm text-muted mb-6">Sign in to PETRAband</p>
+    <div>
+      <Eyebrow>Sign in · เข้าสู่ระบบ</Eyebrow>
+      <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">
+        ยินดีต้อนรับกลับ
+      </h1>
+      <p className="mt-2 text-sm text-body leading-[1.7]">
+        เข้าสู่ระบบเพื่อดูตารางงานและซ้อมของวง
+      </p>
 
-      <form action={action} className="flex flex-col gap-4">
+      <form action={action} className="mt-8 flex flex-col gap-4">
         <Input
           label="อีเมล"
           id="email"
@@ -48,21 +59,24 @@ function LoginForm() {
           placeholder="••••••••"
           required
           autoComplete="current-password"
-          error={"error" in (state ?? {}) ? (state as { error: string }).error : undefined}
+          error={
+            "error" in (state ?? {})
+              ? (state as { error: string }).error
+              : undefined
+          }
         />
 
         <SubmitButton />
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted">
-        <Link href="/forgot-password" className="hover:text-coral">
+      <p className="mt-6 text-sm text-muted">
+        <Link
+          href="/forgot-password"
+          className="text-body-strong font-medium hover:underline underline-offset-4 decoration-primary/50 hover:decoration-primary transition-colors"
+        >
           ลืมรหัสผ่าน?
         </Link>
       </p>
     </div>
   );
-}
-
-export default function LoginPage() {
-  return <LoginForm />;
 }

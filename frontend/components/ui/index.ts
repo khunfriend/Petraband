@@ -9,3 +9,5 @@ export { EmptyState } from "./EmptyState";
 export { Skeleton } from "./Skeleton";
 export { ToastProvider, useToast } from "./Toast";
 export { ConfirmProvider, useConfirm } from "./ConfirmDialog";
+export { PageHeader } from "./PageHeader";
+export { SectionDivider } from "./SectionDivider";

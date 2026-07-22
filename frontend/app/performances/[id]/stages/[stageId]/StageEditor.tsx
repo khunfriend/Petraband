@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toPng } from "html-to-image";
+import { RotateCw, User, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
@@ -596,7 +597,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
               type="number"
               value={editW}
               onChange={(e) => setEditW(e.target.value)}
-              className="w-16 px-2 py-1 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral"
+              className="w-16 px-2 py-1 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-primary"
               min="1"
               step="0.5"
             />
@@ -605,7 +606,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
               type="number"
               value={editH}
               onChange={(e) => setEditH(e.target.value)}
-              className="w-16 px-2 py-1 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral"
+              className="w-16 px-2 py-1 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-primary"
               min="1"
               step="0.5"
             />
@@ -613,7 +614,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
               type="text"
               value={editUnit}
               onChange={(e) => setEditUnit(e.target.value)}
-              className="w-12 px-2 py-1 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral"
+              className="w-12 px-2 py-1 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-primary"
             />
             <Button size="sm" variant="coral" onClick={saveSize} disabled={sizeUpdating}>
               {sizeUpdating ? "..." : "ตกลง"}
@@ -698,7 +699,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
               value={changeNote}
               onChange={(e) => setChangeNote(e.target.value)}
               placeholder="เช่น เพิ่มระนาด, จัดเรียงใหม่"
-              className="w-full px-3 py-2 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20 mb-4"
+              className="w-full px-3 py-2 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15 mb-4"
               onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
             />
             <div className="flex gap-2">
@@ -754,7 +755,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                 value={equipmentInput}
                 onChange={(e) => setEquipmentInput(e.target.value)}
                 placeholder="เช่น โต๊ะ, ไมค์"
-                className="w-full px-2 py-1.5 text-xs border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral"
+                className="w-full px-2 py-1.5 text-xs border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && equipmentInput.trim()) {
                     addEquipment(equipmentInput, parseFloat(equipmentW), parseFloat(equipmentH));
@@ -770,7 +771,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                   min="0.5"
                   step="0.5"
                   aria-label="กว้าง"
-                  className="w-full min-w-0 px-2 py-1.5 text-xs border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral"
+                  className="w-full min-w-0 px-2 py-1.5 text-xs border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-primary"
                 />
                 <span className="text-xs text-muted-soft shrink-0">×</span>
                 <input
@@ -780,7 +781,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                   min="0.5"
                   step="0.5"
                   aria-label="ยาว"
-                  className="w-full min-w-0 px-2 py-1.5 text-xs border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral"
+                  className="w-full min-w-0 px-2 py-1.5 text-xs border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-primary"
                 />
                 <span className="text-[10px] text-muted-soft shrink-0">{stage.unitLabel}</span>
               </div>
@@ -895,30 +896,33 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                         >
                           <button
                             onClick={(e) => { e.stopPropagation(); rotateItem(item.id); }}
-                            className="w-6 h-6 rounded bg-primary text-white text-xs flex items-center justify-center hover:bg-primary-active shadow"
+                            className="w-6 h-6 rounded-[var(--radius-sm)] bg-primary text-on-primary flex items-center justify-center hover:bg-primary-active transition-colors duration-[var(--duration-pb-base)]"
                             title="หมุน 90°"
+                            aria-label="หมุน 90 องศา"
                           >
-                            ↻
+                            <RotateCw size={12} strokeWidth={1.75} />
                           </button>
                           {!isCustom && (
                             <button
                               onClick={(e) => { e.stopPropagation(); setShowMemberPicker((v) => !v); }}
-                              className={`w-6 h-6 rounded text-xs flex items-center justify-center shadow ${
+                              className={`w-6 h-6 rounded-[var(--radius-sm)] flex items-center justify-center transition-colors duration-[var(--duration-pb-base)] ${
                                 item.label
-                                  ? "bg-coral text-white hover:opacity-80"
-                                  : "bg-surface-card border border-hairline text-ink hover:border-coral"
+                                  ? "bg-primary text-on-primary hover:bg-primary-active"
+                                  : "bg-surface-card border border-hairline text-ink hover:border-primary"
                               }`}
                               title="กำหนดสมาชิก"
+                              aria-label="กำหนดสมาชิก"
                             >
-                              👤
+                              <User size={12} strokeWidth={1.75} />
                             </button>
                           )}
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
-                            className="w-6 h-6 rounded bg-error text-white text-xs flex items-center justify-center hover:opacity-80 shadow"
+                            className="w-6 h-6 rounded-[var(--radius-sm)] bg-error text-white flex items-center justify-center hover:opacity-80 transition-opacity duration-[var(--duration-pb-base)]"
                             title="ลบ"
+                            aria-label="ลบ"
                           >
-                            ✕
+                            <X size={12} strokeWidth={1.75} />
                           </button>
                         </div>
                         {showMemberPicker && !isCustom && (
@@ -954,9 +958,9 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                                       key={p.userId}
                                       onClick={() => { setItemLabel(item.id, p.nickname); setShowMemberPicker(false); }}
                                       disabled={isHere}
-                                      className={`w-full text-left text-xs px-2 py-1 rounded flex items-center justify-between gap-2 ${
+                                      className={`w-full text-left text-xs px-2 py-1 rounded-[var(--radius-sm)] flex items-center justify-between gap-2 transition-colors duration-[var(--duration-pb-base)] ${
                                         isHere
-                                          ? "bg-coral/10 text-coral cursor-default"
+                                          ? "bg-primary/10 text-primary cursor-default"
                                           : "hover:bg-surface-cream-strong text-ink"
                                       }`}
                                     >
@@ -965,7 +969,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                                         <span className="text-muted-soft ml-1">·{p.generation}</span>
                                       </span>
                                       {isElsewhere && <span className="text-[10px] text-muted-soft shrink-0">อยู่แล้ว</span>}
-                                      {isHere && <span className="text-[10px] shrink-0">✓</span>}
+                                      {isHere && <Check size={12} strokeWidth={1.75} className="shrink-0" />}
                                     </button>
                                   );
                                 })}
@@ -1070,7 +1074,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                       </div>
                       <button
                         onClick={() => setPreviewVersion(previewVersion?.id === v.id ? null : v)}
-                        className="text-xs text-coral hover:underline shrink-0"
+                        className="text-xs text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)] shrink-0"
                       >
                         {previewVersion?.id === v.id ? "ปิด" : "ดู"}
                       </button>

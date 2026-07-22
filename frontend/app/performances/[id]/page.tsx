@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import PerformanceClient from "./PerformanceClient";
 
 type Params = { params: Promise<{ id: string }> };
@@ -93,14 +94,20 @@ export default async function PerformanceDetailPage({ params }: Params) {
     performance.heads.some((h) => h.userId === session.user.id);
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
-      <div className="flex items-center gap-2 text-sm text-muted mb-6">
-        <Link href="/performances" className="hover:text-ink transition-colors">
+    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10">
+      <nav
+        aria-label="breadcrumb"
+        className="flex items-center gap-1.5 text-xs text-muted mb-6"
+      >
+        <Link
+          href="/performances"
+          className="hover:text-ink transition-colors duration-[var(--duration-pb-base)]"
+        >
           งานแสดง
         </Link>
-        <span>/</span>
-        <span className="text-ink">{performance.name}</span>
-      </div>
+        <ChevronRight size={12} strokeWidth={1.75} className="text-muted-soft" />
+        <span className="text-ink font-medium truncate">{performance.name}</span>
+      </nav>
 
       <PerformanceClient
         hasJoined={!!myMember}

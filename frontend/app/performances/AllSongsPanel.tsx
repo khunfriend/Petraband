@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { cn } from "@/lib/utils";
 
 type SongRow = {
   id: string;
@@ -43,9 +45,13 @@ export default function AllSongsPanel() {
   }, [open, loaded]);
 
   const filtered = songs.filter((s) => {
-    const matchCat = activeCategory === "ทั้งหมด" || s.category === activeCategory;
+    const matchCat =
+      activeCategory === "ทั้งหมด" || s.category === activeCategory;
     const q = search.toLowerCase();
-    const matchSearch = !q || s.title.toLowerCase().includes(q) || s.songCode.toLowerCase().includes(q);
+    const matchSearch =
+      !q ||
+      s.title.toLowerCase().includes(q) ||
+      s.songCode.toLowerCase().includes(q);
     return matchCat && matchSearch;
   });
 
@@ -53,38 +59,53 @@ export default function AllSongsPanel() {
     <div>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="text-sm font-medium text-coral hover:underline"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
       >
-        {open ? "ซ่อนรายการเพลงรวม" : `ดูเพลงรวมทุกงานแสดง${loaded ? ` (${songs.length} เพลง)` : ""}`}
+        {open
+          ? "ซ่อนรายการเพลงรวม"
+          : `ดูเพลงรวมทุกงานแสดง${loaded ? ` (${songs.length} เพลง)` : ""}`}
+        {open ? (
+          <ChevronUp size={14} strokeWidth={1.75} />
+        ) : (
+          <ChevronDown size={14} strokeWidth={1.75} />
+        )}
       </button>
 
       {open && (
-        <div className="mt-4 border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
-          {/* Header */}
+        <div className="mt-4 border border-hairline rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
+          {/* Header + search */}
           <div className="px-5 py-4 border-b border-hairline-soft">
-            <p className="text-xs font-bold tracking-[1.5px] uppercase text-muted mb-3">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
               เพลงรวมทุกงานแสดง
             </p>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="ค้นหาชื่อเพลง / รหัส..."
-              className="w-full px-3 py-2 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
-            />
+            <div className="relative">
+              <Search
+                size={16}
+                strokeWidth={1.75}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-soft pointer-events-none"
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="ค้นหาชื่อเพลง / รหัส..."
+                className="w-full pl-9 pr-3 py-2 text-sm border border-hairline rounded-[var(--radius-md)] bg-white text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15 transition-colors duration-[var(--duration-pb-base)]"
+              />
+            </div>
           </div>
 
-          {/* Category tabs */}
+          {/* Category tabs — navy filled pills */}
           <div className="flex gap-1.5 px-5 py-3 border-b border-hairline-soft overflow-x-auto scrollbar-none">
             {["ทั้งหมด", ...categories].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`shrink-0 px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+                className={cn(
+                  "shrink-0 px-3 py-1 text-xs font-medium rounded-[var(--radius-pill)] border transition-colors duration-[var(--duration-pb-base)]",
                   activeCategory === cat
-                    ? "bg-primary text-white border-primary"
-                    : "bg-canvas text-muted border-hairline hover:bg-surface-cream-strong"
-                }`}
+                    ? "bg-primary text-on-primary border-primary"
+                    : "bg-canvas text-muted border-hairline hover:bg-surface-cream-strong hover:text-ink"
+                )}
               >
                 {cat}
               </button>
@@ -93,37 +114,50 @@ export default function AllSongsPanel() {
 
           {/* Song list */}
           {loading ? (
-            <p className="px-5 py-6 text-sm text-muted text-center">กำลังโหลด...</p>
+            <p className="px-5 py-6 text-sm text-muted text-center">
+              กำลังโหลด...
+            </p>
           ) : filtered.length === 0 ? (
-            <p className="px-5 py-6 text-sm text-muted text-center">ไม่พบเพลง</p>
+            <p className="px-5 py-6 text-sm text-muted text-center">
+              ไม่พบเพลง
+            </p>
           ) : (
             <div className="divide-y divide-hairline-soft max-h-[480px] overflow-y-auto">
               {filtered.map((s) => (
-                <div key={s.id} className="flex items-center gap-4 px-5 py-3 hover:bg-surface-cream-strong transition-colors">
+                <div
+                  key={s.id}
+                  className="flex items-center gap-4 px-5 py-3 hover:bg-surface-cream-strong transition-colors duration-[var(--duration-pb-base)]"
+                >
                   <div className="flex-1 min-w-0">
                     <Link
                       href={`/songs/${s.id}`}
-                      className="text-sm font-medium text-ink hover:text-coral transition-colors"
+                      className="text-sm font-semibold text-ink hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
                     >
                       {s.title}
                     </Link>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-xs text-muted-soft">{s.songCode}</span>
+                      <span className="text-xs text-muted-soft font-mono">
+                        {s.songCode}
+                      </span>
                       {formatDuration(s.duration) && (
-                        <span className="text-xs text-muted-soft">· {formatDuration(s.duration)}</span>
+                        <span className="text-xs text-muted-soft tabular-nums">
+                          · {formatDuration(s.duration)}
+                        </span>
                       )}
                       {s.performances.map((p) => (
                         <Link
                           key={p.id}
                           href={`/performances/${p.id}`}
-                          className="text-[11px] px-2 py-0.5 rounded-full bg-surface-soft border border-hairline text-muted hover:text-coral hover:border-coral transition-colors"
+                          className="text-[11px] px-2 py-0.5 rounded-[var(--radius-pill)] bg-surface-soft border border-hairline text-muted hover:text-primary hover:border-primary/50 transition-colors duration-[var(--duration-pb-base)]"
                         >
                           {p.name}
                         </Link>
                       ))}
                     </div>
                   </div>
-                  <Badge variant="pill" className="text-[11px] shrink-0">{s.category}</Badge>
+                  <Badge variant="pill" className="text-[11px] shrink-0">
+                    {s.category}
+                  </Badge>
                 </div>
               ))}
             </div>

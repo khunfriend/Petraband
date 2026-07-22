@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import EquipmentClient from "./EquipmentClient";
 import InstrumentEquipmentTab from "./InstrumentEquipmentTab";
 import EquipmentTabs from "./EquipmentTabs";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const metadata = { title: "อุปกรณ์ · PETRAband" };
 
@@ -28,10 +29,12 @@ export default async function EquipmentPage({
   });
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-ink">คลังอุปกรณ์</h1>
-      </div>
+    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Equipment · อุปกรณ์"
+        title="คลังอุปกรณ์"
+        description="รายการอุปกรณ์ทั้งหมด และการตั้งค่าอุปกรณ์ต่องานแสดง"
+      />
 
       <EquipmentTabs activeTab={tab}>
         {tab === "settings" ? (

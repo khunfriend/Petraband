@@ -54,7 +54,7 @@ export default async function PracticeListPage({ params }: Params) {
         {canEdit && (
           <Link
             href={`/performances/${id}/practice/create`}
-            className="px-4 py-2 bg-coral text-white text-sm font-medium rounded-[var(--radius-md)] hover:bg-coral/90 transition-colors"
+            className="px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-[var(--radius-md)] hover:bg-primary-active transition-colors duration-[var(--duration-pb-base)]"
           >
             + สร้างตารางซ้อมเพิ่ม
           </Link>
@@ -68,7 +68,7 @@ export default async function PracticeListPage({ params }: Params) {
             <Link
               key={s.id}
               href={`/performances/${id}/practice/${s.id}`}
-              className="block px-5 py-4 border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card hover:border-coral transition-colors"
+              className="block px-5 py-4 border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card hover:border-primary transition-colors duration-[var(--duration-pb-base)]"
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -77,7 +77,7 @@ export default async function PracticeListPage({ params }: Params) {
                     {s.days.length} วัน · {slotCount} ช่วงเวลา
                   </p>
                 </div>
-                <span className="text-xs text-coral shrink-0">ดูรายละเอียด →</span>
+                <span className="text-xs text-body-strong shrink-0">ดูรายละเอียด →</span>
               </div>
             </Link>
           );

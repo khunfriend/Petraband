@@ -19,20 +19,23 @@ export function NotebookSection({ sheets }: Props) {
   if (sheets.length === 0) return null;
 
   return (
-    <div className="mt-8">
-      <h2 className="text-sm font-bold tracking-wide uppercase text-muted mb-3">โน้ตเพลง</h2>
-      {/* Sheet tabs */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+    <div className="mt-10 pt-8 border-t border-hairline-soft">
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-4">
+        โน้ตเพลง · Sheets
+      </p>
+      {/* Sheet tabs — navy underline active state */}
+      <div className="flex gap-1 mb-4 flex-wrap border-b border-hairline">
         {sheets.map((s) => (
           <button
             key={s.id}
             type="button"
             onClick={() => setActiveId(s.id)}
+            aria-pressed={s.id === activeId}
             className={cn(
-              "px-4 py-1.5 rounded-full text-sm border transition",
+              "relative px-4 py-2.5 text-sm font-medium transition-colors duration-[var(--duration-pb-base)]",
               s.id === activeId
-                ? "bg-coral text-white border-coral font-medium"
-                : "bg-surface-soft border-hairline text-muted hover:text-ink hover:border-coral"
+                ? "text-ink after:content-[''] after:absolute after:left-3 after:right-3 after:-bottom-px after:h-[2px] after:bg-primary"
+                : "text-muted hover:text-ink"
             )}
           >
             {s.name}

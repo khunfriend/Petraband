@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import SongDetailClient from "./SongDetailClient";
 import { NotebookSection } from "./NotebookSection";
 
@@ -30,27 +31,35 @@ export default async function SongDetailPage({ params }: Params) {
   const isAdmin = session?.user.role === "ADMIN";
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
+    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-8">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted mb-6">
-        <Link href="/songs" className="hover:text-ink transition-colors">เพลง</Link>
-        <span>/</span>
-        <span className="text-ink">{song.title}</span>
-      </div>
+      <nav
+        aria-label="breadcrumb"
+        className="flex items-center gap-1.5 text-xs text-muted"
+      >
+        <Link
+          href="/songs"
+          className="hover:text-ink transition-colors duration-[var(--duration-pb-base)]"
+        >
+          คลังเพลง
+        </Link>
+        <ChevronRight size={12} strokeWidth={1.75} className="text-muted-soft" />
+        <span className="text-ink font-medium truncate">{song.title}</span>
+      </nav>
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant="pill">{song.category}</Badge>
-            <span className="text-xs text-muted-soft">{song.songCode}</span>
-          </div>
-          <h1 className="text-2xl font-bold text-ink">{song.title}</h1>
+      <header className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Badge variant="pill">{song.category}</Badge>
+          <span className="text-xs text-muted-soft font-mono">
+            {song.songCode}
+          </span>
         </div>
-      </div>
+        <h1 className="text-2xl md:text-3xl font-bold text-ink leading-tight">
+          {song.title}
+        </h1>
+      </header>
 
-      {/* Notation Grid */}
-      <div className="bg-surface-card border border-hairline-soft rounded-[var(--radius-lg)] p-6">
+      <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-6 md:p-8">
         <SongDetailClient
           song={{
             id: song.id,

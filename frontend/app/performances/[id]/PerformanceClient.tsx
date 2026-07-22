@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Check, Download, Star } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -203,7 +204,7 @@ function SongPickerPanel({ addedSongIds, onAdd, onClose }: SongPickerPanelProps)
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="ค้นหาชื่อเพลง / รหัส..."
-          className="w-full px-3 py-2 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+          className="w-full px-3 py-2 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
         />
       </div>
       <div className="flex gap-1 px-4 pb-2 overflow-x-auto scrollbar-none">
@@ -761,20 +762,30 @@ export default function PerformanceClient({
             return (
               <Button
                 size="sm"
-                variant={hasJoined ? "secondary" : "coral"}
+                variant={hasJoined ? "secondary" : "primary"}
                 onClick={toggleJoin}
                 disabled={joinLoading}
               >
-                {joinLoading ? "..." : hasJoined ? "✓ เข้าร่วมแล้ว" : "เข้าร่วม"}
+                {joinLoading ? (
+                  "..."
+                ) : hasJoined ? (
+                  <>
+                    <Check size={14} strokeWidth={1.75} />
+                    เข้าร่วมแล้ว
+                  </>
+                ) : (
+                  "เข้าร่วม"
+                )}
               </Button>
             );
           })()}
           {canEdit && (
             <a
               href={`/api/performances/${performance.id}/export`}
-              className="inline-flex items-center h-9 px-3 rounded-[var(--radius-md)] border border-hairline bg-canvas text-sm font-medium text-ink hover:border-coral hover:text-coral transition-colors"
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] border border-hairline bg-canvas text-sm font-medium text-ink hover:border-primary hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
             >
-              📄 Export
+              <Download size={14} strokeWidth={1.75} />
+              Export
             </a>
           )}
           {isAdmin && (
@@ -795,7 +806,7 @@ export default function PerformanceClient({
       <section>
         <SectionHeader label="ข้อมูลงาน">
           {canEdit && !editingInfo && (
-            <button onClick={openEditInfo} className="text-xs font-medium text-coral hover:underline">
+            <button onClick={openEditInfo} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
               แก้ไข
             </button>
           )}
@@ -824,14 +835,14 @@ export default function PerformanceClient({
                         type="time"
                         defaultValue={d.startTime ?? ""}
                         onBlur={(e) => updateDateTime(d.id, e.target.value, editDates.find(x => x.id === d.id)?.endTime ?? "")}
-                        className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-coral w-28"
+                        className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
                       />
                       <span className="text-muted-soft text-xs">–</span>
                       <input
                         type="time"
                         defaultValue={d.endTime ?? ""}
                         onBlur={(e) => updateDateTime(d.id, editDates.find(x => x.id === d.id)?.startTime ?? "", e.target.value)}
-                        className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-coral w-28"
+                        className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
                       />
                       <span className="text-xs text-muted-soft">น.</span>
                       <button onClick={() => deleteDate(d.id)} className="ml-auto text-muted-soft hover:text-error text-xs shrink-0">ลบ</button>
@@ -842,27 +853,27 @@ export default function PerformanceClient({
                       type="date"
                       value={newDateStr}
                       onChange={(e) => setNewDateStr(e.target.value)}
-                      className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-coral"
+                      className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary"
                     />
                     <input
                       type="time"
                       value={newStartTime}
                       onChange={(e) => setNewStartTime(e.target.value)}
-                      className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-coral w-28"
+                      className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
                     />
                     <span className="text-muted-soft text-xs">–</span>
                     <input
                       type="time"
                       value={newEndTime}
                       onChange={(e) => setNewEndTime(e.target.value)}
-                      className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-coral w-28"
+                      className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
                     />
                     <Button size="sm" variant="secondary" onClick={addDate} disabled={!newDateStr || dateLoading}>+ เพิ่ม</Button>
                   </div>
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="coral" onClick={saveInfo} disabled={infoLoading}>
+                <Button size="sm" variant="primary" onClick={saveInfo} disabled={infoLoading}>
                   {infoLoading ? "กำลังบันทึก..." : "บันทึก"}
                 </Button>
                 <Button size="sm" variant="secondary" onClick={() => setEditingInfo(false)}>
@@ -912,7 +923,7 @@ export default function PerformanceClient({
           {canEdit && !editingCostume && (
             <button
               onClick={() => { setEditCostume(performance.costume ?? ""); setEditingCostume(true); }}
-              className="text-xs font-medium text-coral hover:underline"
+              className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
             >
               แก้ไข
             </button>
@@ -926,10 +937,10 @@ export default function PerformanceClient({
               onChange={(e) => setEditCostume(e.target.value)}
               placeholder="รายละเอียดเครื่องแต่งกาย / dress code"
               rows={3}
-              className="w-full px-3 py-2 text-sm text-ink bg-canvas border border-hairline rounded-[var(--radius-md)] placeholder:text-muted-soft focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20 resize-none"
+              className="w-full px-3 py-2 text-sm text-ink bg-canvas border border-hairline rounded-[var(--radius-md)] placeholder:text-muted-soft focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15 resize-none"
             />
             <div className="flex gap-2">
-              <Button size="sm" variant="coral" onClick={saveCostume} disabled={costumeLoading}>
+              <Button size="sm" variant="primary" onClick={saveCostume} disabled={costumeLoading}>
                 {costumeLoading ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
               <Button size="sm" variant="secondary" onClick={() => setEditingCostume(false)}>
@@ -956,7 +967,7 @@ export default function PerformanceClient({
           {canEdit && !editingDesc && (
             <button
               onClick={() => { setEditDescription(performance.description ?? ""); setEditingDesc(true); }}
-              className="text-xs font-medium text-coral hover:underline"
+              className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
             >
               แก้ไข
             </button>
@@ -970,10 +981,10 @@ export default function PerformanceClient({
               onChange={(e) => setEditDescription(e.target.value)}
               placeholder="หมายเหตุเพิ่มเติม"
               rows={3}
-              className="w-full px-3 py-2 text-sm text-ink bg-canvas border border-hairline rounded-[var(--radius-md)] placeholder:text-muted-soft focus:outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20 resize-none"
+              className="w-full px-3 py-2 text-sm text-ink bg-canvas border border-hairline rounded-[var(--radius-md)] placeholder:text-muted-soft focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15 resize-none"
             />
             <div className="flex gap-2">
-              <Button size="sm" variant="coral" onClick={saveDescription} disabled={descLoading}>
+              <Button size="sm" variant="primary" onClick={saveDescription} disabled={descLoading}>
                 {descLoading ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
               <Button size="sm" variant="secondary" onClick={() => setEditingDesc(false)}>
@@ -1000,7 +1011,7 @@ export default function PerformanceClient({
           {performance.songs.length > 0 && (
             <Link
               href={`/performances/${performance.id}/sheets`}
-              className="text-xs font-medium text-coral hover:underline"
+              className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
             >
               ดูโน้ตทั้งหมด →
             </Link>
@@ -1034,7 +1045,7 @@ export default function PerformanceClient({
               >
                 <span className="text-xs text-muted-soft w-5 text-right shrink-0">{i + 1}</span>
                 <Link href={`/songs/${s.songId}`} className="flex-1 min-w-0 group">
-                  <p className="text-sm font-medium text-ink truncate group-hover:text-coral transition-colors">
+                  <p className="text-sm font-medium text-ink truncate group-hover:text-primary transition-colors">
                     {s.title}
                   </p>
                   <p className="text-xs text-muted-soft">{s.songCode}</p>
@@ -1056,7 +1067,7 @@ export default function PerformanceClient({
             {performance.songs.length > PREVIEW_COUNT && (
               <button
                 onClick={() => setShowAllSongs((v) => !v)}
-                className="text-sm text-coral hover:underline text-left px-1 mt-1"
+                className="text-sm text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)] text-left px-1 mt-1"
               >
                 {showAllSongs
                   ? "แสดงน้อยลง"
@@ -1085,7 +1096,7 @@ export default function PerformanceClient({
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-muted uppercase tracking-wide">สมาชิกในงานทั้งหมด</p>
                   {isAdmin && !showAddMember && (
-                    <button onClick={openAddMember} className="text-xs font-medium text-coral hover:underline">
+                    <button onClick={openAddMember} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
                       + เพิ่มสมาชิก
                     </button>
                   )}
@@ -1101,7 +1112,7 @@ export default function PerformanceClient({
                         value={addMemberSearch}
                         onChange={(e) => setAddMemberSearch(e.target.value)}
                         placeholder="ค้นหาสมาชิก..."
-                        className="w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+                        className="w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
                       />
                     </div>
                     <div className="px-4 pb-3 flex flex-wrap gap-1.5">
@@ -1120,8 +1131,8 @@ export default function PerformanceClient({
                               onClick={() => toggleAddUser(m.id)}
                               className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                                 selected
-                                  ? "bg-coral text-white border-coral"
-                                  : "bg-canvas border-hairline text-ink hover:border-coral hover:text-coral"
+                                  ? "bg-primary text-on-primary border-primary"
+                                  : "bg-canvas border-hairline text-ink hover:border-primary hover:text-primary"
                               }`}
                             >
                               {m.nickname}
@@ -1131,7 +1142,7 @@ export default function PerformanceClient({
                         })}
                     </div>
                     <div className="flex gap-2 px-4 pb-3">
-                      <Button size="sm" variant="coral" disabled={selectedAddUserIds.length === 0 || addMemberLoading} onClick={() => addMembersToPerformance(joinedMembers)}>
+                      <Button size="sm" variant="primary" disabled={selectedAddUserIds.length === 0 || addMemberLoading} onClick={() => addMembersToPerformance(joinedMembers)}>
                         {addMemberLoading ? "กำลังเพิ่ม..." : `เพิ่ม${selectedAddUserIds.length > 0 ? ` (${selectedAddUserIds.length})` : ""}`}
                       </Button>
                       <Button size="sm" variant="secondary" onClick={() => { setShowAddMember(false); setSelectedAddUserIds([]); }}>
@@ -1172,7 +1183,7 @@ export default function PerformanceClient({
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง · สมาชิก</p>
                   {isAdmin && joinedMembers.length > 0 && !showMemberPanel && (
-                    <button onClick={openPositionPanel} className="text-xs font-medium text-coral hover:underline">
+                    <button onClick={openPositionPanel} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
                       + เพิ่มตำแหน่ง
                     </button>
                   )}
@@ -1186,7 +1197,7 @@ export default function PerformanceClient({
                         <div
                           key={s}
                           className={`flex-1 py-2.5 text-center text-xs font-semibold transition-colors ${
-                            memberStep === s ? "bg-coral text-white" : "bg-surface-soft text-muted-soft"
+                            memberStep === s ? "bg-primary text-on-primary" : "bg-surface-soft text-muted-soft"
                           }`}
                         >
                           {s === 1 ? "1 · เลือกตำแหน่ง" : "2 · เลือกสมาชิก"}
@@ -1201,7 +1212,7 @@ export default function PerformanceClient({
                           value={positionSearch}
                           onChange={(e) => setPositionSearch(e.target.value)}
                           placeholder="ค้นหาตำแหน่ง..."
-                          className="w-full mb-3 px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+                          className="w-full mb-3 px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
                         />
                         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                           {POSITIONS.filter((pos) =>
@@ -1212,9 +1223,9 @@ export default function PerformanceClient({
                                 type="checkbox"
                                 checked={selectedPositions.includes(pos)}
                                 onChange={() => togglePosition(pos)}
-                                className="accent-coral w-4 h-4 shrink-0"
+                                className="accent-[color:var(--color-primary)] w-4 h-4 shrink-0"
                               />
-                              <span className="text-sm text-ink group-hover:text-coral transition-colors">{pos}</span>
+                              <span className="text-sm text-ink group-hover:text-primary transition-colors">{pos}</span>
                             </label>
                           ))}
                         </div>
@@ -1224,13 +1235,13 @@ export default function PerformanceClient({
                             value={customPosition}
                             onChange={(e) => setCustomPosition(e.target.value)}
                             placeholder="ระบุตำแหน่งอื่นๆ..."
-                            className="mt-3 w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+                            className="mt-3 w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
                           />
                         )}
                         <div className="flex gap-2 mt-4">
                           <Button
                             size="sm"
-                            variant="coral"
+                            variant="primary"
                             disabled={selectedPositions.length === 0 || (selectedPositions.includes("อื่นๆ") && !customPosition.trim())}
                             onClick={() => setMemberStep(2)}
                           >
@@ -1251,7 +1262,7 @@ export default function PerformanceClient({
                           value={memberSearch}
                           onChange={(e) => setMemberSearch(e.target.value)}
                           placeholder="ค้นหาสมาชิก..."
-                          className="w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+                          className="w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
                         />
                         <div className="border border-hairline-soft rounded-[var(--radius-md)] overflow-hidden">
                           <div className="grid grid-cols-[160px_1fr] bg-surface-soft border-b border-hairline-soft">
@@ -1292,8 +1303,8 @@ export default function PerformanceClient({
                                             : takenByOther
                                             ? "bg-surface-soft border-hairline text-muted-soft cursor-not-allowed opacity-50"
                                             : selected
-                                            ? "bg-coral text-white border-coral"
-                                            : "bg-canvas border-hairline text-ink hover:border-coral hover:text-coral"
+                                            ? "bg-primary text-on-primary border-primary"
+                                            : "bg-canvas border-hairline text-ink hover:border-primary hover:text-primary"
                                         }`}
                                       >
                                         {m.nickname}
@@ -1307,7 +1318,7 @@ export default function PerformanceClient({
                           })}
                         </div>
                         <div className="flex gap-2 mt-1">
-                          <Button size="sm" variant="coral" onClick={() => savePositionAssignments(joinedMembers, positionEntries)} disabled={saveMembersLoading}>
+                          <Button size="sm" variant="primary" onClick={() => savePositionAssignments(joinedMembers, positionEntries)} disabled={saveMembersLoading}>
                             {saveMembersLoading ? "กำลังบันทึก..." : "บันทึก"}
                           </Button>
                           <Button size="sm" variant="secondary" onClick={() => setMemberStep(1)}>← ย้อนกลับ</Button>
@@ -1364,7 +1375,7 @@ export default function PerformanceClient({
       {/* ── ตารางซ้อม ── */}
       <section>
         <SectionHeader label="ตารางซ้อม">
-          <Link href={`/performances/${performance.id}/practice`} className="text-xs font-medium text-coral hover:underline">
+          <Link href={`/performances/${performance.id}/practice`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
             {canEdit ? "จัดการตารางซ้อม →" : "ดูตารางซ้อม →"}
           </Link>
         </SectionHeader>
@@ -1373,7 +1384,7 @@ export default function PerformanceClient({
           <div className="px-4 py-5 bg-surface-card border border-hairline-soft rounded-[var(--radius-md)] flex items-center justify-between gap-4">
             <p className="text-sm text-muted-soft">ยังไม่มีตารางซ้อม</p>
             {canEdit && (
-              <Link href={`/performances/${performance.id}/practice`} className="text-xs font-medium text-coral hover:underline shrink-0">
+              <Link href={`/performances/${performance.id}/practice`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)] shrink-0">
                 + สร้างตารางซ้อม
               </Link>
             )}
@@ -1386,7 +1397,7 @@ export default function PerformanceClient({
                   <p className="text-sm font-semibold text-ink">{sched.title}</p>
                   <Link
                     href={`/performances/${performance.id}/practice/${sched.id}`}
-                    className="text-xs text-coral hover:underline"
+                    className="text-xs text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
                   >
                     ดูรายละเอียด →
                   </Link>
@@ -1404,12 +1415,15 @@ export default function PerformanceClient({
                           {day.slots.map((slot) => (
                             <span
                               key={slot.id}
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border ${
                                 slot.isSpecial
-                                  ? "bg-coral/10 border-coral/30 text-coral"
+                                  ? "bg-primary/5 border-primary/40 text-primary"
                                   : "bg-surface-cream-strong border-hairline text-ink"
                               }`}
                             >
+                              {slot.isSpecial && (
+                                <Star size={10} strokeWidth={1.75} />
+                              )}
                               {slot.startTime}–{slot.endTime}
                               {slot.label ? ` · ${slot.label}` : ""}
                             </span>
@@ -1429,7 +1443,7 @@ export default function PerformanceClient({
       <section>
         <SectionHeader label="ผังการแสดง (Stage Plot)">
           {canEdit && (
-            <Link href={`/performances/${performance.id}/stages`} className="text-xs font-medium text-coral hover:underline">
+            <Link href={`/performances/${performance.id}/stages`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
               จัดการผังเวที →
             </Link>
           )}
@@ -1441,7 +1455,7 @@ export default function PerformanceClient({
               <p className="text-sm font-semibold text-ink">{stageLayout.name}</p>
               <Link
                 href={`/performances/${performance.id}/stages/${stageLayout.id}`}
-                className="text-xs text-coral hover:underline"
+                className="text-xs text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
               >
                 {canEdit ? "แก้ไข →" : "ดูเต็ม →"}
               </Link>
@@ -1457,7 +1471,7 @@ export default function PerformanceClient({
           <div className="px-4 py-5 bg-surface-card border border-hairline-soft rounded-[var(--radius-md)] flex items-center justify-between gap-4">
             <p className="text-sm text-muted-soft">ยังไม่มีผังเวที</p>
             {canEdit && (
-              <Link href={`/performances/${performance.id}/stages`} className="text-xs font-medium text-coral hover:underline shrink-0">
+              <Link href={`/performances/${performance.id}/stages`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)] shrink-0">
                 + สร้างผัง
               </Link>
             )}
@@ -1525,14 +1539,14 @@ export default function PerformanceClient({
                   {canEdit && !editingNotes && (
                     <button
                       onClick={() => { setNotesForm(performance.equipmentNotes ?? {}); setEditingNotes(true); }}
-                      className="text-xs text-coral hover:underline"
+                      className="text-xs text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
                     >
                       แก้ไขหมายเหตุ
                     </button>
                   )}
                   {editingNotes && (
                     <div className="flex gap-2">
-                      <button onClick={saveEquipmentNotes} disabled={notesLoading} className="text-xs text-coral hover:underline">
+                      <button onClick={saveEquipmentNotes} disabled={notesLoading} className="text-xs text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
                         {notesLoading ? "กำลังบันทึก..." : "บันทึก"}
                       </button>
                       <button onClick={() => setEditingNotes(false)} className="text-xs text-muted hover:underline">ยกเลิก</button>
@@ -1564,7 +1578,7 @@ export default function PerformanceClient({
                               value={notesForm[label] ?? ""}
                               onChange={(e) => setNotesForm((prev) => ({ ...prev, [label]: e.target.value }))}
                               placeholder="หมายเหตุ..."
-                              className="w-full text-xs px-2 py-1 border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[2px] focus:ring-coral/20"
+                              className="w-full text-xs px-2 py-1 border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[2px] focus:ring-coral/20"
                             />
                           ) : (
                             <span className="text-xs text-muted">

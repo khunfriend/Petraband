@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 type InstrumentRow = { name: string; chairs: number; tables: number | null };
@@ -92,7 +93,7 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
                         min={0}
                         value={row.chairs}
                         onChange={(e) => updateRow(idx, "chairs", e.target.value)}
-                        className="w-16 px-2 py-1 text-sm text-center border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-coral focus:ring-[2px] focus:ring-coral/20"
+                        className="w-16 px-2 py-1 text-sm text-center border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary focus:ring-[2px] focus:ring-primary/15"
                       />
                     </td>
                     <td className="px-4 py-2 text-center">
@@ -102,11 +103,17 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
                         value={row.tables ?? ""}
                         placeholder="—"
                         onChange={(e) => updateRow(idx, "tables", e.target.value)}
-                        className="w-16 px-2 py-1 text-sm text-center border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[2px] focus:ring-coral/20"
+                        className="w-16 px-2 py-1 text-sm text-center border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[2px] focus:ring-primary/15"
                       />
                     </td>
                     <td className="px-2 py-2 text-center">
-                      <button onClick={() => removeRow(idx)} aria-label="ลบแถว" className="text-muted-soft hover:text-error text-xs">✕</button>
+                      <button
+                        onClick={() => removeRow(idx)}
+                        aria-label="ลบแถว"
+                        className="text-muted-soft hover:text-error transition-colors duration-[var(--duration-pb-base)] p-1 rounded-[var(--radius-sm)]"
+                      >
+                        <Trash2 size={14} strokeWidth={1.75} />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -119,12 +126,15 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addRow()}
                 placeholder="ชื่อเครื่องดนตรีใหม่..."
-                className="flex-1 px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+                className="flex-1 px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
               />
-              <Button size="sm" variant="secondary" onClick={addRow}>+ เพิ่ม</Button>
+              <Button size="sm" variant="secondary" onClick={addRow}>
+                <Plus size={14} strokeWidth={1.75} />
+                เพิ่ม
+              </Button>
             </div>
             <div className="px-4 pb-4 flex gap-2">
-              <Button size="sm" variant="coral" onClick={save} disabled={saving}>
+              <Button size="sm" variant="primary" onClick={save} disabled={saving}>
                 {saving ? "กำลังบันทึก..." : "บันทึก"}
               </Button>
               <Button size="sm" variant="secondary" onClick={() => setEditing(false)}>ยกเลิก</Button>

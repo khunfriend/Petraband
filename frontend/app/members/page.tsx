@@ -61,7 +61,7 @@ export default async function MembersPage() {
   ]);
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
+    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10">
       <MembersClient
         initialUsers={users}
         currentUserId={session.user.id}

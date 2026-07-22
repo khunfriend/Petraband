@@ -150,7 +150,7 @@ export default function StageListClient({ performanceId, stages: initial, templa
                     <select
                       value={newTemplateId}
                       onChange={(e) => setNewTemplateId(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+                      className="w-full px-3 py-2 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
                     >
                       <option value="">— ไม่ใช้เทมเพลต —</option>
                       {templates.map((t) => (
@@ -185,9 +185,9 @@ export default function StageListClient({ performanceId, stages: initial, templa
               href={`/performances/${performanceId}/stages/${s.id}`}
               className="block group"
             >
-              <Card className="h-full hover:border-coral transition-colors">
+              <Card className="h-full hover:border-primary transition-colors">
                 <div className="flex flex-col gap-2">
-                  <p className="text-base font-semibold text-ink group-hover:text-coral transition-colors">
+                  <p className="text-base font-semibold text-ink group-hover:text-primary transition-colors">
                     {s.name}
                   </p>
                   <p className="text-sm text-muted">

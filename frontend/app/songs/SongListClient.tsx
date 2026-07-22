@@ -3,9 +3,13 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Plus, Search, Music, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 
 interface Song {
@@ -25,19 +29,29 @@ interface Props {
 }
 
 function formatDuration(seconds: number | null) {
-  if (!seconds) return "N/A";
+  if (!seconds) return "—";
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function SongListClient({ songs, categories, initialQ, initialCategory, isAdmin }: Props) {
+export default function SongListClient({
+  songs,
+  categories,
+  initialQ,
+  initialCategory,
+  isAdmin,
+}: Props) {
   const router = useRouter();
   const [q, setQ] = useState(initialQ);
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [createForm, setCreateForm] = useState({ title: "", songCode: "", category: "ดนตรีไทย" });
+  const [createForm, setCreateForm] = useState({
+    title: "",
+    songCode: "",
+    category: "ดนตรีไทย",
+  });
   const [createError, setCreateError] = useState("");
 
   const filtered = useMemo(() => {
@@ -89,139 +103,207 @@ export default function SongListClient({ songs, categories, initialQ, initialCat
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Create Song Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-canvas rounded-[var(--radius-lg)] border border-hairline-soft w-full max-w-sm mx-4 p-6 flex flex-col gap-4">
-            <h2 className="text-base font-bold text-ink">สร้างเพลงใหม่</h2>
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-xs text-muted mb-1 block">ชื่อเพลง *</label>
-                <input
-                  type="text"
-                  placeholder="เช่น โหมโรงยะวา"
-                  value={createForm.title}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, title: e.target.value }))}
-                  className="w-full text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-2 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted mb-1 block">รหัสเพลง *</label>
-                <input
-                  type="text"
-                  placeholder="เช่น S4360CB02"
-                  value={createForm.songCode}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, songCode: e.target.value }))}
-                  className="w-full text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-2 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted mb-1 block">ประเภท</label>
-                <input
-                  type="text"
-                  placeholder="ดนตรีไทย"
-                  value={createForm.category}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, category: e.target.value }))}
-                  className="w-full text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-2 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
-                />
-              </div>
-              {createError && <p className="text-xs text-error">{createError}</p>}
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <Button variant="secondary" size="sm" onClick={() => { setShowCreate(false); setCreateError(""); }} disabled={creating}>
-                ยกเลิก
-              </Button>
-              <Button variant="coral" size="sm" onClick={handleCreate} disabled={creating}>
-                {creating ? "กำลังสร้าง..." : "สร้างเพลง"}
-              </Button>
-            </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Songs · คลังเพลง"
+        title="คลังเพลงของวง"
+        description="ค้นหา จัดหมวดหมู่ และเปิดโน้ตเพลงในที่เดียว"
+        actions={
+          isAdmin && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setCreateForm({ title: "", songCode: "", category: "ดนตรีไทย" });
+                setShowCreate(true);
+              }}
+            >
+              <Plus size={16} strokeWidth={1.75} />
+              สร้างเพลง
+            </Button>
+          )
+        }
+      />
+
+      <div className="flex flex-col gap-4">
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search
+            size={16}
+            strokeWidth={1.75}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-soft pointer-events-none"
+          />
+          <Input
+            placeholder="ค้นหาเพลง..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {/* Category tabs — navy underline active state */}
+        <div className="border-b border-hairline">
+          <div className="flex flex-wrap gap-1">
+            <CategoryTab
+              active={!activeCategory}
+              onClick={() => handleCategoryChange("")}
+            >
+              ทั้งหมด
+              <span className="ml-1.5 text-[11px] text-muted-soft">
+                {songs.length}
+              </span>
+            </CategoryTab>
+            {categories.map((cat) => {
+              const count = songs.filter((s) => s.category === cat).length;
+              return (
+                <CategoryTab
+                  key={cat}
+                  active={activeCategory === cat}
+                  onClick={() => handleCategoryChange(cat)}
+                >
+                  {cat}
+                  <span className="ml-1.5 text-[11px] text-muted-soft">{count}</span>
+                </CategoryTab>
+              );
+            })}
           </div>
         </div>
-      )}
 
-      {/* Search + Create button row */}
-      <div className="flex items-center gap-3">
-        <Input
-          placeholder="ค้นหาเพลง..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="max-w-sm"
-        />
-        {isAdmin && (
-          <Button
-            variant="coral"
-            size="sm"
-            onClick={() => { setCreateForm({ title: "", songCode: "", category: "ดนตรีไทย" }); setShowCreate(true); }}
-          >
-            + สร้างเพลง
-          </Button>
-        )}
-      </div>
+        {/* Result count */}
+        <p className="text-xs text-muted">
+          {filtered.length} เพลง
+          {q || activeCategory ? ` · กรองจาก ${songs.length}` : ""}
+        </p>
 
-      {/* Category tabs */}
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          onClick={() => handleCategoryChange("")}
-          className={cn(
-            "px-3.5 py-1.5 rounded-[var(--radius-md)] text-sm font-medium transition-colors",
-            !activeCategory
-              ? "bg-surface-cream-strong text-ink"
-              : "text-muted hover:text-ink hover:bg-surface-cream-strong"
-          )}
-        >
-          ทั้งหมด ({songs.length})
-        </button>
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => handleCategoryChange(cat)}
-            className={cn(
-              "px-3.5 py-1.5 rounded-[var(--radius-md)] text-sm font-medium transition-colors",
-              activeCategory === cat
-                ? "bg-surface-cream-strong text-ink"
-                : "text-muted hover:text-ink hover:bg-surface-cream-strong"
-            )}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Result count */}
-      <p className="text-sm text-muted">
-        {filtered.length} เพลง{q || activeCategory ? ` (กรองจาก ${songs.length})` : ""}
-      </p>
-
-      {/* Song list */}
-      <div className="flex flex-col divide-y divide-hairline-soft border border-hairline-soft rounded-[var(--radius-lg)] overflow-hidden bg-surface-card">
+        {/* Song list */}
         {filtered.length === 0 ? (
-          <div className="px-6 py-12 text-center text-muted text-sm">
-            ไม่พบเพลงที่ค้นหา
-          </div>
+          <EmptyState
+            icon={<Music size={28} strokeWidth={1.75} />}
+            title="ไม่พบเพลงที่ค้นหา"
+            description="ลองเปลี่ยนคำค้นหาหรือหมวดหมู่"
+          />
         ) : (
-          filtered.map((song) => (
-            <Link
-              key={song.id}
-              href={`/songs/${song.id}`}
-              className="flex items-center justify-between px-6 py-4 hover:bg-surface-cream-strong transition-colors group"
-            >
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-sm font-medium text-ink group-hover:text-primary truncate">
-                  {song.title}
-                </span>
-                <span className="text-xs text-muted-soft">{song.songCode}</span>
-              </div>
-              <div className="flex items-center gap-3 shrink-0 ml-4">
-                <Badge variant="pill">{song.category}</Badge>
-                <span className="text-xs text-muted w-10 text-right">
-                  {formatDuration(song.duration)}
-                </span>
-              </div>
-            </Link>
-          ))
+          <div className="flex flex-col divide-y divide-hairline-soft border border-hairline rounded-[var(--radius-lg)] overflow-hidden bg-surface-card">
+            {filtered.map((song) => (
+              <Link
+                key={song.id}
+                href={`/songs/${song.id}`}
+                className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-surface-cream-strong transition-colors duration-[var(--duration-pb-base)] group"
+              >
+                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                  <span className="text-sm font-semibold text-ink group-hover:text-primary truncate transition-colors">
+                    {song.title}
+                  </span>
+                  <span className="text-xs text-muted-soft font-mono">
+                    {song.songCode}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <Badge variant="pill">{song.category}</Badge>
+                  <span className="text-xs text-muted w-12 text-right tabular-nums">
+                    {formatDuration(song.duration)}
+                  </span>
+                  <ChevronRight
+                    size={16}
+                    strokeWidth={1.75}
+                    className="text-muted-soft transition-transform duration-[var(--duration-pb-base)] group-hover:translate-x-0.5 group-hover:text-primary"
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Create song modal */}
+      <Modal
+        open={showCreate}
+        onClose={() => {
+          if (!creating) {
+            setShowCreate(false);
+            setCreateError("");
+          }
+        }}
+        title="สร้างเพลงใหม่"
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setShowCreate(false);
+                setCreateError("");
+              }}
+              disabled={creating}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleCreate}
+              disabled={creating}
+            >
+              {creating ? "กำลังสร้าง..." : "สร้างเพลง"}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <Input
+            label="ชื่อเพลง *"
+            placeholder="เช่น โหมโรงยะวา"
+            value={createForm.title}
+            onChange={(e) =>
+              setCreateForm((f) => ({ ...f, title: e.target.value }))
+            }
+          />
+          <Input
+            label="รหัสเพลง *"
+            placeholder="เช่น S4360CB02"
+            value={createForm.songCode}
+            onChange={(e) =>
+              setCreateForm((f) => ({ ...f, songCode: e.target.value }))
+            }
+          />
+          <Input
+            label="ประเภท"
+            placeholder="ดนตรีไทย"
+            value={createForm.category}
+            onChange={(e) =>
+              setCreateForm((f) => ({ ...f, category: e.target.value }))
+            }
+          />
+          {createError && (
+            <p className="text-xs text-error">{createError}</p>
+          )}
+        </div>
+      </Modal>
     </div>
+  );
+}
+
+function CategoryTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "relative px-4 py-2.5 text-sm font-medium transition-colors duration-[var(--duration-pb-base)]",
+        active
+          ? "text-ink after:content-[''] after:absolute after:left-3 after:right-3 after:-bottom-px after:h-[2px] after:bg-primary"
+          : "text-muted hover:text-ink"
+      )}
+    >
+      {children}
+    </button>
   );
 }

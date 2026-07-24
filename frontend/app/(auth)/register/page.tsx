@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Eyebrow } from "@/components/ui/Eyebrow";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -35,6 +36,24 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
+
+      // Run signUp on the browser so Supabase can store the PKCE
+      // verifier cookie on this origin — otherwise /auth/callback
+      // cannot exchange the code.
+      const supabase = getSupabaseBrowser();
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: payload.email,
+        password: payload.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (signUpError) {
+        setError(signUpError.message || "ส่งอีเมลยืนยันไม่สำเร็จ");
+        setLoading(false);
+        return;
+      }
+
       router.push(`/verify-pending?email=${encodeURIComponent(payload.email)}`);
     } catch {
       setError("เกิดข้อผิดพลาด กรุณาลองใหม่");

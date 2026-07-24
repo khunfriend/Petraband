@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getSupabaseServer } from "@/lib/supabase-server";
 
 const schema = z.object({
   email: z.string().email(),
@@ -12,6 +11,9 @@ const schema = z.object({
   primaryInstrumentId: z.string().optional().nullable(),
 });
 
+// Stash the pending registration row before the client calls
+// supabase.auth.signUp. The Supabase signUp runs in the browser so
+// PKCE cookies land on the same origin that /auth/callback runs on.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
@@ -29,42 +31,9 @@ export async function POST(req: NextRequest) {
 
   await prisma.pendingRegistration.upsert({
     where: { email },
-    create: {
-      email,
-      passwordHash,
-      nickname,
-      generation,
-      primaryInstrumentId: primaryInstrumentId || null,
-    },
-    update: {
-      passwordHash,
-      nickname,
-      generation,
-      primaryInstrumentId: primaryInstrumentId || null,
-    },
+    create: { email, passwordHash, nickname, generation, primaryInstrumentId: primaryInstrumentId || null },
+    update: { passwordHash, nickname, generation, primaryInstrumentId: primaryInstrumentId || null },
   });
-
-  const supabase = await getSupabaseServer();
-  const origin = req.nextUrl.origin;
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${origin}/auth/callback`,
-    },
-  });
-
-  if (error) {
-    console.error("[register] supabase signUp error:", error);
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  if (data.user?.id) {
-    await prisma.pendingRegistration.update({
-      where: { email },
-      data: { supabaseUserId: data.user.id },
-    });
-  }
 
   return NextResponse.json({ ok: true });
 }

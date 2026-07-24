@@ -42,7 +42,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id } = await params;
 
   await prisma.performanceMember.deleteMany({
-    where: { userId: session.user.id, performanceId: id, position: "" },
+    where: { userId: session.user.id, performanceId: id },
   });
 
   return NextResponse.json({ ok: true });

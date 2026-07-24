@@ -8,10 +8,11 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "/songs", label: "เพลง · Songs" },
+  { href: "/songs", label: "เพลง" },
   { href: "/performances", label: "งานแสดง" },
   { href: "/members", label: "สมาชิก" },
   { href: "/equipment", label: "อุปกรณ์", roles: ["ADMIN", "HEAD"] as const },
+  { href: "/admin/pending-users", label: "อนุมัติสมาชิก", roles: ["ADMIN"] as const },
 ];
 
 export function TopNav() {
@@ -20,7 +21,7 @@ export function TopNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const role = session?.user.role;
-  const visibleLinks = navLinks.filter((l) => !l.roles || (role && l.roles.includes(role as "ADMIN" | "HEAD")));
+  const visibleLinks = navLinks.filter((l) => !l.roles || (role && (l.roles as readonly string[]).includes(role)));
 
   return (
     <nav className="h-16 bg-canvas border-b border-hairline sticky top-0 z-40">

@@ -15,7 +15,11 @@ enum Role {
 }
 
 enum AccountStatus {
+  PENDING_EMAIL
+  PENDING_APPROVAL
   ACTIVE
+  REJECTED
+  SUSPENDED
   EXPIRED
 }
 
@@ -49,6 +53,9 @@ model User {
   tokenVersion          Int      @default(0)  // bumped on password reset to invalidate sessions
   role                  Role     @default(MEMBER)
   primaryInstrumentId   String?
+  supabaseUserId        String?  @unique
+  emailVerifiedAt       DateTime?
+  rejectionReason       String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -69,6 +76,19 @@ model User {
   practiceAvailabilities PracticeAvailability[]
   performanceMembers     PerformanceMember[]
   passwordResetTokens    PasswordResetToken[]
+}
+
+model PendingRegistration {
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  passwordHash        String
+  nickname            String
+  generation          String   @default("")
+  primaryInstrumentId String?
+  supabaseUserId      String?  @unique
+  createdAt           DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model PasswordResetToken {

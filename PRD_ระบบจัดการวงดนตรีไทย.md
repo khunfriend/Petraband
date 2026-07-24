@@ -49,11 +49,30 @@
 
 ### 3.1 ระบบสมาชิก (Authentication & Profile)
 
-- FR-1.1: ผู้ใช้สมัครสมาชิกใหม่และเข้าสู่ระบบ (Login) ผ่าน NextAuth Credentials
+- FR-1.1: **Self-registration** — สมาชิกสมัครบัญชีเองได้จากหน้า Login (ไม่ต้องให้ admin สร้างให้)
+- FR-1.1.1: **Email verification via Supabase Auth** — หน้า `/register` เรียก `supabase.auth.signUp()` ให้ Supabase เป็นผู้ส่งลิงก์ยืนยันอีเมล (built-in) ผู้ใช้ต้องคลิกยืนยันก่อนบัญชีจึงจะถูกส่งเข้าคิวรออนุมัติ
+- FR-1.1.2: **Admin approval** — หลัง email verified callback → สร้าง row `User` ใน Prisma สถานะ `PENDING_APPROVAL` และ **ยังเข้าระบบไม่ได้** จนกว่า admin จะอนุมัติผ่านหน้า admin panel (อนุมัติ / ปฏิเสธ / ระบุเหตุผล)
+- FR-1.1.3: **Notification** — เมื่อมีบัญชีใหม่รอการอนุมัติ ระบบส่งแจ้งเตือน (email + in-app notice) ไปยัง admin ทุกคน และเมื่อ admin อนุมัติ/ปฏิเสธ ระบบแจ้งกลับให้ผู้สมัครทางอีเมล
+- FR-1.1.4: **Session** — Login ยังใช้ NextAuth Credentials (bcrypt + JWT session) เหมือนเดิม โดย `authorize()` เพิ่มเงื่อนไข `status === "ACTIVE"` และ Supabase `email_confirmed_at !== null`
+
+**สถาปัตยกรรม auth (Hybrid — Approach B):**
+- **Supabase Auth**: รับผิดชอบ email verification, ส่งเมลยืนยัน, verify token/callback
+- **NextAuth Credentials**: รับผิดชอบ session, JWT, role-based middleware (ของเดิม)
+- **Prisma `User`**: source of truth ของข้อมูลสมาชิก (nickname, role, status, …) — ผูกกับ Supabase user ด้วย `supabaseUserId` หรือ email
+- User เดิมที่มีอยู่ก่อน migration → mark `emailVerified = true` และ `status = ACTIVE` เลย ไม่ต้องส่ง verify ใหม่
 - FR-1.2: โปรไฟล์สมาชิก: ชื่อเล่น, รุ่น, เครื่องดนตรีหลัก, เครื่องดนตรีรอง, รูปโปรไฟล์ (avatar upload)
 - FR-1.3: ประวัติการแสดงย้อนหลังของสมาชิก — บันทึกอัตโนมัติจากระบบจองคิวเครื่องดนตรี
 - FR-1.4: Password Reset ผ่านอีเมล (ใช้ Resend ในการส่ง)
-- FR-1.5: บัญชีชั่วคราว (Temporary Account) สำหรับผู้ร่วมแสดงที่ไม่ได้เป็นสมาชิกถาวร
+- FR-1.5: บัญชีชั่วคราว (Temporary Account) สำหรับผู้ร่วมแสดงที่ไม่ได้เป็นสมาชิกถาวร (สร้างโดย admin เท่านั้น ไม่ผ่านขั้นตอน self-registration)
+
+**สถานะบัญชี (Account Status):**
+| สถานะ | ความหมาย | เข้าระบบได้? |
+|---|---|---|
+| `PENDING_EMAIL` | สมัครแล้ว รอยืนยันอีเมล | ❌ |
+| `PENDING_APPROVAL` | ยืนยันอีเมลแล้ว รอ admin อนุมัติ | ❌ |
+| `ACTIVE` | อนุมัติแล้ว | ✅ |
+| `REJECTED` | admin ปฏิเสธ | ❌ |
+| `SUSPENDED` | ถูกระงับภายหลัง | ❌ |
 
 ---
 

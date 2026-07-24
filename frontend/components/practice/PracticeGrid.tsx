@@ -157,19 +157,23 @@ export default function PracticeGrid({ schedule, allMembers, currentUserId }: Pr
     });
   }
 
+  const gridUserIds = rows.flatMap((r) => r.members.map((m) => m.userId));
+
   const memberCountPerSlot: Record<string, number> = {};
   for (const day of schedule.days) {
     for (const slot of day.slots) {
+      const initial: Record<string, boolean> = {};
+      for (const a of slot.availabilities) initial[a.userId] = a.isAvailable;
       let count = 0;
-      for (const a of slot.availabilities) {
-        const key = `${slot.id}:${a.userId}`;
-        if (avail[key] ?? a.isAvailable) count++;
+      for (const uid of gridUserIds) {
+        const key = `${slot.id}:${uid}`;
+        if (avail[key] ?? initial[uid] ?? false) count++;
       }
       memberCountPerSlot[slot.id] = count;
     }
   }
 
-  const totalMembersInGrid = rows.reduce((sum, r) => sum + r.members.length, 0);
+  const totalMembersInGrid = gridUserIds.length;
 
   if (schedule.days.length === 0) {
     return <p className="text-sm text-muted-soft">ยังไม่มีวันซ้อม</p>;

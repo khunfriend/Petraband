@@ -69,14 +69,20 @@ export default function LoginPage() {
         <SubmitButton />
       </form>
 
-      <p className="mt-6 text-sm text-muted">
+      <div className="mt-6 flex items-center justify-between text-sm text-muted">
         <Link
           href="/forgot-password"
           className="text-body-strong font-medium hover:underline underline-offset-4 decoration-primary/50 hover:decoration-primary transition-colors"
         >
           ลืมรหัสผ่าน?
         </Link>
-      </p>
+        <Link
+          href="/register"
+          className="text-body-strong font-medium hover:underline underline-offset-4 decoration-primary/50 hover:decoration-primary transition-colors"
+        >
+          สมัครสมาชิก
+        </Link>
+      </div>
     </div>
   );
 }

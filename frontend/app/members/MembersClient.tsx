@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
 type Role = "MEMBER" | "HEAD" | "ADMIN";
-type Status = "ACTIVE" | "EXPIRED";
+type Status = "PENDING_EMAIL" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "EXPIRED";
 
 type Instrument = { id: string; nameThai: string; name: string };
 type UpcomingPerformance = { id: string; name: string; firstDate: string | null };

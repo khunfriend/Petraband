@@ -1345,7 +1345,7 @@ export default function PerformanceClient({
                         <div className="px-4 py-2.5 border-l border-hairline-soft flex flex-wrap gap-1.5 items-center">
                           {members.map((p) => (
                             <span
-                              key={p.memberId}
+                              key={`${p.userId}-${p.position}`}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/5 border border-primary/20 text-ink"
                             >
                               {p.nickname}

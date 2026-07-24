@@ -55,8 +55,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         if (!isValid) { console.error("[authorize] wrong password for:", credentials.email); return null; }
 
-        if (user.status === "EXPIRED") {
-          console.error("[authorize] account expired:", credentials.email);
+        if (user.status !== "ACTIVE") {
+          console.error(`[authorize] account not active (${user.status}):`, credentials.email);
           return null;
         }
 

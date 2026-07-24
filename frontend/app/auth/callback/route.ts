@@ -5,21 +5,47 @@ import { sendAdminNewPendingEmail } from "@/lib/email";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
+  const tokenHash = req.nextUrl.searchParams.get("token_hash");
+  const type = req.nextUrl.searchParams.get("type");
   const origin = req.nextUrl.origin;
 
-  if (!code) {
+  if (!code && !tokenHash) {
+    console.error("[callback] no code or token_hash. Search:", req.nextUrl.search);
     return NextResponse.redirect(`${origin}/login?error=verify_missing_code`);
   }
 
   const supabase = await getSupabaseServer();
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error || !data.user?.email) {
-    console.error("[callback] exchange failed:", error);
+  let userEmail: string | null = null;
+  let userId: string | null = null;
+
+  if (code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error || !data.user?.email) {
+      console.error("[callback] exchange failed:", error);
+      return NextResponse.redirect(`${origin}/login?error=verify_failed`);
+    }
+    userEmail = data.user.email;
+    userId = data.user.id;
+  } else if (tokenHash) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      type: (type as any) || "signup",
+    });
+    if (error || !data.user?.email) {
+      console.error("[callback] verifyOtp failed:", error);
+      return NextResponse.redirect(`${origin}/login?error=verify_failed`);
+    }
+    userEmail = data.user.email;
+    userId = data.user.id;
+  }
+
+  if (!userEmail || !userId) {
     return NextResponse.redirect(`${origin}/login?error=verify_failed`);
   }
 
-  const email = data.user.email;
-  const supabaseUserId = data.user.id;
+  const email = userEmail;
+  const supabaseUserId = userId;
 
   // If user already exists (rare — e.g. duplicate flow) — just make sure they're linked
   const existing = await prisma.user.findUnique({ where: { email } });

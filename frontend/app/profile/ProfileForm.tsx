@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import Image from "next/image";
+import AvatarCropDialog from "@/components/AvatarCropDialog";
 
 interface Instrument {
   id: string;
@@ -52,6 +53,7 @@ export default function ProfileForm({ user, instruments }: Props) {
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatarUrl);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const isTemporary = user.isTemporary;
@@ -64,14 +66,21 @@ export default function ProfileForm({ user, instruments }: Props) {
     );
   }
 
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    setAvatarPreview(URL.createObjectURL(file));
+    setCropSrc(URL.createObjectURL(file));
+  }
+
+  async function handleCroppedUpload(blob: Blob) {
+    const localUrl = URL.createObjectURL(blob);
+    setAvatarPreview(localUrl);
+    setCropSrc(null);
     setUploadingAvatar(true);
     try {
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", blob, "avatar.jpg");
       const res = await fetch("/api/upload/avatar", { method: "POST", body: fd });
       if (res.ok) {
         const data = await res.json();
@@ -146,6 +155,14 @@ export default function ProfileForm({ user, instruments }: Props) {
             </div>
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
           </div>
+        )}
+
+        {cropSrc && (
+          <AvatarCropDialog
+            imageSrc={cropSrc}
+            onCancel={() => setCropSrc(null)}
+            onConfirm={handleCroppedUpload}
+          />
         )}
 
         {/* ชื่อ User */}

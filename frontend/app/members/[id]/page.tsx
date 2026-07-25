@@ -54,55 +54,64 @@ export default async function MemberDetailPage({
 
   if (!user) notFound();
 
-  const assignments = canSeeFull
-    ? await prisma.songAssignment.findMany({
-        where: { userId: user.id },
-        include: {
-          instrument: { select: { nameThai: true } },
-          performanceSong: {
-            select: {
-              performance: {
-                select: {
-                  id: true,
-                  name: true,
-                  location: true,
-                  dates: {
-                    select: { date: true },
-                    orderBy: { date: "asc" },
-                    take: 1,
-                  },
-                },
+  // Bangkok "today" for past-performance filtering
+  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+
+  const [memberships, assignments] = canSeeFull
+    ? await Promise.all([
+        prisma.performanceMember.findMany({
+          where: { userId: user.id },
+          select: {
+            position: true,
+            performance: {
+              select: {
+                id: true,
+                name: true,
+                location: true,
+                dates: { select: { date: true }, orderBy: { date: "desc" }, take: 1 },
               },
             },
           },
-        },
-      })
-    : [];
+        }),
+        prisma.songAssignment.findMany({
+          where: { userId: user.id },
+          select: {
+            instrument: { select: { nameThai: true } },
+            performanceSong: { select: { performance: { select: { id: true } } } },
+          },
+        }),
+      ])
+    : [[], []];
 
-  const performanceHistory = Array.from(
-    assignments
-      .reduce((acc, a) => {
-        const perf = a.performanceSong.performance;
-        const existing = acc.get(perf.id);
-        if (existing) {
-          existing.instruments.add(a.instrument.nameThai);
-        } else {
-          acc.set(perf.id, {
-            id: perf.id,
-            name: perf.name,
-            location: perf.location,
-            firstDate: perf.dates[0]?.date ?? null,
-            instruments: new Set([a.instrument.nameThai]),
-          });
-        }
-        return acc;
-      }, new Map<string, { id: string; name: string; location: string | null; firstDate: Date | null; instruments: Set<string> }>())
-      .values()
-  )
-    .sort(
-      (a, b) =>
-        (b.firstDate?.getTime() ?? 0) - (a.firstDate?.getTime() ?? 0)
-    )
+  const instrumentsByPerf = new Map<string, Set<string>>();
+  for (const a of assignments) {
+    const pid = a.performanceSong.performance.id;
+    if (!instrumentsByPerf.has(pid)) instrumentsByPerf.set(pid, new Set());
+    instrumentsByPerf.get(pid)!.add(a.instrument.nameThai);
+  }
+
+  const perfMap = new Map<string, {
+    id: string; name: string; location: string | null;
+    lastDate: Date | null; positions: Set<string>; instruments: Set<string>;
+  }>();
+  for (const m of memberships) {
+    const p = m.performance;
+    const entry = perfMap.get(p.id) ?? {
+      id: p.id, name: p.name, location: p.location,
+      lastDate: p.dates[0]?.date ?? null,
+      positions: new Set<string>(),
+      instruments: instrumentsByPerf.get(p.id) ?? new Set<string>(),
+    };
+    if (m.position) entry.positions.add(m.position);
+    perfMap.set(p.id, entry);
+  }
+
+  const performanceHistory = Array.from(perfMap.values())
+    .filter((p) => {
+      if (!p.lastDate) return false;
+      return p.lastDate.toISOString().slice(0, 10) < todayStr;
+    })
+    .sort((a, b) => (b.lastDate?.getTime() ?? 0) - (a.lastDate?.getTime() ?? 0))
     .slice(0, 20);
 
   return (
@@ -244,8 +253,8 @@ export default async function MemberDetailPage({
                       </Link>
                       <p className="text-xs text-muted mt-0.5">
                         {p.location && `${p.location} · `}
-                        {p.firstDate
-                          ? new Date(p.firstDate).toLocaleDateString("th-TH", {
+                        {p.lastDate
+                          ? new Date(p.lastDate).toLocaleDateString("th-TH", {
                               year: "numeric",
                               month: "short",
                               day: "numeric",
@@ -254,8 +263,13 @@ export default async function MemberDetailPage({
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-end gap-1 shrink-0">
+                      {Array.from(p.positions).map((pos) => (
+                        <Badge key={`pos-${pos}`} variant="pill">
+                          {pos}
+                        </Badge>
+                      ))}
                       {Array.from(p.instruments).map((inst) => (
-                        <Badge key={inst} variant="pill">
+                        <Badge key={`inst-${inst}`} variant="pill">
                           {inst}
                         </Badge>
                       ))}

@@ -38,7 +38,7 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
-  const performanceMembers = await prisma.performanceMember.findMany({
+  const rawMemberships = await prisma.performanceMember.findMany({
     where: { userId: user.id },
     include: {
       performance: {
@@ -46,13 +46,36 @@ export default async function ProfilePage() {
           id: true,
           name: true,
           location: true,
-          dates: { select: { date: true }, orderBy: { date: "asc" }, take: 1 },
+          dates: { select: { date: true }, orderBy: { date: "desc" }, take: 1 },
         },
       },
     },
     orderBy: { joinedAt: "desc" },
-    take: 20,
   });
+
+  // Bangkok "today" for past-only filter
+  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+
+  // Group by performance, aggregate positions
+  const perfMap = new Map<string, {
+    perfId: string; name: string; location: string | null;
+    lastDate: Date | null; positions: Set<string>;
+  }>();
+  for (const m of rawMemberships) {
+    const p = m.performance;
+    const entry = perfMap.get(p.id) ?? {
+      perfId: p.id, name: p.name, location: p.location,
+      lastDate: p.dates[0]?.date ?? null,
+      positions: new Set<string>(),
+    };
+    if (m.position) entry.positions.add(m.position);
+    perfMap.set(p.id, entry);
+  }
+
+  const performanceMembers = Array.from(perfMap.values())
+    .filter((p) => p.lastDate && p.lastDate.toISOString().slice(0, 10) < todayStr)
+    .sort((a, b) => (b.lastDate?.getTime() ?? 0) - (a.lastDate?.getTime() ?? 0))
+    .slice(0, 20);
 
   const instruments = await prisma.instrument.findMany({
     orderBy: { nameThai: "asc" },
@@ -138,37 +161,36 @@ export default async function ProfilePage() {
             <p className="text-sm text-muted p-6">ยังไม่มีประวัติการแสดง</p>
           ) : (
             <ul className="divide-y divide-hairline-soft">
-              {performanceMembers.map((m) => {
-                const firstDate = m.performance.dates[0]?.date;
-                return (
-                  <li
-                    key={m.id}
-                    className="flex items-start justify-between gap-4 px-5 py-4"
-                  >
-                    <div className="min-w-0">
-                      <Link
-                        href={`/performances/${m.performance.id}`}
-                        className="text-sm font-semibold text-ink hover:text-primary transition-colors duration-[var(--duration-pb-base)] truncate block"
-                      >
-                        {m.performance.name}
-                      </Link>
-                      <p className="text-xs text-muted mt-0.5">
-                        {m.performance.location && `${m.performance.location} · `}
-                        {firstDate
-                          ? new Date(firstDate).toLocaleDateString("th-TH", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })
-                          : "ยังไม่มีวันที่"}
-                      </p>
-                    </div>
-                    {m.position && (
-                      <Badge variant="pill">{m.position}</Badge>
-                    )}
-                  </li>
-                );
-              })}
+              {performanceMembers.map((p) => (
+                <li
+                  key={p.perfId}
+                  className="flex items-start justify-between gap-4 px-5 py-4"
+                >
+                  <div className="min-w-0">
+                    <Link
+                      href={`/performances/${p.perfId}`}
+                      className="text-sm font-semibold text-ink hover:text-primary transition-colors duration-[var(--duration-pb-base)] truncate block"
+                    >
+                      {p.name}
+                    </Link>
+                    <p className="text-xs text-muted mt-0.5">
+                      {p.location && `${p.location} · `}
+                      {p.lastDate
+                        ? new Date(p.lastDate).toLocaleDateString("th-TH", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "ยังไม่มีวันที่"}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-1 shrink-0">
+                    {Array.from(p.positions).map((pos) => (
+                      <Badge key={pos} variant="pill">{pos}</Badge>
+                    ))}
+                  </div>
+                </li>
+              ))}
             </ul>
           )}
         </div>

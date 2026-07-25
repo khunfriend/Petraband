@@ -79,20 +79,24 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
 
     // Seed PracticeAvailability from poll: users who marked available for
-    // the corresponding poll slot become available on the practice slot
+    // the corresponding poll slot become available on the practice slot.
+    // Match by (date, startTime, endTime) — safer than by index because
+    // Prisma's returned slot order isn't guaranteed.
     const seedRows: { slotId: string; userId: string }[] = [];
+    const pollSlotByKey = new Map<string, typeof poll.slots[number]>();
+    for (const s of poll.slots) {
+      const key = `${s.date.toISOString().slice(0, 10)}|${s.startTime}|${s.endTime}`;
+      pollSlotByKey.set(key, s);
+    }
     for (const day of created.days) {
       const dateKey = day.date.toISOString().slice(0, 10);
-      const pollSlotsForDate = (byDate.get(dateKey) ?? []).sort(
-        (a, b) => a.slotOrder - b.slotOrder,
-      );
-      day.slots.forEach((practiceSlot, idx) => {
-        const pollSlot = pollSlotsForDate[idx];
-        if (!pollSlot) return;
+      for (const practiceSlot of day.slots) {
+        const pollSlot = pollSlotByKey.get(`${dateKey}|${practiceSlot.startTime}|${practiceSlot.endTime}`);
+        if (!pollSlot) continue;
         for (const r of pollSlot.responses) {
           seedRows.push({ slotId: practiceSlot.id, userId: r.userId });
         }
-      });
+      }
     }
     if (seedRows.length > 0) {
       await tx.practiceAvailability.createMany({

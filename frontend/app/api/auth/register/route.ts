@@ -29,11 +29,17 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await bcrypt.hash(password, 12);
 
-  await prisma.pendingRegistration.upsert({
-    where: { email },
-    create: { email, passwordHash, nickname, generation, primaryInstrumentId: primaryInstrumentId || null },
-    update: { passwordHash, nickname, generation, primaryInstrumentId: primaryInstrumentId || null },
-  });
+  try {
+    await prisma.pendingRegistration.upsert({
+      where: { email },
+      create: { email, passwordHash, nickname, generation, primaryInstrumentId: primaryInstrumentId || null },
+      update: { passwordHash, nickname, generation, primaryInstrumentId: primaryInstrumentId || null },
+    });
+  } catch (e) {
+    // Unique constraint (email or supabaseUserId) — treat as duplicate request
+    console.error("[register] upsert error:", e);
+    return NextResponse.json({ error: "อีเมลนี้กำลังรอการยืนยันอยู่แล้ว กรุณาลองใหม่ในอีกสักครู่" }, { status: 409 });
+  }
 
   return NextResponse.json({ ok: true });
 }

@@ -442,6 +442,10 @@ export default function PerformanceClient({
       if (res.ok) {
         setPerformance((prev) => ({ ...prev, costume: editCostume.trim() || null }));
         setEditingCostume(false);
+        toast.success("บันทึกเครื่องแต่งกายแล้ว");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(`บันทึกไม่สำเร็จ: ${err.error ?? res.status}`);
       }
     } finally {
       setCostumeLoading(false);
@@ -467,6 +471,10 @@ export default function PerformanceClient({
           description: editDescription.trim() || null,
         }));
         setEditingDesc(false);
+        toast.success("บันทึกหมายเหตุแล้ว");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(`บันทึกไม่สำเร็จ: ${err.error ?? res.status}`);
       }
     } finally {
       setDescLoading(false);
@@ -774,11 +782,10 @@ export default function PerformanceClient({
           {(() => {
             const hasEnded = (() => {
               if (performance.dates.length === 0) return false;
-              const latest = new Date(performance.dates[performance.dates.length - 1].date);
-              latest.setHours(0, 0, 0, 0);
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return latest.getTime() < today.getTime();
+              // Compare in Bangkok time by using the YYYY-MM-DD string directly
+              const latestStr = performance.dates[performance.dates.length - 1].date.slice(0, 10);
+              const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+              return latestStr < todayStr;
             })();
             if (hasEnded) {
               return (

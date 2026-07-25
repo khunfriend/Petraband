@@ -17,11 +17,11 @@ export async function POST(_req: NextRequest, { params }: Params) {
   if (!performance) return NextResponse.json({ error: "ไม่พบงานแสดง" }, { status: 404 });
 
   if (performance.dates.length > 0) {
-    const latest = new Date(performance.dates[0].date);
-    latest.setHours(0, 0, 0, 0);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (latest.getTime() < today.getTime()) {
+    // Compare in Bangkok time. DB stores DATE (Prisma returns UTC midnight),
+    // and we want "งานสิ้นสุด" to flip over at Bangkok midnight, not UTC midnight.
+    const latestStr = performance.dates[0].date.toISOString().slice(0, 10);
+    const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+    if (latestStr < todayStr) {
       return NextResponse.json({ error: "งานแสดงสิ้นสุดแล้ว" }, { status: 400 });
     }
   }

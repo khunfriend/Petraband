@@ -24,6 +24,22 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (poll.status === "CLOSED") {
     return NextResponse.json({ error: "โพลปิดแล้ว" }, { status: 400 });
   }
+  if (poll.deadline && poll.deadline.getTime() < Date.now()) {
+    return NextResponse.json({ error: "หมดเขตกดว่างแล้ว" }, { status: 400 });
+  }
+
+  // Only members of the performance may vote — this is about who's actually
+  // going to show up, not who can manage the performance.
+  const membership = await prisma.performanceMember.findFirst({
+    where: { performanceId: poll.performanceId, userId: session.user.id },
+    select: { id: true },
+  });
+  if (!membership) {
+    return NextResponse.json(
+      { error: "ต้องเข้าร่วมงานแสดงก่อนจึงจะโหวตได้" },
+      { status: 403 },
+    );
+  }
 
   const slot = await prisma.availabilityPollSlot.findFirst({
     where: { id: parsed.data.pollSlotId, pollId },

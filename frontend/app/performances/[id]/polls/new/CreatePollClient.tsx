@@ -1,24 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
-type Member = {
-  id: string;
-  nickname: string;
-  generation: string;
-  primaryInstrument: { name: string; nameThai: string } | null;
-};
-
-type Slot = { startTime: string; endTime: string; label: string; isSpecial: boolean };
+type Slot = { startTime: string; endTime: string };
 type DayEntry = { date: string; slots: Slot[] };
 
 type Props = {
   performanceId: string;
   performanceName: string;
-  members: Member[];
   performanceDates: string[];
 };
 
@@ -35,7 +27,7 @@ function toISO(y: number, m: number, d: number) {
 }
 
 function emptySlot(): Slot {
-  return { startTime: "", endTime: "", label: "", isSpecial: false };
+  return { startTime: "", endTime: "" };
 }
 
 function formatDateThai(iso: string) {
@@ -102,7 +94,6 @@ function DatePickerCalendar({
 
   return (
     <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden select-none">
-      {/* Month nav */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-hairline-soft">
         <button
           type="button"
@@ -121,14 +112,12 @@ function DatePickerCalendar({
         </button>
       </div>
 
-      {/* Day headers */}
       <div className="grid grid-cols-7 border-b border-hairline-soft">
         {DAY_LABELS.map((d) => (
           <div key={d} className="py-2 text-center text-xs font-bold text-muted">{d}</div>
         ))}
       </div>
 
-      {/* Cells */}
       <div className="grid grid-cols-7">
         {cells.map((cell, i) => {
           const selected = selectedDates.has(cell.iso);
@@ -170,72 +159,55 @@ function DatePickerCalendar({
   );
 }
 
-export default function CreatePracticeScheduleClient({ performanceId, performanceName, performanceDates }: Props) {
+export default function CreatePollClient({ performanceId, performanceName, performanceDates }: Props) {
   const router = useRouter();
-  const [title, setTitle] = useState(`ตารางซ้อม ${performanceName}`);
+  const [name, setName] = useState(`โพลตารางว่าง ${performanceName}`);
+  const [deadline, setDeadline] = useState("");
   const [days, setDays] = useState<DayEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // วันซ้อมต้องก่อนวันแสดงวันแรก
-  const minPerformanceDate = performanceDates.length > 0 ? performanceDates[0] : null;
-
+  // Allow selecting any day up to and including the last performance day
+  const maxPerformanceDate =
+    performanceDates.length > 0 ? performanceDates[performanceDates.length - 1] : null;
   const selectedDateSet = useMemo(() => new Set(days.map((d) => d.date)), [days]);
 
   function toggleDate(iso: string) {
     if (selectedDateSet.has(iso)) {
       setDays((prev) => prev.filter((d) => d.date !== iso));
     } else {
-      const defaultSlots = PRESET_SLOTS.map((p) => ({
-        startTime: p.startTime,
-        endTime: p.endTime,
-        label: "",
-        isSpecial: false,
-      }));
+      const defaultSlots = PRESET_SLOTS.map((p) => ({ startTime: p.startTime, endTime: p.endTime }));
       setDays((prev) =>
-        [...prev, { date: iso, slots: defaultSlots }].sort((a, b) =>
-          a.date.localeCompare(b.date)
-        )
+        [...prev, { date: iso, slots: defaultSlots }].sort((a, b) => a.date.localeCompare(b.date))
       );
     }
   }
-
   function removeDay(date: string) {
     setDays((prev) => prev.filter((d) => d.date !== date));
   }
-
-  function togglePreset(dayIndex: number, preset: typeof PRESET_SLOTS[number]) {
+  function togglePreset(dayIndex: number, preset: (typeof PRESET_SLOTS)[number]) {
     setDays((prev) =>
       prev.map((d, i) => {
         if (i !== dayIndex) return d;
-        const exists = d.slots.some(
-          (s) => s.startTime === preset.startTime && s.endTime === preset.endTime
-        );
+        const exists = d.slots.some((s) => s.startTime === preset.startTime && s.endTime === preset.endTime);
         if (exists) {
           return { ...d, slots: d.slots.filter((s) => !(s.startTime === preset.startTime && s.endTime === preset.endTime)) };
         }
-        const newSlot: Slot = { startTime: preset.startTime, endTime: preset.endTime, label: "", isSpecial: false };
+        const newSlot: Slot = { startTime: preset.startTime, endTime: preset.endTime };
         const sorted = [...d.slots, newSlot].sort((a, b) => a.startTime.localeCompare(b.startTime));
         return { ...d, slots: sorted };
       })
     );
   }
-
   function addCustomSlot(dayIndex: number) {
-    setDays((prev) =>
-      prev.map((d, i) => (i === dayIndex ? { ...d, slots: [...d.slots, emptySlot()] } : d))
-    );
+    setDays((prev) => prev.map((d, i) => (i === dayIndex ? { ...d, slots: [...d.slots, emptySlot()] } : d)));
   }
-
   function removeSlot(dayIndex: number, slotIndex: number) {
     setDays((prev) =>
-      prev.map((d, i) =>
-        i === dayIndex ? { ...d, slots: d.slots.filter((_, j) => j !== slotIndex) } : d
-      )
+      prev.map((d, i) => (i === dayIndex ? { ...d, slots: d.slots.filter((_, j) => j !== slotIndex) } : d))
     );
   }
-
-  function updateSlot(dayIndex: number, slotIndex: number, field: keyof Slot, value: string | boolean) {
+  function updateSlot(dayIndex: number, slotIndex: number, field: keyof Slot, value: string) {
     setDays((prev) =>
       prev.map((d, i) =>
         i === dayIndex
@@ -247,31 +219,31 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
 
   async function handleSubmit() {
     setError("");
-    if (!title.trim()) { setError("กรุณาใส่ชื่อตาราง"); return; }
+    if (!name.trim()) { setError("กรุณาใส่ชื่อโพล"); return; }
     if (days.length === 0) { setError("กรุณาเลือกอย่างน้อย 1 วัน"); return; }
+    const flatSlots: { date: string; startTime: string; endTime: string }[] = [];
     for (const day of days) {
       if (day.slots.length === 0) { setError(`กรุณาเพิ่มช่วงเวลาสำหรับ ${formatDateThai(day.date)}`); return; }
-      for (const slot of day.slots) {
-        if (!slot.startTime || !slot.endTime) { setError("กรุณากรอกเวลาให้ครบทุกช่วง"); return; }
+      for (const s of day.slots) {
+        if (!s.startTime || !s.endTime) { setError("กรุณากรอกเวลาให้ครบทุกช่วง"); return; }
+        flatSlots.push({ date: day.date, startTime: s.startTime, endTime: s.endTime });
       }
     }
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/practice-schedules", {
+      const res = await fetch(`/api/performances/${performanceId}/polls`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ performanceId, title: title.trim(), days, groups: [] }),
+        body: JSON.stringify({ name: name.trim(), deadline: deadline || null, slots: flatSlots }),
       });
-
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error?.message ?? "เกิดข้อผิดพลาด");
+        const data = await res.json().catch(() => ({}));
+        setError(typeof data.error === "string" ? data.error : "สร้างโพลไม่สำเร็จ");
         return;
       }
-
       const data = await res.json();
-      router.push(`/performances/${performanceId}/practice/${data.schedule.id}`);
+      router.push(`/polls/${data.pollId}`);
     } finally {
       setSubmitting(false);
     }
@@ -279,35 +251,38 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
 
   return (
     <div className="flex flex-col gap-8 max-w-2xl">
-      {/* Section 1: ชื่อตาราง */}
       <div>
-        <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">ชื่อตาราง</h2>
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="ชื่อตารางซ้อม"
+        <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">ชื่อโพล</h2>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อโพล" />
+      </div>
+
+      <div>
+        <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">
+          หมดเขตกดว่าง <span className="text-muted-soft text-xs font-normal normal-case tracking-normal">(ไม่บังคับ)</span>
+        </h2>
+        <input
+          type="datetime-local"
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
+          className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3.5 text-sm text-ink focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
         />
       </div>
 
-      {/* Section 2: เลือกวันจากปฏิทิน */}
       <div>
         <div className="flex items-baseline gap-3 mb-3">
-          <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted">เลือกวันซ้อม</h2>
-          {minPerformanceDate && (
+          <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted">เลือกวันที่เป็นไปได้</h2>
+          {maxPerformanceDate && (
             <p className="text-xs text-muted-soft">
-              เลือกได้ถึงวันแสดง ({new Date(minPerformanceDate + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })})
+              เลือกได้ถึงวันแสดง ({new Date(maxPerformanceDate + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })})
             </p>
           )}
         </div>
-        <DatePickerCalendar selectedDates={selectedDateSet} onToggle={toggleDate} maxDateISO={minPerformanceDate} />
+        <DatePickerCalendar selectedDates={selectedDateSet} onToggle={toggleDate} maxDateISO={maxPerformanceDate} />
       </div>
 
-      {/* Section 3: กำหนดช่วงเวลาต่อวัน */}
       {days.length > 0 && (
         <div>
-          <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">
-            ช่วงเวลาต่อวัน
-          </h2>
+          <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">ช่วงเวลาต่อวัน</h2>
           <div className="flex flex-col gap-4">
             {days.map((day, dayIndex) => (
               <div
@@ -326,7 +301,6 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
                 </div>
 
                 <div className="p-4 flex flex-col gap-4">
-                  {/* Preset chips */}
                   <div>
                     <p className="text-xs text-muted mb-2">เลือกช่วงเวลา</p>
                     <div className="flex gap-2 flex-wrap">
@@ -352,19 +326,16 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
                     </div>
                   </div>
 
-                  {/* Custom slots only — presets need no extra config */}
                   {day.slots.some((s) => !PRESET_SLOTS.some((p) => p.startTime === s.startTime && p.endTime === s.endTime)) && (
                     <div className="flex flex-col gap-2">
-                      <p className="text-xs text-muted">ตั้งค่าแต่ละช่วง</p>
+                      <p className="text-xs text-muted">ช่วงเวลากำหนดเอง</p>
                       {day.slots.map((slot, slotIndex) => {
                         const isPreset = PRESET_SLOTS.some((p) => p.startTime === slot.startTime && p.endTime === slot.endTime);
                         if (isPreset) return null;
                         return (
                           <div key={slotIndex} className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium text-ink bg-surface-cream-strong px-3 py-1.5 rounded-[var(--radius-md)] shrink-0 border border-hairline-soft">
-                              {slot.startTime && slot.endTime
-                                ? `${slot.startTime}–${slot.endTime}`
-                                : "กำหนดเวลา"}
+                              {slot.startTime && slot.endTime ? `${slot.startTime}–${slot.endTime}` : "กำหนดเวลา"}
                             </span>
                             <input
                               type="time"
@@ -379,22 +350,6 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
                               onChange={(e) => updateSlot(dayIndex, slotIndex, "endTime", e.target.value)}
                               className="px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
                             />
-                            <input
-                              type="text"
-                              value={slot.label}
-                              onChange={(e) => updateSlot(dayIndex, slotIndex, "label", e.target.value)}
-                              placeholder="ชื่อช่วง (เช่น ซ้อมรวม + อัดเสียง)"
-                              className="flex-1 min-w-[140px] px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
-                            />
-                            <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer shrink-0">
-                              <input
-                                type="checkbox"
-                                checked={slot.isSpecial}
-                                onChange={(e) => updateSlot(dayIndex, slotIndex, "isSpecial", e.target.checked)}
-                                className="accent-coral"
-                              />
-                              พิเศษ
-                            </label>
                             <button
                               type="button"
                               onClick={() => removeSlot(dayIndex, slotIndex)}
@@ -418,11 +373,11 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
         </div>
       )}
 
-      {error && <p className="text-sm text-coral">{error}</p>}
+      {error && <p className="text-sm text-error">{error}</p>}
 
       <div className="flex gap-3">
-        <Button variant="coral" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? "กำลังสร้าง..." : "สร้างตารางซ้อม"}
+        <Button variant="primary" onClick={handleSubmit} disabled={submitting}>
+          {submitting ? "กำลังสร้าง..." : "สร้างโพล"}
         </Button>
         <Button variant="secondary" onClick={() => router.back()} disabled={submitting}>
           ยกเลิก

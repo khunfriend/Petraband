@@ -21,7 +21,7 @@ export default async function PerformanceDetailPage({ params }: Params) {
     notFound();
   }
 
-  const [performance, participants, myMember, stageLayout, practiceSchedules] = await Promise.all([
+  const [performance, participants, myMember, stageLayout, practiceSchedules, polls] = await Promise.all([
     prisma.performance.findUnique({
       where: { id },
       include: {
@@ -76,6 +76,14 @@ export default async function PerformanceDetailPage({ params }: Params) {
         },
       },
       orderBy: { createdAt: "asc" },
+    }),
+    prisma.availabilityPoll.findMany({
+      where: { performanceId: id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { slots: true } },
+        slots: { select: { _count: { select: { responses: true } } } },
+      },
     }),
   ]);
 
@@ -179,6 +187,14 @@ export default async function PerformanceDetailPage({ params }: Params) {
               isSpecial: sl.isSpecial,
             })),
           })),
+        }))}
+        polls={polls.map((p) => ({
+          id: p.id,
+          name: p.name,
+          status: p.status,
+          deadline: p.deadline?.toISOString() ?? null,
+          slotCount: p._count.slots,
+          responseCount: p.slots.reduce((sum, s) => sum + s._count.responses, 0),
         }))}
       />
     </div>

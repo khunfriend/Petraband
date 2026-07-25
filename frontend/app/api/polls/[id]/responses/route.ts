@@ -1,0 +1,45 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+
+type Params = { params: Promise<{ id: string }> };
+
+const schema = z.object({
+  pollSlotId: z.string().min(1),
+  isAvailable: z.boolean(),
+});
+
+export async function POST(req: NextRequest, { params }: Params) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id: pollId } = await params;
+  const body = await req.json().catch(() => null);
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
+
+  const poll = await prisma.availabilityPoll.findUnique({ where: { id: pollId } });
+  if (!poll) return NextResponse.json({ error: "ไม่พบโพล" }, { status: 404 });
+  if (poll.status === "CLOSED") {
+    return NextResponse.json({ error: "โพลปิดแล้ว" }, { status: 400 });
+  }
+
+  const slot = await prisma.availabilityPollSlot.findFirst({
+    where: { id: parsed.data.pollSlotId, pollId },
+    select: { id: true },
+  });
+  if (!slot) return NextResponse.json({ error: "ไม่พบช่วงเวลา" }, { status: 404 });
+
+  await prisma.availabilityPollResponse.upsert({
+    where: { pollSlotId_userId: { pollSlotId: slot.id, userId: session.user.id } },
+    create: {
+      pollSlotId: slot.id,
+      userId: session.user.id,
+      isAvailable: parsed.data.isAvailable,
+    },
+    update: { isAvailable: parsed.data.isAvailable },
+  });
+
+  return NextResponse.json({ ok: true });
+}

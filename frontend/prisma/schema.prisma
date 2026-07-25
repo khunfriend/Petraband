@@ -35,6 +35,11 @@ enum AttendanceStatus {
   EXCUSED
 }
 
+enum PollStatus {
+  OPEN
+  CLOSED
+}
+
 // ─── User & Auth ───────────────────────────────────────────
 
 model User {
@@ -76,6 +81,8 @@ model User {
   practiceAvailabilities PracticeAvailability[]
   performanceMembers     PerformanceMember[]
   passwordResetTokens    PasswordResetToken[]
+  availabilityPolls      AvailabilityPoll[]         @relation("PollCreator")
+  availabilityPollResponses AvailabilityPollResponse[]
 }
 
 model PendingRegistration {
@@ -185,6 +192,7 @@ model Performance {
   practiceSchedules PracticeSchedule[]
   members           PerformanceMember[]
   temporaryUsers    User[]              @relation("TempUsers")
+  availabilityPolls AvailabilityPoll[]
 }
 
 model PerformanceDate {
@@ -377,12 +385,14 @@ model PracticeSchedule {
   id            String   @id @default(cuid())
   performanceId String
   title         String   @default("ตารางซ้อม")
+  sourcePollId  String?
   createdById   String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   performance  Performance          @relation(fields: [performanceId], references: [id], onDelete: Cascade)
   createdBy    User                 @relation("ScheduleCreator", fields: [createdById], references: [id])
+  sourcePoll   AvailabilityPoll?    @relation(fields: [sourcePollId], references: [id], onDelete: SetNull)
   days         PracticeDay[]
   memberGroups PracticeMemberGroup[]
 }
@@ -429,6 +439,53 @@ model PracticeGroupMember {
   user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, userId])
+}
+
+model AvailabilityPoll {
+  id             String     @id @default(cuid())
+  performanceId  String
+  name           String     @default("โพลตารางว่าง")
+  deadline       DateTime?
+  timezone       String     @default("Asia/Bangkok")
+  status         PollStatus @default(OPEN)
+  createdById    String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  performance Performance                @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  createdBy   User                       @relation("PollCreator", fields: [createdById], references: [id])
+  slots       AvailabilityPollSlot[]
+  schedules   PracticeSchedule[]
+
+  @@index([performanceId])
+}
+
+model AvailabilityPollSlot {
+  id        String   @id @default(cuid())
+  pollId    String
+  date      DateTime @db.Date
+  startTime String
+  endTime   String
+  slotOrder Int      @default(0)
+
+  poll      AvailabilityPoll           @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  responses AvailabilityPollResponse[]
+
+  @@index([pollId])
+}
+
+model AvailabilityPollResponse {
+  id          String   @id @default(cuid())
+  pollSlotId  String
+  userId      String
+  isAvailable Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  slot AvailabilityPollSlot @relation(fields: [pollSlotId], references: [id], onDelete: Cascade)
+  user User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollSlotId, userId])
+  @@index([userId])
 }
 
 model PracticeAvailability {

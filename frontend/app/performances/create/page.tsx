@@ -47,8 +47,31 @@ export default function CreatePerformancePage() {
       setError("กรุณากรอกชื่องานแสดง");
       return;
     }
+    if (!location.trim()) {
+      setError("กรุณากรอกสถานที่");
+      return;
+    }
+    if (dates.length === 0 || !dates.some((d) => d.date)) {
+      setError("กรุณาเพิ่มวันที่แสดงอย่างน้อย 1 วัน");
+      return;
+    }
+    for (let i = 0; i < dates.length; i++) {
+      const d = dates[i];
+      if (!d.date) {
+        setError(`กรุณาเลือกวันที่สำหรับวันที่ ${i + 1}`);
+        return;
+      }
+      if (!d.startTime || !d.endTime) {
+        setError(`กรุณากรอกเวลาเริ่มและเวลาสิ้นสุดสำหรับวันที่ ${i + 1}`);
+        return;
+      }
+      if (d.startTime >= d.endTime) {
+        setError(`เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม (วันที่ ${i + 1})`);
+        return;
+      }
+    }
 
-    const validDates = dates.filter((d) => d.date);
+    const validDates = dates;
     setLoading(true);
 
     try {
@@ -114,11 +137,12 @@ export default function CreatePerformancePage() {
           />
         </Field>
 
-        <Field label="สถานที่">
+        <Field label="สถานที่" required>
           <Input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="เช่น หอประชุมใหญ่ มหาวิทยาลัย..."
+            required
           />
         </Field>
 
@@ -134,7 +158,9 @@ export default function CreatePerformancePage() {
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-ink">วันที่แสดง</label>
+            <label className="text-sm font-medium text-ink">
+              วันที่แสดง <span className="text-error ml-0.5">*</span>
+            </label>
             <button
               type="button"
               onClick={addDate}
@@ -171,10 +197,11 @@ export default function CreatePerformancePage() {
                     value={d.date}
                     onChange={(e) => updateDate(i, "date", e.target.value)}
                     className={`${fieldClass} col-span-3`}
+                    required
                   />
                   <div>
                     <label className="block text-xs text-muted mb-1">
-                      เริ่ม
+                      เริ่ม <span className="text-error">*</span>
                     </label>
                     <input
                       type="time"
@@ -183,17 +210,19 @@ export default function CreatePerformancePage() {
                         updateDate(i, "startTime", e.target.value)
                       }
                       className={fieldClass}
+                      required
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-muted mb-1">
-                      สิ้นสุด
+                      สิ้นสุด <span className="text-error">*</span>
                     </label>
                     <input
                       type="time"
                       value={d.endTime}
                       onChange={(e) => updateDate(i, "endTime", e.target.value)}
                       className={fieldClass}
+                      required
                     />
                   </div>
                 </div>

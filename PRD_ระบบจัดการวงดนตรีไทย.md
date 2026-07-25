@@ -146,7 +146,59 @@
 
 ### 3.6 ตารางซ้อม (Practice Schedule)
 
+**Flow ใหม่ (2 เฟส):** ก่อนสร้าง PracticeSchedule จริง ต้องเปิด **Availability Poll** ให้สมาชิกกดว่าว่างช่วงไหนก่อน admin จึงเลือกวัน/เวลาจากผลโพลได้
+
+#### เฟส 1 — Availability Poll (ก่อนสร้างตารางซ้อม)
+
+- FR-6.0.1: **สร้างโพล** — Admin/HEAD เปิดโพลผูกกับงานแสดง ระบุ candidate time slots (วันที่ + ช่วงเวลา หลายช่อง) และ deadline สิ้นสุดการโหวต
+- FR-6.0.2: **สมาชิกกดว่าง** — สมาชิกในงานแสดงเปิดโพลได้ ติ๊กช่องเวลาที่ตัวเองว่าง (per-slot boolean); update ทันทีแบบ optimistic
+- FR-6.0.3: **Heatmap view** — Admin เห็นผลโพลเป็นแถบสี ความเข้มของสีสัมพันธ์กับ `count(available=true)` ต่อ slot (เขียวเข้ม = คนว่างเยอะ, จาง = น้อย); แสดงจำนวนคนว่าง / คนทั้งหมดกำกับทุกช่อง
+- FR-6.0.4: **ปิดโพล + เลือกวัน** — Admin กด "สร้างตารางซ้อม" จากหน้าโพล → เห็นเฉพาะช่วงที่มีคนติ๊กว่างอย่างน้อย 1 คน → เลือก slot ที่ต้องการ (multi-select) → ระบบสร้าง PracticeSchedule + PracticeDay + PracticeSlot จากสิ่งที่เลือก โดยผูก candidate userIds ของแต่ละ slot ให้เป็นค่าเริ่มต้นของ PracticeAvailability
+- FR-6.0.5: **Notification** — เมื่อ Admin เปิดโพล ระบบส่งแจ้ง (email + in-app) ให้สมาชิกในงานแสดง; ก่อน deadline 24 ชม. เตือนคนที่ยังไม่ตอบ
+
+**Data model — Availability Poll:**
+
+```
+AvailabilityPoll
+├── id
+├── performanceId  (FK — ผูกกับงานแสดง)
+├── name
+├── deadline?      (optional; หมดเขตกดว่าง)
+├── timezone       (default "Asia/Bangkok")
+├── status         (OPEN | CLOSED)
+├── createdById
+└── createdAt
+
+AvailabilityPollSlot
+├── id
+├── pollId         (FK)
+├── date           (YYYY-MM-DD)
+├── startTime      (HH:MM)
+├── endTime        (HH:MM)
+└── slotOrder
+
+AvailabilityPollResponse
+├── id
+├── pollSlotId     (FK)
+├── userId         (FK — สมาชิกในงานแสดง)
+├── isAvailable    (bool)
+├── updatedAt
+└── @@unique([pollSlotId, userId])
+```
+
+**Heatmap query:**
+```sql
+SELECT ps.id, ps.date, ps.startTime, COUNT(r.userId) FILTER (WHERE r.isAvailable) AS available
+FROM AvailabilityPollSlot ps
+LEFT JOIN AvailabilityPollResponse r ON r.pollSlotId = ps.id
+WHERE ps.pollId = $1
+GROUP BY ps.id;
+```
+
+#### เฟส 2 — สร้างตารางซ้อม (มีอยู่แล้ว + ปรับ)
+
 - FR-6.1: ตารางซ้อมแบบละเอียด แบ่งเป็น PracticeSchedule → PracticeDay → PracticeSlot → PracticeMemberGroup รองรับกลุ่มย่อยภายในการซ้อม
+- FR-6.1.1: **บังคับสร้างจาก poll** — ห้ามสร้าง PracticeSchedule โดยไม่เคยเปิด poll ก่อน (ยกเว้น admin กด "ข้ามโพล" พร้อมเหตุผล) — โยง `PracticeSchedule.sourcePollId` อ้างอิงกลับไปที่โพลต้นทาง
 - FR-6.2: Availability Grid — สมาชิกระบุความพร้อมรายช่วงเวลาในแต่ละวันซ้อม (PracticeAvailability)
 - FR-6.3: Collapsible sections — ซ่อน/แสดงกลุ่มซ้อมได้
 - FR-6.4: รองรับหลาย schedule ต่อ 1 งานแสดง

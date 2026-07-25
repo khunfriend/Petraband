@@ -264,6 +264,15 @@ function SectionHeader({ label, children }: { label: string; children?: React.Re
 
 // ─── Main Component ────────────────────────────────────────
 
+type PollEntry = {
+  id: string;
+  name: string;
+  status: "OPEN" | "CLOSED";
+  deadline: string | null;
+  slotCount: number;
+  responseCount: number;
+};
+
 export default function PerformanceClient({
   performance: initial,
   participants: initialParticipants,
@@ -272,6 +281,7 @@ export default function PerformanceClient({
   hasJoined: initialHasJoined,
   stageLayout,
   practiceSchedules,
+  polls,
 }: {
   performance: Performance;
   participants: Participant[];
@@ -280,6 +290,7 @@ export default function PerformanceClient({
   hasJoined: boolean;
   stageLayout: StageLayout | null;
   practiceSchedules: PracticeScheduleEntry[];
+  polls: PollEntry[];
 }) {
   const router = useRouter();
   const confirm = useConfirm();
@@ -341,7 +352,7 @@ export default function PerformanceClient({
   async function saveInfo() {
     setInfoLoading(true);
     try {
-      const res = await fetch(`/api/performances/${performance.id}`, {
+      const infoRes = await fetch(`/api/performances/${performance.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -349,15 +360,41 @@ export default function PerformanceClient({
           location: editLocation.trim() || null,
         }),
       });
-      if (res.ok) {
-        setPerformance((prev) => ({
-          ...prev,
-          name: editName.trim(),
-          location: editLocation.trim() || null,
-          dates: editDates,
-        }));
-        setEditingInfo(false);
+      if (!infoRes.ok) {
+        const err = await infoRes.json().catch(() => ({}));
+        toast.error(`บันทึกไม่สำเร็จ: ${err.error ?? infoRes.status}`);
+        return;
       }
+
+      // Persist every date row's time — user may have typed without blur firing
+      const original = new Map(performance.dates.map((d) => [d.id, d]));
+      const dirtyDates = editDates.filter((d) => {
+        const orig = original.get(d.id);
+        if (!orig) return false;
+        return (orig.startTime ?? "") !== (d.startTime ?? "") || (orig.endTime ?? "") !== (d.endTime ?? "");
+      });
+      for (const d of dirtyDates) {
+        const r = await fetch(`/api/performances/${performance.id}/dates`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dateId: d.id, startTime: d.startTime ?? "", endTime: d.endTime ?? "" }),
+        });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          toast.error(`บันทึกวัน/เวลาไม่สำเร็จ: ${err.error ?? r.status}`);
+          return;
+        }
+      }
+
+      setPerformance((prev) => ({
+        ...prev,
+        name: editName.trim(),
+        location: editLocation.trim() || null,
+        dates: editDates,
+      }));
+      setEditingInfo(false);
+      router.refresh();
+      toast.success("บันทึกข้อมูลงานแล้ว");
     } finally {
       setInfoLoading(false);
     }
@@ -387,15 +424,6 @@ export default function PerformanceClient({
   async function deleteDate(dateId: string) {
     const res = await fetch(`/api/performances/${performance.id}/dates?dateId=${dateId}`, { method: "DELETE" });
     if (res.ok) setEditDates((prev) => prev.filter((d) => d.id !== dateId));
-  }
-
-  async function updateDateTime(dateId: string, startTime: string, endTime: string) {
-    await fetch(`/api/performances/${performance.id}/dates`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dateId, startTime, endTime }),
-    });
-    setEditDates((prev) => prev.map((d) => d.id === dateId ? { ...d, startTime: startTime || null, endTime: endTime || null } : d));
   }
 
   // ── Section 2 edit: costume ───────────────────────────────
@@ -833,15 +861,23 @@ export default function PerformanceClient({
                       </span>
                       <input
                         type="time"
-                        defaultValue={d.startTime ?? ""}
-                        onBlur={(e) => updateDateTime(d.id, e.target.value, editDates.find(x => x.id === d.id)?.endTime ?? "")}
+                        value={d.startTime ?? ""}
+                        onChange={(e) =>
+                          setEditDates((prev) =>
+                            prev.map((x) => (x.id === d.id ? { ...x, startTime: e.target.value } : x))
+                          )
+                        }
                         className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
                       />
                       <span className="text-muted-soft text-xs">–</span>
                       <input
                         type="time"
-                        defaultValue={d.endTime ?? ""}
-                        onBlur={(e) => updateDateTime(d.id, editDates.find(x => x.id === d.id)?.startTime ?? "", e.target.value)}
+                        value={d.endTime ?? ""}
+                        onChange={(e) =>
+                          setEditDates((prev) =>
+                            prev.map((x) => (x.id === d.id ? { ...x, endTime: e.target.value } : x))
+                          )
+                        }
                         className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
                       />
                       <span className="text-xs text-muted-soft">น.</span>
@@ -1372,12 +1408,49 @@ export default function PerformanceClient({
         })()}
       </section>
 
+      {/* ── โพลตารางว่าง ── */}
+      {polls.length > 0 && (
+        <section>
+          <SectionHeader label="โพลตารางว่าง" />
+          <div className="flex flex-col gap-2">
+            {polls.map((p) => (
+              <Link
+                key={p.id}
+                href={`/polls/${p.id}`}
+                className="flex items-center justify-between px-4 py-3 bg-surface-card border border-hairline-soft rounded-[var(--radius-md)] hover:border-primary transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`inline-block w-2 h-2 rounded-full ${p.status === "OPEN" ? "bg-emerald-500" : "bg-muted-soft"}`} />
+                  <div>
+                    <p className="text-sm font-medium text-ink">{p.name}</p>
+                    <p className="text-xs text-muted-soft mt-0.5">
+                      {p.status === "OPEN" ? "เปิดรับคำตอบ" : "ปิดแล้ว"} · {p.slotCount} ช่วง · {p.responseCount} คำตอบ
+                      {p.deadline && p.status === "OPEN" && (
+                        <> · หมดเขต {new Date(p.deadline).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-body-strong">เปิด →</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ── ตารางซ้อม ── */}
       <section>
         <SectionHeader label="ตารางซ้อม">
-          <Link href={`/performances/${performance.id}/practice`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
-            {canEdit ? "จัดการตารางซ้อม →" : "ดูตารางซ้อม →"}
-          </Link>
+          <div className="flex items-center gap-4">
+            {canEdit && (
+              <Link href={`/performances/${performance.id}/polls/new`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
+                + โพลตารางว่าง
+              </Link>
+            )}
+            <Link href={`/performances/${performance.id}/practice`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
+              {canEdit ? "จัดการตารางซ้อม →" : "ดูตารางซ้อม →"}
+            </Link>
+          </div>
         </SectionHeader>
 
         {practiceSchedules.length === 0 ? (

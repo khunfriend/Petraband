@@ -302,7 +302,14 @@ export default function PerformanceClient({
   const [allMembers, setAllMembers] = useState<AssignedHead[]>([]);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const canEdit = isAdmin || isHead;
+  // Past performances are frozen — hide all edit UI once ended
+  const hasEnded = (() => {
+    if (performance.dates.length === 0) return false;
+    const latestStr = performance.dates[performance.dates.length - 1].date.slice(0, 10);
+    const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+    return latestStr < todayStr;
+  })();
+  const canEdit = (isAdmin || isHead) && !hasEnded;
 
   // ── Equipment notes ──────────────────────────────────────
   const [editingNotes, setEditingNotes] = useState(false);
@@ -756,13 +763,6 @@ export default function PerformanceClient({
         <h1 className="text-2xl font-bold text-ink">{performance.name}</h1>
         <div className="flex gap-2 shrink-0 items-center">
           {(() => {
-            const hasEnded = (() => {
-              if (performance.dates.length === 0) return false;
-              // Compare in Bangkok time by using the YYYY-MM-DD string directly
-              const latestStr = performance.dates[performance.dates.length - 1].date.slice(0, 10);
-              const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
-              return latestStr < todayStr;
-            })();
             if (hasEnded) {
               return (
                 <span className="inline-flex items-center h-9 px-3 rounded-[var(--radius-md)] border border-hairline-soft bg-surface-cream-strong text-sm text-muted">

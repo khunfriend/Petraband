@@ -366,18 +366,27 @@ export default function PerformanceClient({
         return;
       }
 
-      // Persist every date row's time — user may have typed without blur firing
+      // Persist every date row (date, startTime, endTime) that changed
       const original = new Map(performance.dates.map((d) => [d.id, d]));
       const dirtyDates = editDates.filter((d) => {
         const orig = original.get(d.id);
         if (!orig) return false;
-        return (orig.startTime ?? "") !== (d.startTime ?? "") || (orig.endTime ?? "") !== (d.endTime ?? "");
+        return (
+          orig.date.slice(0, 10) !== d.date.slice(0, 10) ||
+          (orig.startTime ?? "") !== (d.startTime ?? "") ||
+          (orig.endTime ?? "") !== (d.endTime ?? "")
+        );
       });
       for (const d of dirtyDates) {
         const r = await fetch(`/api/performances/${performance.id}/dates`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dateId: d.id, startTime: d.startTime ?? "", endTime: d.endTime ?? "" }),
+          body: JSON.stringify({
+            dateId: d.id,
+            date: d.date.slice(0, 10),
+            startTime: d.startTime ?? "",
+            endTime: d.endTime ?? "",
+          }),
         });
         if (!r.ok) {
           const err = await r.json().catch(() => ({}));
@@ -863,9 +872,16 @@ export default function PerformanceClient({
                 <div className="flex flex-col gap-2">
                   {editDates.map((d) => (
                     <div key={d.id} className="flex items-center gap-2 p-2 bg-surface-soft rounded-[var(--radius-md)] border border-hairline-soft">
-                      <span className="text-sm font-medium text-ink w-32 shrink-0">
-                        {new Date(d.date).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })}
-                      </span>
+                      <input
+                        type="date"
+                        value={d.date.slice(0, 10)}
+                        onChange={(e) =>
+                          setEditDates((prev) =>
+                            prev.map((x) => (x.id === d.id ? { ...x, date: e.target.value } : x))
+                          )
+                        }
+                        className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-36 shrink-0"
+                      />
                       <input
                         type="time"
                         value={d.startTime ?? ""}

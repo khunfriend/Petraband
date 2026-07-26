@@ -44,14 +44,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const allowed = await canEditPerformance(session.user.id, session.user.role, id);
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const { dateId, startTime, endTime } = await req.json();
+  const { dateId, date, startTime, endTime } = await req.json();
   if (!dateId) return NextResponse.json({ error: "dateId required" }, { status: 400 });
 
   const updated = await prisma.performanceDate.update({
     where: { id: dateId },
     data: {
-      startTime: startTime?.trim() || null,
-      endTime: endTime?.trim() || null,
+      ...(date !== undefined && { date: new Date(date) }),
+      ...(startTime !== undefined && { startTime: startTime?.trim() || null }),
+      ...(endTime !== undefined && { endTime: endTime?.trim() || null }),
     },
   });
 

@@ -13,6 +13,7 @@ function formatDate(date: Date | string) {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "Asia/Bangkok",
   });
 }
 
@@ -101,8 +102,8 @@ function PerformanceCard({
 }
 
 function DateBadge({ date, coral }: { date: Date; coral?: boolean }) {
-  const day = date.toLocaleDateString("th-TH", { day: "numeric" });
-  const month = date.toLocaleDateString("th-TH", { month: "short" });
+  const day = date.toLocaleDateString("th-TH", { day: "numeric", timeZone: "Asia/Bangkok" });
+  const month = date.toLocaleDateString("th-TH", { month: "short", timeZone: "Asia/Bangkok" });
   return (
     <div
       className={`shrink-0 w-14 h-14 rounded-[var(--radius-md)] flex flex-col items-center justify-center border ${
@@ -137,8 +138,8 @@ export default async function PerformancesPage() {
 
   const performances = await getPerformances();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Compare dates in Bangkok time (server runs UTC on Vercel)
+  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
 
   const upcoming: Performance[] = [];
   const past: Performance[] = [];
@@ -148,9 +149,8 @@ export default async function PerformancesPage() {
       upcoming.push(p);
       continue;
     }
-    const latest = new Date(p.dates[p.dates.length - 1].date);
-    latest.setHours(0, 0, 0, 0);
-    if (latest.getTime() < today.getTime()) {
+    const latestStr = p.dates[p.dates.length - 1].date.toISOString().slice(0, 10);
+    if (latestStr < todayStr) {
       past.push(p);
     } else {
       upcoming.push(p);

@@ -336,16 +336,11 @@ export default function PerformanceClient({
   const [editLocation, setEditLocation] = useState(initial.location ?? "");
   const [infoLoading, setInfoLoading] = useState(false);
   const [editDates, setEditDates] = useState<DateEntry[]>(initial.dates);
-  const [newDateStr, setNewDateStr] = useState("");
-  const [newStartTime, setNewStartTime] = useState("");
-  const [newEndTime, setNewEndTime] = useState("");
-  const [dateLoading, setDateLoading] = useState(false);
 
   function openEditInfo() {
     setEditName(performance.name);
     setEditLocation(performance.location ?? "");
     setEditDates(performance.dates);
-    setNewDateStr(""); setNewStartTime(""); setNewEndTime("");
     setEditingInfo(true);
   }
 
@@ -407,32 +402,6 @@ export default function PerformanceClient({
     } finally {
       setInfoLoading(false);
     }
-  }
-
-  async function addDate() {
-    if (!newDateStr) return;
-    setDateLoading(true);
-    try {
-      const res = await fetch(`/api/performances/${performance.id}/dates`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: newDateStr, startTime: newStartTime || undefined, endTime: newEndTime || undefined }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const d = data.performanceDate;
-        const newEntry: DateEntry = { id: d.id, date: d.date, startTime: d.startTime ?? null, endTime: d.endTime ?? null };
-        setEditDates((prev) => [...prev, newEntry].sort((a, b) => a.date.localeCompare(b.date)));
-        setNewDateStr(""); setNewStartTime(""); setNewEndTime("");
-      }
-    } finally {
-      setDateLoading(false);
-    }
-  }
-
-  async function deleteDate(dateId: string) {
-    const res = await fetch(`/api/performances/${performance.id}/dates?dateId=${dateId}`, { method: "DELETE" });
-    if (res.ok) setEditDates((prev) => prev.filter((d) => d.id !== dateId));
   }
 
   // ── Section 2 edit: costume ───────────────────────────────
@@ -904,31 +873,11 @@ export default function PerformanceClient({
                         className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
                       />
                       <span className="text-xs text-muted-soft">น.</span>
-                      <button onClick={() => deleteDate(d.id)} className="ml-auto text-muted-soft hover:text-error text-xs shrink-0">ลบ</button>
                     </div>
                   ))}
-                  <div className="flex items-center gap-2 pt-1">
-                    <input
-                      type="date"
-                      value={newDateStr}
-                      onChange={(e) => setNewDateStr(e.target.value)}
-                      className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary"
-                    />
-                    <input
-                      type="time"
-                      value={newStartTime}
-                      onChange={(e) => setNewStartTime(e.target.value)}
-                      className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
-                    />
-                    <span className="text-muted-soft text-xs">–</span>
-                    <input
-                      type="time"
-                      value={newEndTime}
-                      onChange={(e) => setNewEndTime(e.target.value)}
-                      className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
-                    />
-                    <Button size="sm" variant="secondary" onClick={addDate} disabled={!newDateStr || dateLoading}>+ เพิ่ม</Button>
-                  </div>
+                  <p className="text-[11px] text-muted-soft pt-1">
+                    เพิ่ม/ลบวันได้เฉพาะตอนสร้างงานเท่านั้น — แก้ไขวัน/เวลาของแต่ละวันได้ที่นี่
+                  </p>
                 </div>
               </div>
               <div className="flex gap-2">

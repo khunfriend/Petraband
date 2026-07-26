@@ -361,13 +361,12 @@ export default function PerformanceClient({
         return;
       }
 
-      // Persist every date row (date, startTime, endTime) that changed
+      // Only time changes are persisted here — dates are locked after creation
       const original = new Map(performance.dates.map((d) => [d.id, d]));
       const dirtyDates = editDates.filter((d) => {
         const orig = original.get(d.id);
         if (!orig) return false;
         return (
-          orig.date.slice(0, 10) !== d.date.slice(0, 10) ||
           (orig.startTime ?? "") !== (d.startTime ?? "") ||
           (orig.endTime ?? "") !== (d.endTime ?? "")
         );
@@ -378,7 +377,6 @@ export default function PerformanceClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             dateId: d.id,
-            date: d.date.slice(0, 10),
             startTime: d.startTime ?? "",
             endTime: d.endTime ?? "",
           }),
@@ -841,16 +839,9 @@ export default function PerformanceClient({
                 <div className="flex flex-col gap-2">
                   {editDates.map((d) => (
                     <div key={d.id} className="flex items-center gap-2 p-2 bg-surface-soft rounded-[var(--radius-md)] border border-hairline-soft">
-                      <input
-                        type="date"
-                        value={d.date.slice(0, 10)}
-                        onChange={(e) =>
-                          setEditDates((prev) =>
-                            prev.map((x) => (x.id === d.id ? { ...x, date: e.target.value } : x))
-                          )
-                        }
-                        className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-36 shrink-0"
-                      />
+                      <span className="text-sm font-medium text-ink w-36 shrink-0">
+                        {new Date(d.date).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Bangkok" })}
+                      </span>
                       <input
                         type="time"
                         value={d.startTime ?? ""}
@@ -876,7 +867,7 @@ export default function PerformanceClient({
                     </div>
                   ))}
                   <p className="text-[11px] text-muted-soft pt-1">
-                    เพิ่ม/ลบวันได้เฉพาะตอนสร้างงานเท่านั้น — แก้ไขวัน/เวลาของแต่ละวันได้ที่นี่
+                    วันที่กำหนดตอนสร้างงาน แก้ไม่ได้ — แก้ได้เฉพาะเวลาของแต่ละวัน
                   </p>
                 </div>
               </div>

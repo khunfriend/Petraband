@@ -46,6 +46,16 @@ export async function POST(req: NextRequest) {
 
   const { name, description, location, dates } = parsed.data;
 
+  // Block dates before Bangkok "today" — performances must be scheduled forward
+  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  const pastDate = dates.find((d) => d.date < todayStr);
+  if (pastDate) {
+    return NextResponse.json(
+      { error: `ห้ามสร้างงานย้อนหลัง วันที่ ${pastDate.date} อยู่ในอดีต` },
+      { status: 400 }
+    );
+  }
+
   const performance = await prisma.performance.create({
     data: {
       name,

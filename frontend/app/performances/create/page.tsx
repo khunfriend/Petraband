@@ -16,6 +16,7 @@ const fieldClass =
 
 export default function CreatePerformancePage() {
   const router = useRouter();
+  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
@@ -59,6 +60,10 @@ export default function CreatePerformancePage() {
       const d = dates[i];
       if (!d.date) {
         setError(`กรุณาเลือกวันที่สำหรับวันที่ ${i + 1}`);
+        return;
+      }
+      if (d.date < todayStr) {
+        setError(`ห้ามสร้างงานย้อนหลัง (วันที่ ${i + 1})`);
         return;
       }
       if (!d.startTime || !d.endTime) {
@@ -195,6 +200,7 @@ export default function CreatePerformancePage() {
                   <input
                     type="date"
                     value={d.date}
+                    min={todayStr}
                     onChange={(e) => updateDate(i, "date", e.target.value)}
                     className={`${fieldClass} col-span-3`}
                     required

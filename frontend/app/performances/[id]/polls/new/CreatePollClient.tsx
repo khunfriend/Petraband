@@ -123,7 +123,8 @@ function DatePickerCalendar({
           const selected = selectedDates.has(cell.iso);
           const isToday = cell.iso === todayISO;
           const isAfterPerformance = maxDateISO !== null && cell.iso > maxDateISO;
-          const disabled = !cell.current || isAfterPerformance;
+          const isBeforeToday = cell.iso < todayISO;
+          const disabled = !cell.current || isAfterPerformance || isBeforeToday;
 
           return (
             <button
@@ -131,7 +132,13 @@ function DatePickerCalendar({
               type="button"
               onClick={() => !disabled && onToggle(cell.iso)}
               disabled={disabled}
-              title={isAfterPerformance ? "หลังวันแสดง ไม่สามารถเลือกได้" : undefined}
+              title={
+                isBeforeToday
+                  ? "ก่อนวันนี้ เลือกไม่ได้"
+                  : isAfterPerformance
+                    ? "หลังวันแสดง เลือกไม่ได้"
+                    : undefined
+              }
               className={[
                 "h-10 text-sm font-medium transition-colors relative flex items-center justify-center border-b border-r border-hairline-soft",
                 disabled
@@ -221,8 +228,10 @@ export default function CreatePollClient({ performanceId, performanceName, perfo
     setError("");
     if (!name.trim()) { setError("กรุณาใส่ชื่อโพล"); return; }
     if (days.length === 0) { setError("กรุณาเลือกอย่างน้อย 1 วัน"); return; }
+    const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
     const flatSlots: { date: string; startTime: string; endTime: string }[] = [];
     for (const day of days) {
+      if (day.date < todayStr) { setError(`ห้ามสร้างโพลย้อนหลัง (${formatDateThai(day.date)})`); return; }
       if (day.slots.length === 0) { setError(`กรุณาเพิ่มช่วงเวลาสำหรับ ${formatDateThai(day.date)}`); return; }
       for (const s of day.slots) {
         if (!s.startTime || !s.endTime) { setError("กรุณากรอกเวลาให้ครบทุกช่วง"); return; }

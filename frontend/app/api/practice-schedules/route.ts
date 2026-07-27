@@ -70,6 +70,15 @@ export async function POST(req: Request) {
 
   const { performanceId, title, days, groups } = parsed.data;
 
+  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  const pastDay = days.find((d) => d.date < todayStr);
+  if (pastDay) {
+    return NextResponse.json(
+      { error: `ห้ามสร้างตารางย้อนหลัง วันที่ ${pastDay.date} อยู่ในอดีต` },
+      { status: 400 }
+    );
+  }
+
   const schedule = await prisma.practiceSchedule.create({
     data: {
       performanceId,

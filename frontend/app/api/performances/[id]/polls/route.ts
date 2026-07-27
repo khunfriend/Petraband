@@ -56,6 +56,15 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { name, deadline, slots } = parsed.data;
 
+  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  const pastSlot = slots.find((s) => s.date < todayStr);
+  if (pastSlot) {
+    return NextResponse.json(
+      { error: `ห้ามสร้างโพลย้อนหลัง วันที่ ${pastSlot.date} อยู่ในอดีต` },
+      { status: 400 }
+    );
+  }
+
   const poll = await prisma.availabilityPoll.create({
     data: {
       performanceId: id,

@@ -106,7 +106,7 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <div>
-      <Eyebrow>Reset · รหัสผ่านใหม่</Eyebrow>
+      <Eyebrow>Reset</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">
         ตั้งรหัสผ่านใหม่
       </h1>

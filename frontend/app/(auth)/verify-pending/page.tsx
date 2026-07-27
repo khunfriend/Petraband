@@ -8,7 +8,7 @@ export default async function VerifyPendingPage({ searchParams }: Props) {
 
   return (
     <div>
-      <Eyebrow>Check your inbox · ตรวจสอบอีเมล</Eyebrow>
+      <Eyebrow>Check your inbox</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">ยืนยันอีเมลของคุณ</h1>
       <p className="mt-4 text-sm text-body leading-[1.7]">
         เราส่งลิงก์ยืนยันไปที่ <span className="font-semibold text-ink">{email || "อีเมลที่คุณระบุ"}</span> แล้ว

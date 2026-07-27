@@ -129,7 +129,7 @@ export default async function ProfilePage() {
       {/* Form section */}
       <section>
         <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
-          แก้ไขโปรไฟล์ · Edit
+          Edit
         </p>
         <ProfileForm
           user={{
@@ -154,7 +154,7 @@ export default async function ProfilePage() {
       {/* Performance history */}
       <section>
         <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
-          ประวัติการแสดง · Performance history
+          Performance history
         </p>
         <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">
           {performanceMembers.length === 0 ? (

@@ -21,7 +21,14 @@ export function TopNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const role = session?.user.role;
-  const visibleLinks = navLinks.filter((l) => !l.roles || (role && (l.roles as readonly string[]).includes(role)));
+
+  // Hide the whole nav bar (logo + links) when not signed in — auth pages
+  // stand on their own without the header
+  if (!session) return null;
+
+  const visibleLinks = navLinks.filter(
+    (l) => !l.roles || (role && (l.roles as readonly string[]).includes(role)),
+  );
 
   return (
     <nav className="h-16 bg-canvas border-b border-hairline sticky top-0 z-40">

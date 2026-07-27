@@ -26,7 +26,7 @@ export default async function ImportPage() {
       </nav>
 
       <PageHeader
-        eyebrow="Import · นำเข้า"
+        eyebrow="Import"
         title="นำเข้าเพลงจาก Excel"
         description="อัปโหลดไฟล์ .xlsx เพื่อนำเข้าข้อมูลเพลงและโน้ตเพลงแบบ bulk"
       />

@@ -33,7 +33,7 @@ export default function LoginPage() {
 
   return (
     <div>
-      <Eyebrow>Sign in · เข้าสู่ระบบ</Eyebrow>
+      <Eyebrow>Sign in</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">
         ยินดีต้อนรับกลับ
       </h1>

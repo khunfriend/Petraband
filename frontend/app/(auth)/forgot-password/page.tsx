@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div>
-      <Eyebrow>Recover · ลืมรหัสผ่าน</Eyebrow>
+      <Eyebrow>Recover</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">
         ตั้งรหัสผ่านใหม่
       </h1>

@@ -63,7 +63,7 @@ export default function RegisterPage() {
 
   return (
     <div>
-      <Eyebrow>Register · สมัครสมาชิก</Eyebrow>
+      <Eyebrow>Register</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">สร้างบัญชีใหม่</h1>
       <p className="mt-2 text-sm text-body leading-[1.7]">
         กรอกข้อมูลเพื่อสมัครสมาชิกวง PETRAband

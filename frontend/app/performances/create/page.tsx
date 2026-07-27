@@ -127,7 +127,7 @@ export default function CreatePerformancePage() {
       </nav>
 
       <PageHeader
-        eyebrow="Create · สร้างงานแสดง"
+        eyebrow="Create"
         title="สร้างงานแสดงใหม่"
         description="กำหนดชื่องาน สถานที่ และวันที่แสดง — เพิ่มเพลง/สมาชิกภายหลังได้"
       />

@@ -237,7 +237,7 @@ export default function DesignPage() {
         <div className="mx-auto max-w-[1200px] px-6 py-24 md:py-32">
           <div className="mb-16 max-w-[720px]">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.12em] text-body-strong">
-              How it works · วิธีการทำงาน
+              How it works
             </p>
             <h2 className="text-3xl font-bold leading-tight text-ink md:text-[38px]">
               จากไอเดียถึงหน้าจอจริงใน 4 ขั้น
@@ -303,7 +303,7 @@ export default function DesignPage() {
       <section className="bg-canvas">
         <div className="mx-auto max-w-[960px] px-6 py-24 md:py-32">
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.12em] text-body-strong">
-            FAQ · คำถามที่พบบ่อย
+            FAQ
           </p>
           <h2 className="mb-16 text-3xl font-bold leading-tight text-ink md:text-[38px]">
             ยังสงสัยอยู่?

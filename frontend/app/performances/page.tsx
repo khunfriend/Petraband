@@ -169,7 +169,7 @@ export default async function PerformancesPage() {
   return (
     <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-10">
       <PageHeader
-        eyebrow="Performances · งานแสดง"
+        eyebrow="Performances"
         title="งานแสดงของวง"
         description="ตารางงานที่กำลังจะมาและประวัติการแสดงย้อนหลัง"
         actions={
@@ -187,7 +187,7 @@ export default async function PerformancesPage() {
       {/* Upcoming */}
       <section>
         <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
-          ที่กำลังจะมา · Upcoming
+          Upcoming
         </p>
         {upcoming.length === 0 ? (
           <EmptyState
@@ -222,7 +222,7 @@ export default async function PerformancesPage() {
       {past.length > 0 && (
         <section>
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
-            ประวัติการแสดง · History
+            History
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {past.map((p) => (

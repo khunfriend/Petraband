@@ -105,7 +105,7 @@ export default function SongListClient({
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        eyebrow="Songs · คลังเพลง"
+        eyebrow="Songs"
         title="คลังเพลงของวง"
         description="ค้นหา จัดหมวดหมู่ และเปิดโน้ตเพลงในที่เดียว"
         actions={

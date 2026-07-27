@@ -256,7 +256,7 @@ export default function MembersClient({
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        eyebrow="Members · สมาชิก"
+        eyebrow="Members"
         title="สมาชิกวง"
         description={`${visibleUsers.length} คน${
           canManageRoles ? " · คลิกปุ่ม role เพื่อเปลี่ยน" : ""

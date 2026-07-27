@@ -198,7 +198,7 @@ export default async function MemberDetailPage({
       {/* Info */}
       <section>
         <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
-          ข้อมูล · Info
+          Info
         </p>
         <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 md:p-6">
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
@@ -232,7 +232,7 @@ export default async function MemberDetailPage({
       {canSeeFull && (
         <section>
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
-            ประวัติการแสดง · Performance history
+            Performance history
           </p>
           <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">
             {performanceHistory.length === 0 ? (

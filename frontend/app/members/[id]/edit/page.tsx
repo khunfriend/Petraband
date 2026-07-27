@@ -67,7 +67,7 @@ export default async function MemberEditPage({
       </nav>
 
       <PageHeader
-        eyebrow="Edit · แก้ไขโปรไฟล์"
+        eyebrow="Edit"
         title={user.nickname}
         description="แก้ไขข้อมูลสมาชิก"
       />

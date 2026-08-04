@@ -26,7 +26,14 @@ export default async function SongDetailPage({ params }: Params) {
       },
     },
   });
-  const publishedSheets = notebook?.sheets ?? [];
+  const SHEET_ORDER = ["เครื่องนำ", "เครื่องตาม", "เครื่องสาย/ขลุ่ย"];
+  const sheetRank = (name: string) => {
+    const i = SHEET_ORDER.indexOf(name);
+    return i === -1 ? SHEET_ORDER.length : i;
+  };
+  const publishedSheets = (notebook?.sheets ?? [])
+    .slice()
+    .sort((a, b) => sheetRank(a.name) - sheetRank(b.name) || a.sheetOrder - b.sheetOrder);
 
   const isAdmin = session?.user.role === "ADMIN";
 

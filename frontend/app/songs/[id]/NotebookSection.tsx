@@ -14,7 +14,9 @@ interface Props {
 }
 
 export function NotebookSection({ sheets }: Props) {
-  const [activeId, setActiveId] = useState<string>(sheets[0]?.id ?? "");
+  const [activeId, setActiveId] = useState<string>(
+    sheets.find((s) => s.name === "เครื่องนำ")?.id ?? sheets[0]?.id ?? ""
+  );
 
   if (sheets.length === 0) return null;
 

@@ -6,6 +6,8 @@ import PracticeGrid from "@/components/practice/PracticeGrid";
 import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
+import { DateRowPicker } from "@/components/ui/DateRowPicker";
+import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
 
 type Availability = {
   id: string;
@@ -105,6 +107,7 @@ export default function PracticeScheduleClient({
   const [busy, setBusy] = useState(false);
   const [addSlotForDay, setAddSlotForDay] = useState<string | null>(null);
   const [newSlot, setNewSlot] = useState({ startTime: "18:00", endTime: "20:00", label: "" });
+  const [todayStr] = useState(() => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
 
   const maxDate = performanceDates.length > 0 ? performanceDates[performanceDates.length - 1] : null;
 
@@ -334,40 +337,34 @@ export default function PracticeScheduleClient({
                     </span>
                   ))}
                   {addSlotForDay === day.id ? (
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-canvas border border-coral rounded-[var(--radius-md)]">
-                      <input
-                        type="time"
-                        value={newSlot.startTime}
-                        onChange={(e) => setNewSlot((s) => ({ ...s, startTime: e.target.value }))}
-                        className="text-xs bg-transparent outline-none w-[70px]"
-                      />
-                      <span className="text-xs text-muted">–</span>
-                      <input
-                        type="time"
-                        value={newSlot.endTime}
-                        onChange={(e) => setNewSlot((s) => ({ ...s, endTime: e.target.value }))}
-                        className="text-xs bg-transparent outline-none w-[70px]"
+                    <div className="flex flex-col gap-2 p-3 bg-canvas border border-coral rounded-[var(--radius-md)] w-full">
+                      <TimeRangePicker
+                        startTime={newSlot.startTime}
+                        endTime={newSlot.endTime}
+                        onChange={(s, e) => setNewSlot((prev) => ({ ...prev, startTime: s, endTime: e }))}
                       />
                       <input
                         type="text"
                         value={newSlot.label}
                         onChange={(e) => setNewSlot((s) => ({ ...s, label: e.target.value }))}
                         placeholder="label (ไม่บังคับ)"
-                        className="text-xs bg-transparent outline-none w-[100px] border-l border-hairline pl-1.5"
+                        className="text-sm bg-transparent outline-none border border-hairline rounded-[var(--radius-sm)] px-2 py-1"
                       />
-                      <button
-                        onClick={() => addSlot(day.id)}
-                        disabled={busy}
-                        className="text-xs text-coral font-medium hover:underline disabled:opacity-50"
-                      >
-                        เพิ่ม
-                      </button>
-                      <button
-                        onClick={() => { setAddSlotForDay(null); setNewSlot({ startTime: "18:00", endTime: "20:00", label: "" }); }}
-                        className="text-xs text-muted hover:text-ink"
-                      >
-                        ยกเลิก
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => addSlot(day.id)}
+                          disabled={busy}
+                          className="text-xs text-coral font-medium hover:underline disabled:opacity-50"
+                        >
+                          เพิ่ม
+                        </button>
+                        <button
+                          onClick={() => { setAddSlotForDay(null); setNewSlot({ startTime: "18:00", endTime: "20:00", label: "" }); }}
+                          className="text-xs text-muted hover:text-ink"
+                        >
+                          ยกเลิก
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <button
@@ -384,23 +381,25 @@ export default function PracticeScheduleClient({
 
           <div className="mt-3 pt-3 border-t border-hairline-soft">
             {addDayOpen ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                <input
-                  type="date"
-                  value={newDate}
-                  max={maxDate ?? undefined}
-                  onChange={(e) => setNewDate(e.target.value)}
-                  className="text-sm px-3 py-1.5 border border-hairline rounded-[var(--radius-md)] bg-canvas outline-none focus:border-coral"
+              <div className="flex flex-col gap-2">
+                <DateRowPicker
+                  mode="single"
+                  value={newDate || null}
+                  onChange={(iso) => setNewDate(iso)}
+                  minDate={todayStr}
+                  maxDate={maxDate}
                 />
-                <Button size="sm" variant="coral" onClick={addDay} disabled={busy || !newDate}>
-                  เพิ่มวัน
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => { setAddDayOpen(false); setNewDate(""); }}>
-                  ยกเลิก
-                </Button>
-                {maxDate && (
-                  <span className="text-xs text-muted-soft">เลือกได้ถึงวันแสดง ({maxDate})</span>
-                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button size="sm" variant="coral" onClick={addDay} disabled={busy || !newDate}>
+                    เพิ่มวัน
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => { setAddDayOpen(false); setNewDate(""); }}>
+                    ยกเลิก
+                  </Button>
+                  {maxDate && (
+                    <span className="text-xs text-muted-soft">เลือกได้ถึงวันแสดง ({maxDate})</span>
+                  )}
+                </div>
               </div>
             ) : (
               <button

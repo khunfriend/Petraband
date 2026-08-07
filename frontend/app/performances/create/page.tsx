@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AlertBox } from "@/components/ui/AlertBox";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DateRowPicker } from "@/components/ui/DateRowPicker";
+import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
 
 type DateEntry = { date: string; startTime: string; endTime: string };
 
@@ -16,7 +18,7 @@ const fieldClass =
 
 export default function CreatePerformancePage() {
   const router = useRouter();
-  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  const [todayStr] = useState(() => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
@@ -196,41 +198,21 @@ export default function CreatePerformancePage() {
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="date"
-                    value={d.date}
-                    min={todayStr}
-                    onChange={(e) => updateDate(i, "date", e.target.value)}
-                    className={`${fieldClass} col-span-3`}
-                    required
+                <div className="flex flex-col gap-4">
+                  <DateRowPicker
+                    mode="single"
+                    value={d.date || null}
+                    onChange={(iso) => updateDate(i, "date", iso)}
+                    minDate={todayStr}
                   />
-                  <div>
-                    <label className="block text-xs text-muted mb-1">
-                      เริ่ม <span className="text-error">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      value={d.startTime}
-                      onChange={(e) =>
-                        updateDate(i, "startTime", e.target.value)
-                      }
-                      className={fieldClass}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-muted mb-1">
-                      สิ้นสุด <span className="text-error">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      value={d.endTime}
-                      onChange={(e) => updateDate(i, "endTime", e.target.value)}
-                      className={fieldClass}
-                      required
-                    />
-                  </div>
+                  <TimeRangePicker
+                    startTime={d.startTime}
+                    endTime={d.endTime}
+                    onChange={(s, e) => {
+                      updateDate(i, "startTime", s);
+                      updateDate(i, "endTime", e);
+                    }}
+                  />
                 </div>
               </div>
             ))}

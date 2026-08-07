@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { DateRowPicker } from "@/components/ui/DateRowPicker";
+import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
 
 type Slot = { startTime: string; endTime: string };
 type DayEntry = { date: string; slots: Slot[] };
@@ -14,17 +16,11 @@ type Props = {
   performanceDates: string[];
 };
 
-const DAY_LABELS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-
 const PRESET_SLOTS: { label: string; startTime: string; endTime: string }[] = [
   { label: "10:00–12:00", startTime: "10:00", endTime: "12:00" },
   { label: "14:00–17:00", startTime: "14:00", endTime: "17:00" },
   { label: "17:00–20:00", startTime: "17:00", endTime: "20:00" },
 ];
-
-function toISO(y: number, m: number, d: number) {
-  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
 
 function emptySlot(): Slot {
   return { startTime: "", endTime: "" };
@@ -39,135 +35,9 @@ function formatDateThai(iso: string) {
   });
 }
 
-function DatePickerCalendar({
-  selectedDates,
-  onToggle,
-  maxDateISO,
-}: {
-  selectedDates: Set<string>;
-  onToggle: (iso: string) => void;
-  maxDateISO: string | null;
-}) {
-  const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
-
-  const todayISO = toISO(today.getFullYear(), today.getMonth(), today.getDate());
-
-  const cells = useMemo(() => {
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const prevDays = new Date(year, month, 0).getDate();
-    const result: { iso: string; day: number; current: boolean }[] = [];
-
-    for (let i = firstDay - 1; i >= 0; i--) {
-      const d = prevDays - i;
-      const m = month === 0 ? 11 : month - 1;
-      const y = month === 0 ? year - 1 : year;
-      result.push({ iso: toISO(y, m, d), day: d, current: false });
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-      result.push({ iso: toISO(year, month, d), day: d, current: true });
-    }
-    const rem = 42 - result.length;
-    for (let d = 1; d <= rem; d++) {
-      const m = month === 11 ? 0 : month + 1;
-      const y = month === 11 ? year + 1 : year;
-      result.push({ iso: toISO(y, m, d), day: d, current: false });
-    }
-    return result;
-  }, [year, month]);
-
-  const monthLabel = new Date(year, month, 1).toLocaleDateString("th-TH", {
-    year: "numeric",
-    month: "long",
-  });
-
-  function prevMonth() {
-    if (month === 0) { setMonth(11); setYear((y) => y - 1); }
-    else setMonth((m) => m - 1);
-  }
-  function nextMonth() {
-    if (month === 11) { setMonth(0); setYear((y) => y + 1); }
-    else setMonth((m) => m + 1);
-  }
-
-  return (
-    <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden select-none">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-hairline-soft">
-        <button
-          type="button"
-          onClick={prevMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-md)] hover:bg-surface-cream-strong transition-colors text-muted hover:text-ink text-lg"
-        >
-          ‹
-        </button>
-        <p className="text-sm font-bold text-ink">{monthLabel}</p>
-        <button
-          type="button"
-          onClick={nextMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-[var(--radius-md)] hover:bg-surface-cream-strong transition-colors text-muted hover:text-ink text-lg"
-        >
-          ›
-        </button>
-      </div>
-
-      <div className="grid grid-cols-7 border-b border-hairline-soft">
-        {DAY_LABELS.map((d) => (
-          <div key={d} className="py-2 text-center text-xs font-bold text-muted">{d}</div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7">
-        {cells.map((cell, i) => {
-          const selected = selectedDates.has(cell.iso);
-          const isToday = cell.iso === todayISO;
-          const isAfterPerformance = maxDateISO !== null && cell.iso > maxDateISO;
-          const isBeforeToday = cell.iso < todayISO;
-          const disabled = !cell.current || isAfterPerformance || isBeforeToday;
-
-          return (
-            <button
-              key={cell.iso + i}
-              type="button"
-              onClick={() => !disabled && onToggle(cell.iso)}
-              disabled={disabled}
-              title={
-                isBeforeToday
-                  ? "ก่อนวันนี้ เลือกไม่ได้"
-                  : isAfterPerformance
-                    ? "หลังวันแสดง เลือกไม่ได้"
-                    : undefined
-              }
-              className={[
-                "h-10 text-sm font-medium transition-colors relative flex items-center justify-center border-b border-r border-hairline-soft",
-                disabled
-                  ? "text-muted-soft cursor-default bg-surface-soft opacity-40"
-                  : selected
-                    ? "bg-primary text-white hover:bg-primary-active"
-                    : "hover:bg-surface-cream-strong text-ink",
-                isToday && !selected && !disabled ? "font-extrabold text-coral" : "",
-              ].join(" ")}
-            >
-              {cell.day}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="px-4 py-2.5 border-t border-hairline-soft flex items-center gap-2">
-        <span className="w-4 h-4 rounded-sm bg-primary inline-block shrink-0" />
-        <span className="text-xs text-muted">วันที่เลือก</span>
-        <span className="ml-auto text-xs text-muted font-semibold">
-          {selectedDates.size > 0 ? `เลือกแล้ว ${selectedDates.size} วัน` : "คลิกเพื่อเลือกวัน"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export default function CreatePollClient({ performanceId, performanceName, performanceDates }: Props) {
   const router = useRouter();
+  const [todayStr] = useState(() => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
   const [name, setName] = useState(`โพลตารางว่าง ${performanceName}`);
   const [deadline, setDeadline] = useState("");
   const [days, setDays] = useState<DayEntry[]>([]);
@@ -286,7 +156,13 @@ export default function CreatePollClient({ performanceId, performanceName, perfo
             </p>
           )}
         </div>
-        <DatePickerCalendar selectedDates={selectedDateSet} onToggle={toggleDate} maxDateISO={maxPerformanceDate} />
+        <DateRowPicker
+          mode="multi"
+          selected={selectedDateSet}
+          onToggle={toggleDate}
+          minDate={todayStr}
+          maxDate={maxPerformanceDate}
+        />
       </div>
 
       {days.length > 0 && (
@@ -342,30 +218,25 @@ export default function CreatePollClient({ performanceId, performanceName, perfo
                         const isPreset = PRESET_SLOTS.some((p) => p.startTime === slot.startTime && p.endTime === slot.endTime);
                         if (isPreset) return null;
                         return (
-                          <div key={slotIndex} className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium text-ink bg-surface-cream-strong px-3 py-1.5 rounded-[var(--radius-md)] shrink-0 border border-hairline-soft">
-                              {slot.startTime && slot.endTime ? `${slot.startTime}–${slot.endTime}` : "กำหนดเวลา"}
-                            </span>
-                            <input
-                              type="time"
-                              value={slot.startTime}
-                              onChange={(e) => updateSlot(dayIndex, slotIndex, "startTime", e.target.value)}
-                              className="px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
+                          <div key={slotIndex} className="flex flex-col gap-2 p-3 rounded-[var(--radius-md)] border border-hairline-soft bg-surface-soft">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-muted uppercase tracking-wider">ช่วงเวลา</span>
+                              <button
+                                type="button"
+                                onClick={() => removeSlot(dayIndex, slotIndex)}
+                                className="text-muted hover:text-error transition-colors text-base leading-none"
+                              >
+                                ×
+                              </button>
+                            </div>
+                            <TimeRangePicker
+                              startTime={slot.startTime}
+                              endTime={slot.endTime}
+                              onChange={(s, e) => {
+                                updateSlot(dayIndex, slotIndex, "startTime", s);
+                                updateSlot(dayIndex, slotIndex, "endTime", e);
+                              }}
                             />
-                            <span className="text-muted text-sm">–</span>
-                            <input
-                              type="time"
-                              value={slot.endTime}
-                              onChange={(e) => updateSlot(dayIndex, slotIndex, "endTime", e.target.value)}
-                              className="px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink outline-none focus:border-coral focus:ring-[3px] focus:ring-coral/20"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeSlot(dayIndex, slotIndex)}
-                              className="text-muted hover:text-error transition-colors text-base leading-none"
-                            >
-                              ×
-                            </button>
                           </div>
                         );
                       })}

@@ -11,9 +11,11 @@ interface SheetTab {
 
 interface Props {
   sheets: SheetTab[];
+  showDivider?: boolean;
+  showHeading?: boolean;
 }
 
-export function NotebookSection({ sheets }: Props) {
+export function NotebookSection({ sheets, showDivider = true, showHeading = true }: Props) {
   const [activeId, setActiveId] = useState<string>(
     sheets.find((s) => s.name === "เครื่องนำ")?.id ?? sheets[0]?.id ?? ""
   );
@@ -21,10 +23,12 @@ export function NotebookSection({ sheets }: Props) {
   if (sheets.length === 0) return null;
 
   return (
-    <div className="mt-10 pt-8 border-t border-hairline-soft">
-      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-4">
-        โน้ตเพลง · Sheets
-      </p>
+    <div className={showDivider ? "mt-10 pt-8 border-t border-hairline-soft" : ""}>
+      {showHeading && (
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-4">
+          โน้ตเพลง · Sheets
+        </p>
+      )}
       {/* Sheet tabs — navy underline active state */}
       <div className="flex gap-1 mb-4 flex-wrap border-b border-hairline">
         {sheets.map((s) => (

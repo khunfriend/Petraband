@@ -108,7 +108,7 @@ export default async function PerformanceSheetsPage({ params }: Params) {
                 <div className="pl-9">
                   {publishedSheets.length > 0 ? (
                     <div className="bg-surface-card border border-hairline-soft rounded-[var(--radius-lg)] p-6">
-                      <NotebookSection sheets={publishedSheets} />
+                      <NotebookSection sheets={publishedSheets} showDivider={false} showHeading={false} />
                     </div>
                   ) : sheetData && sheetData.rows.length > 0 ? (
                     <div className="bg-surface-card border border-hairline-soft rounded-[var(--radius-lg)] p-6">

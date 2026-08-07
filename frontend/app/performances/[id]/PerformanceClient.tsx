@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
+import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
 import { getInstrumentColor } from "@/lib/instrumentColors";
 
 // ─── Types ─────────────────────────────────────────────────
@@ -303,10 +304,10 @@ export default function PerformanceClient({
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Past performances are frozen — hide all edit UI once ended
+  const [todayStr] = useState(() => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
   const hasEnded = (() => {
     if (performance.dates.length === 0) return false;
     const latestStr = performance.dates[performance.dates.length - 1].date.slice(0, 10);
-    const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
     return latestStr < todayStr;
   })();
   const canEdit = (isAdmin || isHead) && !hasEnded;
@@ -838,32 +839,19 @@ export default function PerformanceClient({
                 <label className="block text-xs font-medium text-muted mb-2">วันที่และเวลา</label>
                 <div className="flex flex-col gap-2">
                   {editDates.map((d) => (
-                    <div key={d.id} className="flex items-center gap-2 p-2 bg-surface-soft rounded-[var(--radius-md)] border border-hairline-soft">
-                      <span className="text-sm font-medium text-ink w-36 shrink-0">
+                    <div key={d.id} className="flex flex-col gap-2 p-3 bg-surface-soft rounded-[var(--radius-md)] border border-hairline-soft">
+                      <span className="text-sm font-medium text-ink">
                         {new Date(d.date).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Bangkok" })}
                       </span>
-                      <input
-                        type="time"
-                        value={d.startTime ?? ""}
-                        onChange={(e) =>
+                      <TimeRangePicker
+                        startTime={d.startTime ?? ""}
+                        endTime={d.endTime ?? ""}
+                        onChange={(s, e) =>
                           setEditDates((prev) =>
-                            prev.map((x) => (x.id === d.id ? { ...x, startTime: e.target.value } : x))
+                            prev.map((x) => (x.id === d.id ? { ...x, startTime: s, endTime: e } : x))
                           )
                         }
-                        className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
                       />
-                      <span className="text-muted-soft text-xs">–</span>
-                      <input
-                        type="time"
-                        value={d.endTime ?? ""}
-                        onChange={(e) =>
-                          setEditDates((prev) =>
-                            prev.map((x) => (x.id === d.id ? { ...x, endTime: e.target.value } : x))
-                          )
-                        }
-                        className="px-2 py-1 text-sm border border-hairline rounded-[var(--radius-sm)] bg-canvas text-ink outline-none focus:border-primary w-28"
-                      />
-                      <span className="text-xs text-muted-soft">น.</span>
                     </div>
                   ))}
                   <p className="text-[11px] text-muted-soft pt-1">

@@ -21,14 +21,14 @@ export default async function PerformanceDetailPage({ params }: Params) {
     notFound();
   }
 
-  const [performance, participants, myMember, stageLayout, practiceSchedules, polls] = await Promise.all([
+  const [performance, participants, myMember, stageLayout, practiceSchedules, polls, sections] = await Promise.all([
     prisma.performance.findUnique({
       where: { id },
       include: {
         dates: { orderBy: { date: "asc" } },
         songs: {
           include: { song: { select: { id: true, title: true, songCode: true, category: true } } },
-          orderBy: { order: "asc" },
+          orderBy: [{ sectionId: "asc" }, { orderInSection: "asc" }, { order: "asc" }],
         },
         heads: {
           include: { user: { select: { id: true, nickname: true, generation: true } } },
@@ -85,6 +85,10 @@ export default async function PerformanceDetailPage({ params }: Params) {
         slots: { select: { _count: { select: { responses: true } } } },
       },
     }),
+    prisma.performanceSection.findMany({
+      where: { performanceId: id },
+      orderBy: { sectionOrder: "asc" },
+    }),
   ]);
 
   if (!performance) notFound();
@@ -139,6 +143,13 @@ export default async function PerformanceDetailPage({ params }: Params) {
             title: ps.song.title,
             songCode: ps.song.songCode,
             category: ps.song.category,
+            sectionId: ps.sectionId ?? null,
+            orderInSection: ps.orderInSection,
+          })),
+          sections: sections.map((s) => ({
+            id: s.id,
+            name: s.name,
+            sectionOrder: s.sectionOrder,
           })),
         }}
         participants={participants.map((m) => ({

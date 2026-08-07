@@ -83,6 +83,8 @@ model User {
   passwordResetTokens    PasswordResetToken[]
   availabilityPolls      AvailabilityPoll[]         @relation("PollCreator")
   availabilityPollResponses AvailabilityPollResponse[]
+  performanceSheetPrefs  UserPerformanceSheetPref[]
+  songSheetOverrides     UserSongSheetOverride[]
 }
 
 model PendingRegistration {
@@ -186,6 +188,7 @@ model Performance {
 
   dates             PerformanceDate[]
   songs             PerformanceSong[]
+  sections          PerformanceSection[]
   stageLayouts      StageLayout[]
   rehearsals        Rehearsal[]
   heads             PerformanceHead[]
@@ -193,6 +196,20 @@ model Performance {
   members           PerformanceMember[]
   temporaryUsers    User[]              @relation("TempUsers")
   availabilityPolls AvailabilityPoll[]
+  userSheetPrefs    UserPerformanceSheetPref[]
+}
+
+model PerformanceSection {
+  id            String   @id @default(cuid())
+  performanceId String
+  name          String
+  sectionOrder  Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  performance Performance       @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  songs       PerformanceSong[]
+
+  @@index([performanceId, sectionOrder])
 }
 
 model PerformanceDate {
@@ -207,16 +224,45 @@ model PerformanceDate {
 }
 
 model PerformanceSong {
-  id            String @id @default(cuid())
-  performanceId String
-  songId        String
-  order         Int    @default(0)
+  id             String  @id @default(cuid())
+  performanceId  String
+  songId         String
+  order          Int     @default(0)
+  sectionId      String?
+  orderInSection Int     @default(0)
 
-  performance Performance    @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  song        Song           @relation(fields: [songId], references: [id])
+  performance Performance         @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  song        Song                @relation(fields: [songId], references: [id])
+  section     PerformanceSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   assignments SongAssignment[]
+  sheetOverrides UserSongSheetOverride[]
 
   @@unique([performanceId, songId])
+  @@index([sectionId, orderInSection])
+}
+
+model UserPerformanceSheetPref {
+  userId        String
+  performanceId String
+  sheetName     String
+  updatedAt     DateTime @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  performance Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@id([userId, performanceId])
+}
+
+model UserSongSheetOverride {
+  userId            String
+  performanceSongId String
+  sheetName         String
+  updatedAt         DateTime @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  performanceSong PerformanceSong @relation(fields: [performanceSongId], references: [id], onDelete: Cascade)
+
+  @@id([userId, performanceSongId])
 }
 
 model Rsvp {

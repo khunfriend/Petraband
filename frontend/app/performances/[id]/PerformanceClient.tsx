@@ -6,10 +6,10 @@ import Link from "next/link";
 import { Check, Download, Star } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
+import { PerformanceSongSections } from "./PerformanceSongSections";
 import { getInstrumentColor } from "@/lib/instrumentColors";
 
 // ─── Types ─────────────────────────────────────────────────
@@ -28,6 +28,14 @@ type SongEntry = {
   title: string;
   songCode: string;
   category: string;
+  sectionId: string | null;
+  orderInSection: number;
+};
+
+type SectionEntry = {
+  id: string;
+  name: string;
+  sectionOrder: number;
 };
 
 type InstrumentRow = { name: string; chairs: number; tables: number | null };
@@ -41,6 +49,7 @@ type Performance = {
   equipmentNotes: Record<string, string> | null;
   dates: DateEntry[];
   songs: SongEntry[];
+  sections: SectionEntry[];
 };
 
 type StageItem = {
@@ -477,9 +486,6 @@ export default function PerformanceClient({
 
   // ── Songs ─────────────────────────────────────────────────
   const [showPicker, setShowPicker] = useState(false);
-  const [showAllSongs, setShowAllSongs] = useState(false);
-  const PREVIEW_COUNT = 5;
-  const visibleSongs = showAllSongs ? performance.songs : performance.songs.slice(0, PREVIEW_COUNT);
 
   async function addSong(song: SongSearchResult) {
     setShowPicker(false);
@@ -502,6 +508,8 @@ export default function PerformanceClient({
           title: ps.song.title,
           songCode: ps.song.songCode,
           category: ps.song.category,
+          sectionId: ps.sectionId ?? null,
+          orderInSection: ps.orderInSection ?? 0,
         },
       ],
     }));
@@ -1021,47 +1029,18 @@ export default function PerformanceClient({
           </div>
         )}
 
-        {performance.songs.length === 0 ? (
+        {performance.songs.length === 0 && performance.sections.length === 0 ? (
           <p className="text-sm text-muted-soft">ยังไม่มีเพลงในงานแสดงนี้</p>
         ) : (
-          <div className="flex flex-col gap-2">
-            {visibleSongs.map((s, i) => (
-              <div
-                key={s.id}
-                className="flex items-center gap-3 px-4 py-3 bg-surface-card border border-hairline-soft rounded-[var(--radius-md)]"
-              >
-                <span className="text-xs text-muted-soft w-5 text-right shrink-0">{i + 1}</span>
-                <Link href={`/songs/${s.songId}`} className="flex-1 min-w-0 group">
-                  <p className="text-sm font-medium text-ink truncate group-hover:text-primary transition-colors">
-                    {s.title}
-                  </p>
-                  <p className="text-xs text-muted-soft">{s.songCode}</p>
-                </Link>
-                <Badge variant="pill" className="text-[11px]">
-                  {s.category}
-                </Badge>
-                {canEdit && (
-                  <button
-                    onClick={() => removeSong(s.songId)}
-                    className="text-muted hover:text-error transition-colors text-lg leading-none shrink-0"
-                    aria-label="ลบเพลง"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-            {performance.songs.length > PREVIEW_COUNT && (
-              <button
-                onClick={() => setShowAllSongs((v) => !v)}
-                className="text-sm text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)] text-left px-1 mt-1"
-              >
-                {showAllSongs
-                  ? "แสดงน้อยลง"
-                  : `แสดงเพลงทั้งหมด ${performance.songs.length} เพลง`}
-              </button>
-            )}
-          </div>
+          <PerformanceSongSections
+            performanceId={performance.id}
+            songs={performance.songs}
+            sections={performance.sections}
+            canEdit={canEdit}
+            onRemoveSong={removeSong}
+            onSongsChanged={(next) => setPerformance((prev) => ({ ...prev, songs: next }))}
+            onSectionsChanged={(next) => setPerformance((prev) => ({ ...prev, sections: next }))}
+          />
         )}
       </section>
 

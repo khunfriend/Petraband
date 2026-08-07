@@ -12,7 +12,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const songs = await prisma.performanceSong.findMany({
     where: { performanceId: id },
     include: { song: { select: { id: true, title: true, songCode: true, category: true } } },
-    orderBy: { order: "asc" },
+    orderBy: [{ sectionId: "asc" }, { orderInSection: "asc" }, { order: "asc" }],
   });
 
   return NextResponse.json({ songs });
@@ -21,6 +21,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 const addSongSchema = z.object({
   songId: z.string().min(1),
   order: z.number().int().optional(),
+  sectionId: z.string().min(1).nullable().optional(),
 });
 
 export async function POST(req: NextRequest, { params }: Params) {
@@ -37,16 +38,26 @@ export async function POST(req: NextRequest, { params }: Params) {
       { status: 400 }
     );
 
-  const maxOrder = await prisma.performanceSong.aggregate({
-    where: { performanceId: id },
-    _max: { order: true },
-  });
+  const targetSectionId = parsed.data.sectionId ?? null;
+
+  const [maxOrder, maxInSection] = await Promise.all([
+    prisma.performanceSong.aggregate({
+      where: { performanceId: id },
+      _max: { order: true },
+    }),
+    prisma.performanceSong.aggregate({
+      where: { performanceId: id, sectionId: targetSectionId },
+      _max: { orderInSection: true },
+    }),
+  ]);
 
   const performanceSong = await prisma.performanceSong.create({
     data: {
       performanceId: id,
       songId: parsed.data.songId,
       order: parsed.data.order ?? (maxOrder._max.order ?? -1) + 1,
+      sectionId: targetSectionId,
+      orderInSection: (maxInSection._max.orderInSection ?? -1) + 1,
     },
     include: { song: { select: { id: true, title: true, songCode: true, category: true } } },
   });

@@ -42,8 +42,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         orderBy: [{ position: "asc" }, { joinedAt: "asc" }],
       },
       songs: {
-        include: { song: { select: { title: true, songCode: true } } },
-        orderBy: { order: "asc" },
+        include: {
+          song: { select: { title: true, songCode: true } },
+          section: { select: { name: true, sectionOrder: true } },
+        },
+        orderBy: [{ sectionId: "asc" }, { orderInSection: "asc" }, { order: "asc" }],
       },
       stageLayouts: {
         take: 1,

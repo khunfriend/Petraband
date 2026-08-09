@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -29,26 +31,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const upserts = parsed.data.cells.map((cell) =>
-    prisma.cell.upsert({
-      where: {
-        sheetId_rowIndex_colIndex: {
-          sheetId,
-          rowIndex: cell.rowIndex,
-          colIndex: cell.colIndex,
-        },
-      },
-      update: { cellValue: cell.cellValue ?? null },
-      create: {
-        sheetId,
-        rowIndex: cell.rowIndex,
-        colIndex: cell.colIndex,
-        cellValue: cell.cellValue ?? null,
-      },
-    })
+  // Bulk upsert in a single SQL statement — Prisma's per-row upsert
+  // is O(N) round-trips and times out for large pastes.
+  const values = parsed.data.cells.map(
+    (c) =>
+      Prisma.sql`(${randomUUID()}, ${sheetId}, ${c.rowIndex}, ${c.colIndex}, ${c.cellValue ?? null})`
   );
 
-  const cells = await prisma.$transaction(upserts);
+  await prisma.$executeRaw`
+    INSERT INTO "Cell" ("id", "sheetId", "rowIndex", "colIndex", "cellValue")
+    VALUES ${Prisma.join(values)}
+    ON CONFLICT ("sheetId", "rowIndex", "colIndex")
+    DO UPDATE SET "cellValue" = EXCLUDED."cellValue"
+  `;
 
-  return NextResponse.json({ cells });
+  return NextResponse.json({ ok: true });
 }

@@ -444,49 +444,79 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       // Excel copies as TSV: rows separated by \n, cols by \t
       const pasteRows = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
       if (pasteRows[pasteRows.length - 1] === "") pasteRows.pop();
+      if (pasteRows.length === 0) return;
 
-      // ต้องเลือกพื้นที่ก่อนเสมอ
-      if (selectedCells.size < 2) return;
+      const pasteGrid = pasteRows.map((r) => r.split("\t"));
+      const pasteH = pasteGrid.length;
+      const pasteW = pasteGrid.reduce((mx, r) => Math.max(mx, r.length), 0);
 
-      let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
-      for (const k of selectedCells) {
-        const [r, c] = k.split(",").map(Number);
-        if (r < minR) minR = r;
-        if (r > maxR) maxR = r;
-        if (c < minC) minC = c;
-        if (c > maxC) maxC = c;
+      // If a range (2+ cells) is selected, clamp paste to that range.
+      // Otherwise anchor the paste at the current cell and use the clipboard's own size.
+      let minR: number, minC: number, maxRows: number, maxCols: number;
+      if (selectedCells.size >= 2) {
+        let sMinR = Infinity, sMaxR = -Infinity, sMinC = Infinity, sMaxC = -Infinity;
+        for (const k of selectedCells) {
+          const [r, c] = k.split(",").map(Number);
+          if (r < sMinR) sMinR = r;
+          if (r > sMaxR) sMaxR = r;
+          if (c < sMinC) sMinC = c;
+          if (c > sMaxC) sMaxC = c;
+        }
+        minR = sMinR;
+        minC = sMinC;
+        maxRows = sMaxR - sMinR + 1;
+        maxCols = sMaxC - sMinC + 1;
+      } else {
+        minR = anchor.row;
+        minC = anchor.col;
+        maxRows = pasteH;
+        maxCols = pasteW;
       }
-      const maxRows = maxR - minR + 1;
-      const maxCols = maxC - minC + 1;
 
-      const payload: Array<{ rowIndex: number; colIndex: number; cellValue: string | null }> = [];
+      const neededRows = minR + Math.min(pasteH, maxRows);
+      const neededCols = minC + Math.min(pasteW, maxCols);
+
+      const metaPatch: { rowCount?: number; columnCount?: number } = {};
+      setRowCount((n) => {
+        if (neededRows <= n) return n;
+        metaPatch.rowCount = neededRows;
+        onRowCountChange?.(neededRows);
+        return neededRows;
+      });
+      setColCount((n) => {
+        if (neededCols <= n) return n;
+        metaPatch.columnCount = neededCols;
+        onColCountChange?.(neededCols);
+        return neededCols;
+      });
+      if (metaPatch.rowCount != null || metaPatch.columnCount != null) {
+        fetch(`/api/sheets/${sheetId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(metaPatch),
+        }).catch(() => {});
+      }
 
       setCells((prev) => {
         const m = new Map(prev);
-        pasteRows.forEach((rowStr, ri) => {
+        pasteGrid.forEach((rowArr, ri) => {
           if (ri >= maxRows) return;
-          rowStr.split("\t").forEach((val, ci) => {
+          rowArr.forEach((val, ci) => {
             if (ci >= maxCols) return;
             const r = minR + ri;
             const c = minC + ci;
             const k = cellKey(r, c);
             const existing = m.get(k);
-            m.set(k, { cellValue: val.trim() || null, style: existing?.style ?? null });
-            payload.push({ rowIndex: r, colIndex: c, cellValue: val.trim() || null });
+            const nextVal = val.trim() || null;
+            m.set(k, { cellValue: nextVal, style: existing?.style ?? null });
+            queueCellSave(r, c, nextVal);
           });
         });
         pushHistory(m);
         return m;
       });
-
-      if (payload.length === 0) return;
-      fetch(`/api/sheets/${sheetId}/cells`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cells: payload }),
-      }).catch(() => {});
     },
-    [editingCell, anchor, selectedCells, sheetId, pushHistory]
+    [editingCell, anchor, selectedCells, sheetId, pushHistory, queueCellSave, onRowCountChange, onColCountChange]
   );
 
   // Handle keyboard on the grid container

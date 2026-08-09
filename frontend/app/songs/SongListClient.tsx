@@ -49,7 +49,6 @@ export default function SongListClient({
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] = useState({
     title: "",
-    songCode: "",
     category: "ดนตรีไทย",
   });
   const [createError, setCreateError] = useState("");
@@ -64,8 +63,8 @@ export default function SongListClient({
   }, [songs, q, activeCategory]);
 
   async function handleCreate() {
-    if (!createForm.title.trim() || !createForm.songCode.trim()) {
-      setCreateError("กรุณากรอกชื่อเพลงและรหัสเพลง");
+    if (!createForm.title.trim()) {
+      setCreateError("กรุณากรอกชื่อเพลง");
       return;
     }
     setCreating(true);
@@ -113,7 +112,7 @@ export default function SongListClient({
             <Button
               variant="primary"
               onClick={() => {
-                setCreateForm({ title: "", songCode: "", category: "ดนตรีไทย" });
+                setCreateForm({ title: "", category: "ดนตรีไทย" });
                 setShowCreate(true);
               }}
             >
@@ -256,14 +255,6 @@ export default function SongListClient({
             value={createForm.title}
             onChange={(e) =>
               setCreateForm((f) => ({ ...f, title: e.target.value }))
-            }
-          />
-          <Input
-            label="รหัสเพลง *"
-            placeholder="เช่น S4360CB02"
-            value={createForm.songCode}
-            onChange={(e) =>
-              setCreateForm((f) => ({ ...f, songCode: e.target.value }))
             }
           />
           <Input

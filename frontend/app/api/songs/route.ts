@@ -51,12 +51,30 @@ export async function GET(req: NextRequest) {
 }
 
 const createSchema = z.object({
-  songCode: z.string().min(1),
+  songCode: z.string().optional(),
   title: z.string().min(1),
   category: z.string().default("ดนตรีไทย"),
   duration: z.number().int().positive().nullable().optional(),
   sheetData: z.any().optional(),
 });
+
+function generateSongCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "S";
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+async function uniqueSongCode() {
+  for (let i = 0; i < 5; i++) {
+    const code = generateSongCode();
+    const existing = await prisma.song.findUnique({ where: { songCode: code }, select: { id: true } });
+    if (!existing) return code;
+  }
+  throw new Error("ไม่สามารถสร้างรหัสเพลงได้");
+}
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -70,6 +88,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const song = await prisma.song.create({ data: parsed.data });
+  const { songCode, ...rest } = parsed.data;
+  const finalCode = songCode?.trim() || (await uniqueSongCode());
+
+  const song = await prisma.song.create({ data: { ...rest, songCode: finalCode } });
   return NextResponse.json({ song }, { status: 201 });
 }

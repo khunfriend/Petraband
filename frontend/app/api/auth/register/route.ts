@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { sendAdminNewPendingEmail } from "@/lib/email";
 
 const schema = z.object({
   email: z.string().email(),
@@ -11,9 +12,6 @@ const schema = z.object({
   primaryInstrumentId: z.string().optional().nullable(),
 });
 
-// Stash the pending registration row before the client calls
-// supabase.auth.signUp. The Supabase signUp runs in the browser so
-// PKCE cookies land on the same origin that /auth/callback runs on.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
@@ -29,16 +27,28 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await bcrypt.hash(password, 12);
 
+  await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      nickname,
+      generation,
+      primaryInstrumentId: primaryInstrumentId || null,
+      status: "PENDING_APPROVAL",
+      role: "MEMBER",
+    },
+  });
+
   try {
-    await prisma.pendingRegistration.upsert({
-      where: { email },
-      create: { email, passwordHash, nickname, generation, primaryInstrumentId: primaryInstrumentId || null },
-      update: { passwordHash, nickname, generation, primaryInstrumentId: primaryInstrumentId || null },
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN", status: "ACTIVE" },
+      select: { email: true, nickname: true },
     });
+    await Promise.all(
+      admins.map((a) => sendAdminNewPendingEmail(a.email, a.nickname, nickname, email))
+    );
   } catch (e) {
-    // Unique constraint (email or supabaseUserId) — treat as duplicate request
-    console.error("[register] upsert error:", e);
-    return NextResponse.json({ error: "อีเมลนี้กำลังรอการยืนยันอยู่แล้ว กรุณาลองใหม่ในอีกสักครู่" }, { status: 409 });
+    console.error("[register] admin notify failed:", e);
   }
 
   return NextResponse.json({ ok: true });

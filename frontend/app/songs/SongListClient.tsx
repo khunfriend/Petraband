@@ -49,8 +49,10 @@ export default function SongListClient({
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] = useState({
     title: "",
-    category: "ดนตรีไทย",
+    category: categories[0] ?? "ดนตรีไทย",
   });
+  const [addingNewCategory, setAddingNewCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
   const [createError, setCreateError] = useState("");
 
   const filtered = useMemo(() => {
@@ -67,13 +69,20 @@ export default function SongListClient({
       setCreateError("กรุณากรอกชื่อเพลง");
       return;
     }
+    const finalCategory = addingNewCategory
+      ? newCategory.trim()
+      : createForm.category;
+    if (!finalCategory) {
+      setCreateError("กรุณากรอกประเภท");
+      return;
+    }
     setCreating(true);
     setCreateError("");
     try {
       const songRes = await fetch("/api/songs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createForm),
+        body: JSON.stringify({ ...createForm, category: finalCategory }),
       });
       if (!songRes.ok) {
         const d = await songRes.json();
@@ -112,7 +121,9 @@ export default function SongListClient({
             <Button
               variant="primary"
               onClick={() => {
-                setCreateForm({ title: "", category: "ดนตรีไทย" });
+                setCreateForm({ title: "", category: categories[0] ?? "ดนตรีไทย" });
+                setAddingNewCategory(categories.length === 0);
+                setNewCategory("");
                 setShowCreate(true);
               }}
             >
@@ -192,9 +203,6 @@ export default function SongListClient({
                   <span className="text-sm font-semibold text-ink group-hover:text-primary truncate transition-colors">
                     {song.title}
                   </span>
-                  <span className="text-xs text-muted-soft font-mono">
-                    {song.songCode}
-                  </span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <Badge variant="pill">{song.category}</Badge>
@@ -257,14 +265,58 @@ export default function SongListClient({
               setCreateForm((f) => ({ ...f, title: e.target.value }))
             }
           />
-          <Input
-            label="ประเภท"
-            placeholder="ดนตรีไทย"
-            value={createForm.category}
-            onChange={(e) =>
-              setCreateForm((f) => ({ ...f, category: e.target.value }))
-            }
-          />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-ink">ประเภท</label>
+            {addingNewCategory ? (
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  className="h-10 flex-1 rounded-[var(--radius-md)] border border-hairline bg-white px-3.5 text-sm text-ink placeholder:text-muted-soft focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
+                  placeholder="เช่น เพลงพระราชนิพนธ์"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                />
+                {categories.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs text-muted hover:text-ink px-2"
+                    onClick={() => {
+                      setAddingNewCategory(false);
+                      setNewCategory("");
+                    }}
+                  >
+                    ยกเลิก
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <select
+                  className="h-10 flex-1 rounded-[var(--radius-md)] border border-hairline bg-white px-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
+                  value={createForm.category}
+                  onChange={(e) =>
+                    setCreateForm((f) => ({ ...f, category: e.target.value }))
+                  }
+                >
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline px-2 whitespace-nowrap"
+                  onClick={() => {
+                    setAddingNewCategory(true);
+                    setNewCategory("");
+                  }}
+                >
+                  + เพิ่มประเภทใหม่
+                </button>
+              </div>
+            )}
+          </div>
           {createError && (
             <p className="text-xs text-error">{createError}</p>
           )}

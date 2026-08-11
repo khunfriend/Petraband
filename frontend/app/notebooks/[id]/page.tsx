@@ -29,7 +29,7 @@ export default async function NotebookPage({ params }: Params) {
 
   // Auto-create default 3 sheets if none exist
   if (notebook.sheets.length === 0) {
-    const defaultSheets = ["เครื่องตาม", "เครื่องนำ", "เครื่องสาย/ขลุ่ย"];
+    const defaultSheets = ["เครื่องนำ", "เครื่องตาม", "เครื่องสาย/ขลุ่ย"];
     const created = await prisma.$transaction(
       defaultSheets.map((name, i) =>
         prisma.sheet.create({

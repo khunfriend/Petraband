@@ -136,12 +136,9 @@ export default function AllSongsPanel() {
                       {s.title}
                     </Link>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-xs text-muted-soft font-mono">
-                        {s.songCode}
-                      </span>
                       {formatDuration(s.duration) && (
                         <span className="text-xs text-muted-soft tabular-nums">
-                          · {formatDuration(s.duration)}
+                          {formatDuration(s.duration)}
                         </span>
                       )}
                       {s.performances.map((p) => (

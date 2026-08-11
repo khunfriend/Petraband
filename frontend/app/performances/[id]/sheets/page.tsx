@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { SheetData } from "@/components/songs/NotationGrid";
 import PerformanceSheetsClient from "./PerformanceSheetsClient";
+import { sortSheetsByCanonicalOrder } from "@/lib/sheetOrder";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -65,7 +66,7 @@ export default async function PerformanceSheetsPage({ params }: Params) {
       category: ps.song.category,
       duration: ps.song.duration,
       sheetData: ps.song.sheetData as SheetData | null,
-      publishedSheets: ps.song.notebooks[0]?.sheets ?? [],
+      publishedSheets: sortSheetsByCanonicalOrder(ps.song.notebooks[0]?.sheets ?? []),
     },
   }));
 

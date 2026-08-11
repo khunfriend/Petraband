@@ -462,7 +462,6 @@ function SortableSongRow({
         <p className="text-sm font-medium text-ink truncate group-hover:text-primary transition-colors">
           {song.title}
         </p>
-        <p className="text-xs text-muted-soft">{song.songCode}</p>
       </Link>
       <Badge variant="pill" className="text-[11px]">{song.category}</Badge>
       {canEdit && (

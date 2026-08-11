@@ -182,9 +182,8 @@ export default function PerformanceSheetsClient({
                           >
                             {song.title}
                           </Link>
-                          <span className="ml-3 text-sm text-muted-soft">{song.songCode}</span>
                           {formatDuration(song.duration) && (
-                            <span className="ml-3 text-sm text-muted-soft">· {formatDuration(song.duration)}</span>
+                            <span className="ml-3 text-sm text-muted-soft">{formatDuration(song.duration)}</span>
                           )}
                         </div>
                         <span className="text-xs text-muted bg-surface-soft px-2 py-1 rounded-full border border-hairline shrink-0">

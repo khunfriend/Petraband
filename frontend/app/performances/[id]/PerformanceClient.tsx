@@ -249,7 +249,7 @@ function SongPickerPanel({ addedSongIds, onAdd, onClose }: SongPickerPanelProps)
               >
                 <div className="min-w-0">
                   <p className="text-sm text-ink truncate">{song.title}</p>
-                  <p className="text-xs text-muted-soft">{song.songCode} · {song.category}</p>
+                  <p className="text-xs text-muted-soft">{song.category}</p>
                 </div>
                 {added && <span className="text-xs text-muted shrink-0">เพิ่มแล้ว</span>}
               </button>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import SongDetailClient from "./SongDetailClient";
 import { NotebookSection } from "./NotebookSection";
+import { sortSheetsByCanonicalOrder } from "@/lib/sheetOrder";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -26,14 +27,7 @@ export default async function SongDetailPage({ params }: Params) {
       },
     },
   });
-  const SHEET_ORDER = ["เครื่องนำ", "เครื่องตาม", "เครื่องสาย/ขลุ่ย"];
-  const sheetRank = (name: string) => {
-    const i = SHEET_ORDER.indexOf(name);
-    return i === -1 ? SHEET_ORDER.length : i;
-  };
-  const publishedSheets = (notebook?.sheets ?? [])
-    .slice()
-    .sort((a, b) => sheetRank(a.name) - sheetRank(b.name) || a.sheetOrder - b.sheetOrder);
+  const publishedSheets = sortSheetsByCanonicalOrder(notebook?.sheets ?? []);
 
   const isAdmin = session?.user.role === "ADMIN";
 
@@ -57,9 +51,6 @@ export default async function SongDetailPage({ params }: Params) {
       <header className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <Badge variant="pill">{song.category}</Badge>
-          <span className="text-xs text-muted-soft font-mono">
-            {song.songCode}
-          </span>
         </div>
         <h1 className="text-2xl md:text-3xl font-bold text-ink leading-tight">
           {song.title}

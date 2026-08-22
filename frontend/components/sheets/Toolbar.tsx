@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { CellRef, CellStyle } from "./types";
 
@@ -33,6 +34,21 @@ export function Toolbar({
   const hasSelection = selection.length > 0;
   const canMerge = selection.length > 1;
 
+  // Local state so typing multi-digit sizes doesn't fire onChange per keystroke
+  // (which would re-apply style + steal focus back to the editor after digit 1).
+  const [sizeInput, setSizeInput] = useState<string>(String(currentStyle.fontSize ?? 14));
+  useEffect(() => {
+    setSizeInput(String(currentStyle.fontSize ?? 14));
+  }, [currentStyle.fontSize]);
+  const commitSize = () => {
+    const n = parseInt(sizeInput, 10);
+    if (Number.isFinite(n) && n > 0 && n !== (currentStyle.fontSize ?? 14)) {
+      onStyleChange({ fontSize: n });
+    } else {
+      setSizeInput(String(currentStyle.fontSize ?? 14));
+    }
+  };
+
   const toggleBtn = (active: boolean | undefined, label: string, onClick: () => void, title: string) => (
     <button
       type="button"
@@ -52,7 +68,10 @@ export function Toolbar({
   );
 
   return (
-    <div className="flex items-center gap-1 flex-wrap border-b border-hairline bg-surface-soft px-3 py-2">
+    <div
+      data-sheets-toolbar
+      className="flex items-center gap-1 flex-wrap border-b border-hairline bg-surface-soft px-3 py-2"
+    >
       {toggleBtn(currentStyle.isBold, "B", () => onStyleChange({ isBold: !currentStyle.isBold }), "ตัวหนา")}
       {toggleBtn(currentStyle.isItalic, "I", () => onStyleChange({ isItalic: !currentStyle.isItalic }), "ตัวเอียง")}
       {toggleBtn(currentStyle.isUnderline, "U", () => onStyleChange({ isUnderline: !currentStyle.isUnderline }), "ขีดเส้นใต้")}
@@ -69,10 +88,17 @@ export function Toolbar({
         <span>ขนาด</span>
         <input
           type="number"
-          min={6}
-          max={72}
-          value={currentStyle.fontSize ?? 14}
-          onChange={(e) => onStyleChange({ fontSize: parseInt(e.target.value, 10) || 14 })}
+          min={1}
+          max={200}
+          value={sizeInput}
+          onChange={(e) => setSizeInput(e.target.value)}
+          onBlur={commitSize}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              (e.currentTarget as HTMLInputElement).blur();
+            }
+          }}
           disabled={!hasSelection}
           className="w-14 h-8 border border-hairline rounded-md px-2 text-xs bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50 disabled:opacity-40"
         />

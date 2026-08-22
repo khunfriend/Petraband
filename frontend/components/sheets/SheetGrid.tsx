@@ -10,7 +10,8 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
-import type { CellData, CellRef, CellStyle, FullSheet, MergedCellData } from "./types";
+import type { CellData, CellRef, CellRun, CellStyle, FullSheet, MergedCellData } from "./types";
+import { applyStyleToSelection, domToRuns, runsToHtml, runsToPlainText } from "./richText";
 
 const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
@@ -27,6 +28,10 @@ function colLetter(col: number): string {
 
 function cellKey(row: number, col: number) {
   return `${row},${col}`;
+}
+
+function escapeForEditor(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 export interface SheetGridHandle {
@@ -62,6 +67,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     for (const c of initialData.cells) {
       m.set(cellKey(c.rowIndex, c.colIndex), {
         cellValue: c.cellValue,
+        richValue: c.richValue ?? null,
         style: c.style
           ? {
               fontFamily: c.style.fontFamily,
@@ -95,15 +101,47 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
   const [anchor, setAnchor] = useState<CellRef | null>(null);
   const [editingCell, setEditingCell] = useState<CellRef | null>(null);
-  const [editValue, setEditValue] = useState("");
   const isComposingRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  // Initial HTML to seed contentEditable on mount; not re-read after typing.
+  const editorInitialHtmlRef = useRef<string>("");
+  // Preserve the caret/selection range across toolbar clicks that steal focus.
+  const savedRangeRef = useRef<Range | null>(null);
 
   // Track latest edit state for beforeunload flush
   const editingCellRef = useRef<CellRef | null>(null);
-  const editValueRef = useRef<string>("");
   useEffect(() => { editingCellRef.current = editingCell; }, [editingCell]);
-  useEffect(() => { editValueRef.current = editValue; }, [editValue]);
+
+  function readEditor(): { text: string; runs: CellRun[] } {
+    const el = editorRef.current;
+    if (!el) return { text: "", runs: [] };
+    const runs = domToRuns(el);
+    return { text: runsToPlainText(runs), runs };
+  }
+
+  function saveEditorSelection() {
+    const el = editorRef.current;
+    if (!el) return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const r = sel.getRangeAt(0);
+    if (el.contains(r.commonAncestorContainer)) {
+      savedRangeRef.current = r.cloneRange();
+    }
+  }
+
+  function restoreEditorSelection(): boolean {
+    const el = editorRef.current;
+    const r = savedRangeRef.current;
+    if (!el || !r) return false;
+    if (!el.contains(r.commonAncestorContainer)) return false;
+    const sel = window.getSelection();
+    if (!sel) return false;
+    sel.removeAllRanges();
+    sel.addRange(r);
+    return true;
+  }
 
   // Undo / Redo history
   const historyRef = useRef<Map<string, CellData>[]>([new Map()]);
@@ -121,14 +159,28 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
   }, []);
 
   function saveCellDiff(prevMap: Map<string, CellData>, nextMap: Map<string, CellData>) {
-    const payload: Array<{ rowIndex: number; colIndex: number; cellValue: string | null }> = [];
+    const payload: Array<{
+      rowIndex: number;
+      colIndex: number;
+      cellValue: string | null;
+      richValue: CellRun[] | null;
+    }> = [];
     const allKeys = new Set([...prevMap.keys(), ...nextMap.keys()]);
     for (const k of allKeys) {
-      const prevVal = prevMap.get(k)?.cellValue ?? null;
-      const nextVal = nextMap.get(k)?.cellValue ?? null;
-      if (prevVal !== nextVal) {
+      const prev = prevMap.get(k);
+      const next = nextMap.get(k);
+      const prevVal = prev?.cellValue ?? null;
+      const nextVal = next?.cellValue ?? null;
+      const prevRich = JSON.stringify(prev?.richValue ?? null);
+      const nextRich = JSON.stringify(next?.richValue ?? null);
+      if (prevVal !== nextVal || prevRich !== nextRich) {
         const [rowIndex, colIndex] = k.split(",").map(Number);
-        payload.push({ rowIndex, colIndex, cellValue: nextVal });
+        payload.push({
+          rowIndex,
+          colIndex,
+          cellValue: nextVal,
+          richValue: next?.richValue ?? null,
+        });
       }
     }
     if (payload.length === 0) return;
@@ -141,7 +193,8 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
 
   // Debounce refs
   const cellSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingCells = useRef<Map<string, string | null>>(new Map());
+  type PendingCell = { cellValue: string | null; richValue: CellRun[] | null };
+  const pendingCells = useRef<Map<string, PendingCell>>(new Map());
   const colSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCols = useRef<Map<number, number>>(new Map());
   const rowSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -208,7 +261,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     if (pendingCells.current.size === 0) return;
     const payload = Array.from(pendingCells.current.entries()).map(([k, v]) => {
       const [rowIndex, colIndex] = k.split(",").map(Number);
-      return { rowIndex, colIndex, cellValue: v };
+      return { rowIndex, colIndex, cellValue: v.cellValue, richValue: v.richValue };
     });
     pendingCells.current.clear();
     onSaveStatus?.("saving");
@@ -222,8 +275,8 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
   }, [sheetId, onSaveStatus]);
 
   const queueCellSave = useCallback(
-    (row: number, col: number, value: string | null) => {
-      pendingCells.current.set(cellKey(row, col), value);
+    (row: number, col: number, value: string | null, richValue: CellRun[] | null = null) => {
+      pendingCells.current.set(cellKey(row, col), { cellValue: value, richValue });
       if (cellSaveTimer.current) clearTimeout(cellSaveTimer.current);
       cellSaveTimer.current = setTimeout(flushCellSaves, 500);
     },
@@ -236,12 +289,16 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       // Include uncommitted edit if any
       if (editingCellRef.current) {
         const { row, col } = editingCellRef.current;
-        pendingCells.current.set(cellKey(row, col), editValueRef.current || null);
+        const { text, runs } = readEditor();
+        pendingCells.current.set(cellKey(row, col), {
+          cellValue: text || null,
+          richValue: runs.length > 0 ? runs : null,
+        });
       }
       if (pendingCells.current.size === 0) return;
       const payload = Array.from(pendingCells.current.entries()).map(([k, v]) => {
         const [rowIndex, colIndex] = k.split(",").map(Number);
-        return { rowIndex, colIndex, cellValue: v };
+        return { rowIndex, colIndex, cellValue: v.cellValue, richValue: v.richValue };
       });
       fetch(`/api/sheets/${sheetId}/cells`, {
         method: "PATCH",
@@ -371,7 +428,14 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
   const startEditing = useCallback(
     (row: number, col: number, initialText?: string) => {
       const existing = cells.get(cellKey(row, col));
-      setEditValue(initialText ?? existing?.cellValue ?? "");
+      if (initialText != null) {
+        // Overwrite via keypress
+        editorInitialHtmlRef.current = escapeForEditor(initialText);
+      } else if (existing?.richValue && existing.richValue.length > 0) {
+        editorInitialHtmlRef.current = runsToHtml(existing.richValue);
+      } else {
+        editorInitialHtmlRef.current = escapeForEditor(existing?.cellValue ?? "");
+      }
       setEditingCell({ row, col });
     },
     [cells]
@@ -401,20 +465,31 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     if (!editingCell) return;
     const { row, col } = editingCell;
     const key = cellKey(row, col);
-    const value = editValue || null;
+    const { text, runs } = readEditor();
+    const value = text || null;
+    // Only keep richValue if there are actual per-run styles (>1 run or a styled single run)
+    const hasStyling =
+      runs.length > 1 ||
+      (runs.length === 1 &&
+        (runs[0].fontSize != null ||
+          runs[0].isBold ||
+          runs[0].isItalic ||
+          runs[0].isUnderline ||
+          !!runs[0].textColor));
+    const rich = hasStyling ? runs : null;
     setCells((prev) => {
       const m = new Map(prev);
       const existing = m.get(key);
-      m.set(key, { cellValue: value, style: existing?.style ?? null });
+      m.set(key, { cellValue: value, richValue: rich, style: existing?.style ?? null });
       pushHistory(m);
       return m;
     });
     // Save immediately (no debounce for single-cell commits)
     if (cellSaveTimer.current) clearTimeout(cellSaveTimer.current);
-    pendingCells.current.set(key, value);
+    pendingCells.current.set(key, { cellValue: value, richValue: rich });
     flushCellSaves();
     setEditingCell(null);
-  }, [editingCell, editValue, flushCellSaves, pushHistory]);
+  }, [editingCell, flushCellSaves, pushHistory]);
 
   const cancelEdit = useCallback(() => {
     setEditingCell(null);
@@ -508,8 +583,8 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
             const k = cellKey(r, c);
             const existing = m.get(k);
             const nextVal = val.trim() || null;
-            m.set(k, { cellValue: nextVal, style: existing?.style ?? null });
-            queueCellSave(r, c, nextVal);
+            m.set(k, { cellValue: nextVal, richValue: null, style: existing?.style ?? null });
+            queueCellSave(r, c, nextVal, null);
           });
         });
         pushHistory(m);
@@ -546,9 +621,9 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
           const m = new Map(prev);
           for (const k of selectedCells) {
             const existing = m.get(k);
-            m.set(k, { cellValue: null, style: existing?.style ?? null });
+            m.set(k, { cellValue: null, richValue: null, style: existing?.style ?? null });
             const [r, c] = k.split(",").map(Number);
-            queueCellSave(r, c, null);
+            queueCellSave(r, c, null, null);
           }
           pushHistory(m);
           return m;
@@ -571,7 +646,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
   );
 
   const handleEditKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (isComposingRef.current) return;
       if (e.key === "Escape") {
         e.preventDefault();
@@ -650,6 +725,28 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
 
   const applyStyle = useCallback(
     (patch: CellStyle) => {
+      // If actively editing with a non-collapsed selection, apply per-run style
+      // to just the selected text — this is what makes mixed font-sizes possible.
+      if (editingCell && editorRef.current) {
+        const runPatch: Partial<CellRun> = {};
+        if (patch.fontSize != null) runPatch.fontSize = patch.fontSize;
+        if (patch.isBold != null) runPatch.isBold = patch.isBold;
+        if (patch.isItalic != null) runPatch.isItalic = patch.isItalic;
+        if (patch.isUnderline != null) runPatch.isUnderline = patch.isUnderline;
+        if (patch.textColor != null) runPatch.textColor = patch.textColor;
+        if (Object.keys(runPatch).length > 0) {
+          // Toolbar interaction stole focus — restore the saved range first.
+          restoreEditorSelection();
+          const ok = applyStyleToSelection(editorRef.current, runPatch);
+          if (ok) {
+            // Update saved range to the new selection wrapping the styled span.
+            saveEditorSelection();
+            editorRef.current.focus();
+            return;
+          }
+        }
+      }
+
       if (selectedCells.size === 0) return;
       const stylesPayload: Array<{ rowIndex: number; colIndex: number } & CellStyle> = [];
       setCells((prev) => {
@@ -658,7 +755,11 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
           const [r, c] = k.split(",").map(Number);
           const existing = m.get(k);
           const merged: CellStyle = { ...(existing?.style ?? {}), ...patch };
-          m.set(k, { cellValue: existing?.cellValue ?? null, style: merged });
+          m.set(k, {
+            cellValue: existing?.cellValue ?? null,
+            richValue: existing?.richValue ?? null,
+            style: merged,
+          });
           stylesPayload.push({ rowIndex: r, colIndex: c, ...patch });
         }
         return m;
@@ -669,7 +770,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         body: JSON.stringify({ styles: stylesPayload }),
       }).catch(() => {});
     },
-    [selectedCells, sheetId]
+    [editingCell, selectedCells, sheetId]
   );
 
   const mergeCells = useCallback(() => {
@@ -940,11 +1041,35 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                     style={inlineStyle}
                   >
                     {isEditing ? (
-                      <input
-                        autoFocus
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={commitEdit}
+                      <div
+                        ref={(el) => {
+                          editorRef.current = el;
+                          if (el && el.innerHTML !== editorInitialHtmlRef.current) {
+                            el.innerHTML = editorInitialHtmlRef.current;
+                            // Place caret at end
+                            const range = document.createRange();
+                            range.selectNodeContents(el);
+                            range.collapse(false);
+                            const sel = window.getSelection();
+                            sel?.removeAllRanges();
+                            sel?.addRange(range);
+                            el.focus();
+                          }
+                        }}
+                        contentEditable
+                        suppressContentEditableWarning
+                        onMouseUp={saveEditorSelection}
+                        onKeyUp={saveEditorSelection}
+                        onBlur={(e) => {
+                          // Save selection so toolbar can restore it before applying styles.
+                          saveEditorSelection();
+                          const related = e.relatedTarget as HTMLElement | null;
+                          if (related?.closest("[data-sheets-toolbar]")) {
+                            // Focus went to toolbar — keep editing mode alive.
+                            return;
+                          }
+                          commitEdit();
+                        }}
                         onKeyDown={handleEditKeyDown}
                         onCompositionStart={() => {
                           isComposingRef.current = true;
@@ -957,8 +1082,12 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                           fontFamily: inlineStyle.fontFamily,
                           fontSize: inlineStyle.fontSize,
                           textAlign: inlineStyle.textAlign,
+                          whiteSpace: "nowrap",
+                          minHeight: "1em",
                         }}
                       />
+                    ) : cellData?.richValue && cellData.richValue.length > 0 ? (
+                      <span dangerouslySetInnerHTML={{ __html: runsToHtml(cellData.richValue) }} />
                     ) : (
                       cellData?.cellValue ?? ""
                     )}

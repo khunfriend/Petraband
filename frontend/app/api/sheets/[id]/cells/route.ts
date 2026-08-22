@@ -7,10 +7,20 @@ import { z } from "zod";
 
 type Params = { params: Promise<{ id: string }> };
 
+const runSchema = z.object({
+  text: z.string(),
+  fontSize: z.number().int().min(1).max(200).optional(),
+  isBold: z.boolean().optional(),
+  isItalic: z.boolean().optional(),
+  isUnderline: z.boolean().optional(),
+  textColor: z.string().optional(),
+});
+
 const cellSchema = z.object({
   rowIndex: z.number().int().min(0),
   colIndex: z.number().int().min(0),
   cellValue: z.string().nullable().optional(),
+  richValue: z.array(runSchema).nullable().optional(),
 });
 
 const patchSchema = z.object({
@@ -33,16 +43,20 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   // Bulk upsert in a single SQL statement — Prisma's per-row upsert
   // is O(N) round-trips and times out for large pastes.
-  const values = parsed.data.cells.map(
-    (c) =>
-      Prisma.sql`(${randomUUID()}, ${sheetId}, ${c.rowIndex}, ${c.colIndex}, ${c.cellValue ?? null})`
-  );
+  const values = parsed.data.cells.map((c) => {
+    const richJson = c.richValue == null ? null : JSON.stringify(c.richValue);
+    return Prisma.sql`(${randomUUID()}, ${sheetId}, ${c.rowIndex}, ${c.colIndex}, ${
+      c.cellValue ?? null
+    }, ${richJson}::jsonb)`;
+  });
 
   await prisma.$executeRaw`
-    INSERT INTO "Cell" ("id", "sheetId", "rowIndex", "colIndex", "cellValue")
+    INSERT INTO "Cell" ("id", "sheetId", "rowIndex", "colIndex", "cellValue", "richValue")
     VALUES ${Prisma.join(values)}
     ON CONFLICT ("sheetId", "rowIndex", "colIndex")
-    DO UPDATE SET "cellValue" = EXCLUDED."cellValue"
+    DO UPDATE SET
+      "cellValue" = EXCLUDED."cellValue",
+      "richValue" = EXCLUDED."richValue"
   `;
 
   return NextResponse.json({ ok: true });

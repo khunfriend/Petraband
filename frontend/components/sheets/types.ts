@@ -9,8 +9,18 @@ export interface CellStyle {
   highlightColor?: string | null;
 }
 
+export interface CellRun {
+  text: string;
+  fontSize?: number;
+  isBold?: boolean;
+  isItalic?: boolean;
+  isUnderline?: boolean;
+  textColor?: string;
+}
+
 export interface CellData {
   cellValue: string | null;
+  richValue: CellRun[] | null;
   style: CellStyle | null;
 }
 
@@ -42,6 +52,7 @@ export interface FullSheet {
     rowIndex: number;
     colIndex: number;
     cellValue: string | null;
+    richValue: CellRun[] | null;
     style: (CellStyle & { id: string; cellId: string }) | null;
   }>;
   mergedCells: MergedCellData[];

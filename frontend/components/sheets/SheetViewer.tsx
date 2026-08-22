@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FullSheet, MergedCellData } from "./types";
+import { runsToHtml } from "./richText";
 
 interface Props {
   sheetId: string;
@@ -48,7 +49,7 @@ export function SheetViewer({ sheetId }: Props) {
   let maxRow = 0;
   let maxCol = 0;
   for (const cell of sheet.cells) {
-    if (cell.cellValue) {
+    if (cell.cellValue || cell.richValue) {
       if (cell.rowIndex > maxRow) maxRow = cell.rowIndex;
       if (cell.colIndex > maxCol) maxCol = cell.colIndex;
     }
@@ -106,7 +107,11 @@ export function SheetViewer({ sheetId }: Props) {
                       whiteSpace: "pre-wrap",
                     }}
                   >
-                    {cell?.cellValue ?? ""}
+                    {cell?.richValue && cell.richValue.length > 0 ? (
+                      <span dangerouslySetInnerHTML={{ __html: runsToHtml(cell.richValue) }} />
+                    ) : (
+                      cell?.cellValue ?? ""
+                    )}
                   </td>
                 );
               })}

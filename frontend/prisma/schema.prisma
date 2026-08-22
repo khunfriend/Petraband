@@ -607,6 +607,7 @@ model Cell {
   rowIndex   Int
   colIndex   Int
   cellValue  String?
+  richValue  Json?
 
   sheet Sheet      @relation(fields: [sheetId], references: [id], onDelete: Cascade)
   style CellStyle?

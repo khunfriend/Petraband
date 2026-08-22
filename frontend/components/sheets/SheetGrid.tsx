@@ -11,7 +11,14 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import type { CellData, CellRef, CellRun, CellStyle, FullSheet, MergedCellData } from "./types";
-import { applyStyleToSelection, domToRuns, runsToHtml, runsToPlainText } from "./richText";
+import {
+  addFakeSelection,
+  applyStyleToSelection,
+  domToRuns,
+  removeFakeSelection,
+  runsToHtml,
+  runsToPlainText,
+} from "./richText";
 
 const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
@@ -106,6 +113,9 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
   const editorRef = useRef<HTMLDivElement | null>(null);
   // Initial HTML to seed contentEditable on mount; not re-read after typing.
   const editorInitialHtmlRef = useRef<string>("");
+  // Track which cell we've already seeded so we don't overwrite typed content
+  // when React re-invokes the ref callback on subsequent renders.
+  const seededCellKeyRef = useRef<string | null>(null);
   // Preserve the caret/selection range across toolbar clicks that steal focus.
   const savedRangeRef = useRef<Range | null>(null);
 
@@ -735,13 +745,37 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         if (patch.isUnderline != null) runPatch.isUnderline = patch.isUnderline;
         if (patch.textColor != null) runPatch.textColor = patch.textColor;
         if (Object.keys(runPatch).length > 0) {
-          // Toolbar interaction stole focus — restore the saved range first.
+          // Toolbar interaction stole focus — unwrap the fake highlight (if any),
+          // restore the real range, then apply per-run styling.
+          const revived = removeFakeSelection(editorRef.current);
+          if (revived) savedRangeRef.current = revived;
           restoreEditorSelection();
           const ok = applyStyleToSelection(editorRef.current, runPatch);
           if (ok) {
             // Update saved range to the new selection wrapping the styled span.
             saveEditorSelection();
-            editorRef.current.focus();
+            const active = document.activeElement as HTMLElement | null;
+            if (active?.closest("[data-sheets-toolbar]")) {
+              // Keep the user in the toolbar (they may be mid-typing a number)
+              // — redraw the fake highlight over the new range instead of
+              // stealing focus back to the editor.
+              const r = savedRangeRef.current;
+              if (r && !r.collapsed) {
+                addFakeSelection(editorRef.current, r.cloneRange());
+                // Re-save because addFakeSelection wrapped the range in a marker
+                // span; the previous range references detached nodes now.
+                const marker = editorRef.current.querySelector<HTMLElement>(
+                  "span[data-fake-selection]"
+                );
+                if (marker) {
+                  const nr = document.createRange();
+                  nr.selectNodeContents(marker);
+                  savedRangeRef.current = nr;
+                }
+              }
+            } else {
+              editorRef.current.focus();
+            }
             return;
           }
         }
@@ -1044,30 +1078,57 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                       <div
                         ref={(el) => {
                           editorRef.current = el;
-                          if (el && el.innerHTML !== editorInitialHtmlRef.current) {
-                            el.innerHTML = editorInitialHtmlRef.current;
-                            // Place caret at end
-                            const range = document.createRange();
-                            range.selectNodeContents(el);
-                            range.collapse(false);
-                            const sel = window.getSelection();
-                            sel?.removeAllRanges();
-                            sel?.addRange(range);
-                            el.focus();
+                          if (!el) {
+                            seededCellKeyRef.current = null;
+                            return;
                           }
+                          const key = `${r},${c}`;
+                          if (seededCellKeyRef.current === key) return;
+                          seededCellKeyRef.current = key;
+                          el.innerHTML = editorInitialHtmlRef.current;
+                          // Place caret at end
+                          const range = document.createRange();
+                          range.selectNodeContents(el);
+                          range.collapse(false);
+                          const sel = window.getSelection();
+                          sel?.removeAllRanges();
+                          sel?.addRange(range);
+                          el.focus();
                         }}
                         contentEditable
                         suppressContentEditableWarning
                         onMouseUp={saveEditorSelection}
                         onKeyUp={saveEditorSelection}
+                        onFocus={() => {
+                          // User clicked back into editor — dissolve the fake highlight
+                          // and restore a real selection over the same text.
+                          const el = editorRef.current;
+                          if (!el) return;
+                          const revived = removeFakeSelection(el);
+                          if (revived) {
+                            const sel = window.getSelection();
+                            sel?.removeAllRanges();
+                            sel?.addRange(revived);
+                            savedRangeRef.current = revived.cloneRange();
+                          }
+                        }}
                         onBlur={(e) => {
                           // Save selection so toolbar can restore it before applying styles.
                           saveEditorSelection();
                           const related = e.relatedTarget as HTMLElement | null;
                           if (related?.closest("[data-sheets-toolbar]")) {
-                            // Focus went to toolbar — keep editing mode alive.
+                            // Draw a visible marker so the user still sees the range
+                            // while they interact with the toolbar (browsers hide the
+                            // native selection when focus leaves contentEditable).
+                            const el = editorRef.current;
+                            const r = savedRangeRef.current;
+                            if (el && r && !r.collapsed) {
+                              addFakeSelection(el, r.cloneRange());
+                            }
                             return;
                           }
+                          // Committing for real — drop any fake marker.
+                          if (editorRef.current) removeFakeSelection(editorRef.current);
                           commitEdit();
                         }}
                         onKeyDown={handleEditKeyDown}

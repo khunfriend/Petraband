@@ -48,6 +48,15 @@ export function Toolbar({
       setSizeInput(String(currentStyle.fontSize ?? 14));
     }
   };
+  // Push a live size update every time the value parses to a valid number so
+  // the selection reflows in real time as the user types / holds arrow keys.
+  const handleSizeChange = (raw: string) => {
+    setSizeInput(raw);
+    const n = parseInt(raw, 10);
+    if (Number.isFinite(n) && n > 0 && n <= 200 && n !== (currentStyle.fontSize ?? 14)) {
+      onStyleChange({ fontSize: n });
+    }
+  };
 
   const toggleBtn = (active: boolean | undefined, label: string, onClick: () => void, title: string) => (
     <button
@@ -91,7 +100,7 @@ export function Toolbar({
           min={1}
           max={200}
           value={sizeInput}
-          onChange={(e) => setSizeInput(e.target.value)}
+          onChange={(e) => handleSizeChange(e.target.value)}
           onBlur={commitSize}
           onKeyDown={(e) => {
             if (e.key === "Enter") {

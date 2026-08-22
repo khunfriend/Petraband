@@ -5,6 +5,8 @@ import {
   runsToHtml,
   domToRuns,
   applyStyleToSelection,
+  addFakeSelection,
+  removeFakeSelection,
 } from "./richText";
 import type { CellRun } from "./types";
 
@@ -237,6 +239,50 @@ describe("applyStyleToSelection", () => {
     // Color preserved on inner run, fontSize applied
     expect(runs[0].fontSize).toBe(20);
     expect(runs[0].textColor).toBeTruthy();
+  });
+
+  it("successive applies on the same selection settle on the last size", () => {
+    // Simulates real-time typing "16" in the toolbar: apply 1, then 16.
+    // The innermost span wins visually, so the final displayed size must be 16.
+    root.textContent = "ด4";
+    selectSubstring(root.firstChild as Text, 1, 2);
+    applyStyleToSelection(root, { fontSize: 1 });
+    // After apply the helper resets selection to selectNodeContents of the new span
+    applyStyleToSelection(root, { fontSize: 16 });
+    const runs = domToRuns(root);
+    expect(runs).toEqual([{ text: "ด" }, { text: "4", fontSize: 16 }]);
+  });
+
+  it("addFakeSelection wraps range in a marker span with background", () => {
+    root.textContent = "hello";
+    const range = document.createRange();
+    range.setStart(root.firstChild!, 1);
+    range.setEnd(root.firstChild!, 4);
+    const marker = addFakeSelection(root, range);
+    expect(marker).toBeTruthy();
+    expect(root.querySelectorAll("span[data-fake-selection]").length).toBe(1);
+    expect(marker!.textContent).toBe("ell");
+    expect(marker!.style.backgroundColor).toBeTruthy();
+  });
+
+  it("removeFakeSelection unwraps marker and returns a range over same text", () => {
+    root.textContent = "hello";
+    const range = document.createRange();
+    range.setStart(root.firstChild!, 1);
+    range.setEnd(root.firstChild!, 4);
+    addFakeSelection(root, range);
+    const revived = removeFakeSelection(root);
+    expect(revived).toBeTruthy();
+    expect(root.querySelectorAll("span[data-fake-selection]").length).toBe(0);
+    expect(revived!.toString()).toBe("ell");
+  });
+
+  it("addFakeSelection returns null for collapsed range", () => {
+    root.textContent = "hello";
+    const range = document.createRange();
+    range.setStart(root.firstChild!, 2);
+    range.collapse(true);
+    expect(addFakeSelection(root, range)).toBeNull();
   });
 
   it("does nothing when selection is outside root", () => {

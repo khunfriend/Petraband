@@ -106,6 +106,50 @@ export function domToRuns(root: HTMLElement): CellRun[] {
   return normalizeRuns(runs);
 }
 
+// Wrap the current selection in a visible marker span so the user still sees
+// what's "selected" after focus moves to a toolbar control. Returns the marker.
+export function addFakeSelection(root: HTMLElement, range: Range): HTMLElement | null {
+  if (range.collapsed) return null;
+  if (!root.contains(range.commonAncestorContainer)) return null;
+  // Clean any stale markers first
+  removeFakeSelection(root);
+  const span = document.createElement("span");
+  span.setAttribute("data-fake-selection", "");
+  span.style.backgroundColor = "rgba(96, 165, 250, 0.45)";
+  try {
+    span.appendChild(range.extractContents());
+    range.insertNode(span);
+    return span;
+  } catch {
+    return null;
+  }
+}
+
+// Remove all fake selection markers and return a Range spanning the unwrapped
+// content (so the caller can restore a real Selection over the same text).
+export function removeFakeSelection(root: HTMLElement): Range | null {
+  const markers = Array.from(root.querySelectorAll<HTMLElement>("span[data-fake-selection]"));
+  if (markers.length === 0) return null;
+  let firstNode: Node | null = null;
+  let lastNode: Node | null = null;
+  for (const m of markers) {
+    const parent = m.parentNode;
+    if (!parent) continue;
+    while (m.firstChild) {
+      const child = m.firstChild;
+      parent.insertBefore(child, m);
+      if (!firstNode) firstNode = child;
+      lastNode = child;
+    }
+    parent.removeChild(m);
+  }
+  if (!firstNode || !lastNode) return null;
+  const range = document.createRange();
+  range.setStartBefore(firstNode);
+  range.setEndAfter(lastNode);
+  return range;
+}
+
 // Apply a style patch to the current DOM selection inside `root`.
 // If no text is selected, does nothing.
 export function applyStyleToSelection(root: HTMLElement, patch: Partial<CellRun>): boolean {

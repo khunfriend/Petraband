@@ -49,6 +49,7 @@ type VersionEntry = {
   createdAt: string;
   snapshotJson: unknown;
   createdBy: { nickname: string } | null;
+  createdByName: string;
 };
 
 type Participant = {
@@ -1063,7 +1064,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                           <p className="text-xs text-muted truncate">{v.changeNote}</p>
                         )}
                         <p className="text-xs text-muted-soft">
-                          {v.createdBy?.nickname ?? "ไม่ทราบ"} ·{" "}
+                          {v.createdBy?.nickname || v.createdByName || "ไม่ทราบ"} ·{" "}
                           {new Date(v.createdAt).toLocaleDateString("th-TH", {
                             month: "short",
                             day: "numeric",

@@ -9,25 +9,7 @@
 
 ## 🔴 กำลังทำอยู่
 
-### ⏸️ Migration แก้ปัญหาลบสมาชิกไม่ได้ — **เขียนครบแล้ว ยังไม่ได้ apply ลง production**
-
-**เหลือขั้นตอนเดียว** รันใน `frontend/`:
-
-```bash
-npx prisma migrate deploy
-```
-
-ผมรันเองไม่ได้ ถูก auto-mode classifier บล็อกเพราะเป็น production deploy — เจ้าของต้องรันเอง หรืออนุญาตผ่าน settings
-
-**⚠️ จนกว่าจะรัน แอปจะพังถ้าใช้งานฟีเจอร์เหล่านี้** เพราะโค้ดเขียน `createdByName` แต่คอลัมน์ยังไม่มีใน DB: แก้เพลง, กู้คืนเวอร์ชันเพลง, บันทึก/กู้คืนผังเวที, สร้างตารางซ้อม, สร้างโพล
-
-**ทำไปแล้ว:**
-- Backup ทั้ง DB → `/Users/friend/Petraband-backups/petraband-2026-09-16T07-30-47-146Z.json` (42 ตาราง 4,774 แถว, มี PII อย่าเผลอ commit)
-- แก้ `schema.prisma` 8 จุด · migration `prisma/migrations/20260916000000_decouple_user_refs/` (68 บรรทัด + backfill ชื่อจาก `User.nickname`)
-- ตรวจแล้วว่าไม่มี `DROP TABLE` / `DROP COLUMN` / `TRUNCATE` / `DELETE`
-- เขียน `createdByName` ที่ call site ครบ 7 จุด · `tsc` / `npm test` (28) ผ่าน
-
-**หลัง apply แล้วควรทำต่อ:** ทดสอบว่าลบสมาชิกที่มีประวัติได้จริง และหน้าประวัติยังแสดงชื่อคนแก้ถูกต้อง
+ว่าง — หยิบข้อถัดไปได้เลย
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
@@ -61,6 +43,10 @@ npx prisma migrate deploy
 
 ## ✅ เสร็จแล้ว
 
+- **16 ก.ย. 2569** — แก้ปัญหาลบสมาชิกไม่ได้ (migration `20260916000000_decouple_user_refs` **apply ลง production แล้ว**)
+  8 relation ที่ชี้ User แบบไม่ได้ตั้ง `onDelete` → ประวัติ + ผู้สร้างของส่วนกลาง (`SongVersion`, `StageLayoutVersion`, `AuditLog`, `PracticeSchedule`, `AvailabilityPoll`) เป็น `SetNull` + เก็บชื่อ snapshot; ข้อมูลรายคน (`Rsvp`, `SongAssignment`, `RehearsalAttendance`) เป็น `Cascade`
+  ยืนยันบน production แล้ว: `user.delete()` สำเร็จ (เดิม throw FK error) · `SongVersion` อยู่ต่อโดย `createdById=null` แต่ชื่อยังอยู่ · `Rsvp`/`SongAssignment` หายตาม · backfill เติมชื่อแถวเดิมครบ · ข้อมูลทดสอบลบทิ้งหมดแล้ว
+  backup ก่อนรัน: `/Users/friend/Petraband-backups/petraband-2026-09-16T07-30-47-146Z.json`
 - **16 ก.ย. 2569** — 🐛 [P0] ซ่อม undo ล้างข้อมูลทั้งชีต: `SheetGrid.tsx:157` เคย seed history ด้วย `[new Map()]` ทำให้ Ctrl+Z ครั้งแรกล้างเซลล์ทั้งหมดและเขียน `null` ลง DB → เปลี่ยนเป็น `[cells]` (ปลอดภัยเพราะ snapshot ไม่เคยถูก mutate in-place และ component มี `key={sheet.id}` อยู่แล้ว)
   verify ในเบราว์เซอร์ 2 รอบบนสมุดโน้ตทดสอบที่สร้าง-แล้ว-ลบทิ้ง: undo ย้อนเฉพาะช่องล่าสุด เซลล์เดิมอยู่ครบทั้งบนจอและใน DB · `tsc` / `eslint` / `npm test` (28) ผ่าน
 - **16 ก.ย. 2569** — PRD v4.0 (`8a95836`): เปลี่ยน auth เป็น Google sign-in, คง Credentials เฉพาะบัญชีชั่วคราว, ตัด FR-1.4 / แคบ FR-5.4, บันทึกงานค้าง auth ในหัวข้อ 5
@@ -83,7 +69,6 @@ npx prisma migrate deploy
   → ปัจจุบันมีโน้ตจริง 3,841 เซลล์ใน 12 สมุด — ห้ามทดสอบฟีเจอร์ที่ลบ/ล้างข้อมูล (undo, delete row/col, paste ทับ) บนโน้ตจริง ให้สร้างสมุดทดสอบเองแล้วลบทิ้ง
   → ห้ามรัน `npm run db:seed` ส่ง ๆ เพราะ upsert ทับข้อมูลจริงได้
   → **ควรพิจารณาทำ DB สำหรับ dev แยกต่างหาก** เรื่องนี้ยังไม่ได้ตัดสินใจ
-- **ลบ User ตรง ๆ จะติด FK ถ้าคนนั้นมี `SongVersion`** — `SongVersion.createdBy` ไม่ได้ตั้ง `onDelete` Prisma จึงใช้ `Restrict` ส่วน `PerformanceMember`/`PracticeAvailability` เป็น `Cascade` (หายเงียบ ๆ)
-  → `DELETE /api/users/[id]` (`route.ts:80`) ไม่มี try/catch จึงโยน FK error เป็น 500 ดิบ ๆ ให้หน้า admin — **ยังไม่ได้แก้**
+- **`DELETE /api/users/[id]` (`route.ts:80`) ยังไม่มี try/catch** — error จาก DB จะโยนเป็น 500 ดิบ ๆ ให้หน้า admin โดยไม่บอกสาเหตุ ตอนนี้เคส FK แก้ที่ต้นเหตุไปแล้ว แต่ error handling ยังไม่มี **ยังไม่ได้แก้**
 - **บัญชี seed `admin@petraband.club` มีอยู่จริงแต่รหัสไม่ใช่ `admin1234` แล้ว** — ต้องให้เจ้าของ login ให้เองตอนต้องทดสอบผ่าน UI อย่าเดารหัส
 - Prisma 7 ที่นี่ใช้ driver adapter — สร้าง `PrismaClient` ต้องส่ง `new PrismaPg({connectionString})` เสมอ (ดู `frontend/lib/prisma.ts`) เขียนสคริปต์ probe แบบ `new PrismaClient()` เปล่า ๆ จะพังทันที และสคริปต์ต้องวางใน `frontend/` ถึงจะ resolve โมดูลเจอ

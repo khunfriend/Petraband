@@ -488,19 +488,17 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
           runs[0].isUnderline ||
           !!runs[0].textColor));
     const rich = hasStyling ? runs : null;
-    setCells((prev) => {
-      const m = new Map(prev);
-      const existing = m.get(key);
-      m.set(key, { cellValue: value, richValue: rich, style: existing?.style ?? null });
-      pushHistory(m);
-      return m;
-    });
+    const next = new Map(cells);
+    const existing = next.get(key);
+    next.set(key, { cellValue: value, richValue: rich, style: existing?.style ?? null });
+    setCells(next);
+    pushHistory(next);
     // Save immediately (no debounce for single-cell commits)
     if (cellSaveTimer.current) clearTimeout(cellSaveTimer.current);
     pendingCells.current.set(key, { cellValue: value, richValue: rich });
     flushCellSaves();
     setEditingCell(null);
-  }, [editingCell, flushCellSaves, pushHistory]);
+  }, [editingCell, cells, flushCellSaves, pushHistory]);
 
   const cancelEdit = useCallback(() => {
     setEditingCell(null);
@@ -516,7 +514,66 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     [anchor, rowCount, colCount, selectSingle]
   );
 
-  // ============ Paste from Excel ============
+  // ============ Copy / Cut / Paste ============
+
+  const clearSelectedCells = useCallback(() => {
+    const next = new Map(cells);
+    for (const k of selectedCells) {
+      const existing = next.get(k);
+      next.set(k, { cellValue: null, richValue: null, style: existing?.style ?? null });
+      const [r, c] = k.split(",").map(Number);
+      queueCellSave(r, c, null, null);
+    }
+    setCells(next);
+    pushHistory(next);
+  }, [cells, selectedCells, queueCellSave, pushHistory]);
+
+  // Same TSV shape handlePaste reads, so copying round-trips through Excel.
+  // A non-rectangular (ctrl-click) selection is emitted as its bounding box.
+  const buildTsv = useCallback(() => {
+    if (selectedCells.size === 0) return "";
+    let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+    for (const k of selectedCells) {
+      const [r, c] = k.split(",").map(Number);
+      if (r < minR) minR = r;
+      if (r > maxR) maxR = r;
+      if (c < minC) minC = c;
+      if (c > maxC) maxC = c;
+    }
+    const lines: string[] = [];
+    for (let r = minR; r <= maxR; r++) {
+      const row: string[] = [];
+      for (let c = minC; c <= maxC; c++) {
+        row.push(cells.get(cellKey(r, c))?.cellValue ?? "");
+      }
+      lines.push(row.join("\t"));
+    }
+    return lines.join("\n");
+  }, [selectedCells, cells]);
+
+  const handleCopy = useCallback(
+    (e: React.ClipboardEvent) => {
+      // While editing, let the browser copy the text selection inside the cell.
+      if (editingCell) return;
+      const tsv = buildTsv();
+      if (!tsv) return;
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", tsv);
+    },
+    [editingCell, buildTsv]
+  );
+
+  const handleCut = useCallback(
+    (e: React.ClipboardEvent) => {
+      if (editingCell) return;
+      const tsv = buildTsv();
+      if (!tsv) return;
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", tsv);
+      clearSelectedCells();
+    },
+    [editingCell, buildTsv, clearSelectedCells]
+  );
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent) => {
@@ -583,26 +640,24 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         }).catch(() => {});
       }
 
-      setCells((prev) => {
-        const m = new Map(prev);
-        pasteGrid.forEach((rowArr, ri) => {
-          if (ri >= maxRows) return;
-          rowArr.forEach((val, ci) => {
-            if (ci >= maxCols) return;
-            const r = minR + ri;
-            const c = minC + ci;
-            const k = cellKey(r, c);
-            const existing = m.get(k);
-            const nextVal = val.trim() || null;
-            m.set(k, { cellValue: nextVal, richValue: null, style: existing?.style ?? null });
-            queueCellSave(r, c, nextVal, null);
-          });
+      const next = new Map(cells);
+      pasteGrid.forEach((rowArr, ri) => {
+        if (ri >= maxRows) return;
+        rowArr.forEach((val, ci) => {
+          if (ci >= maxCols) return;
+          const r = minR + ri;
+          const c = minC + ci;
+          const k = cellKey(r, c);
+          const existing = next.get(k);
+          const nextVal = val.trim() || null;
+          next.set(k, { cellValue: nextVal, richValue: null, style: existing?.style ?? null });
+          queueCellSave(r, c, nextVal, null);
         });
-        pushHistory(m);
-        return m;
       });
+      setCells(next);
+      pushHistory(next);
     },
-    [editingCell, anchor, selectedCells, sheetId, pushHistory, queueCellSave, onRowCountChange, onColCountChange]
+    [editingCell, anchor, cells, selectedCells, sheetId, pushHistory, queueCellSave, onRowCountChange, onColCountChange]
   );
 
   // Handle keyboard on the grid container
@@ -628,17 +683,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        setCells((prev) => {
-          const m = new Map(prev);
-          for (const k of selectedCells) {
-            const existing = m.get(k);
-            m.set(k, { cellValue: null, richValue: null, style: existing?.style ?? null });
-            const [r, c] = k.split(",").map(Number);
-            queueCellSave(r, c, null, null);
-          }
-          pushHistory(m);
-          return m;
-        });
+        clearSelectedCells();
         return;
       }
       if (e.key === "ArrowUp") { e.preventDefault(); moveSelection(-1, 0); return; }
@@ -653,7 +698,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         startEditing(anchor.row, anchor.col, e.key);
       }
     },
-    [editingCell, anchor, moveSelection, startEditing, selectedCells, queueCellSave, handleUndo, handleRedo, pushHistory]
+    [editingCell, anchor, moveSelection, startEditing, clearSelectedCells, handleUndo, handleRedo]
   );
 
   const handleEditKeyDown = useCallback(
@@ -980,6 +1025,8 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
+      onCopy={handleCopy}
+      onCut={handleCut}
       className="outline-none overflow-auto bg-surface-card"
       style={{ maxHeight: "calc(100vh - 260px)" }}
     >

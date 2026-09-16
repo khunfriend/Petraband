@@ -19,16 +19,12 @@
 
 ผู้ใช้ส่วนใหญ่อยู่บน Mac และจะกด Cmd+Z เป็นธรรมชาติ → **ต้องลองด้วยมือบน Mac จริงก่อน** ว่าเป็นบั๊กจริงหรือเป็นข้อจำกัดของ automation harness ที่ใช้ทดสอบ ถ้าเป็นบั๊กจริงถือว่าสำคัญ เพราะแปลว่า undo ใช้ไม่ได้สำหรับคนส่วนใหญ่
 
-### 2. Copy / Cut (paste มีแล้ว แต่ copy ไม่มี)
-
-`handlePaste` (`SheetGrid.tsx:520`) รับ TSV จาก Excel ได้แล้ว แต่ไม่มี `onCopy`/`onCut` เลย และตารางเป็น `select-none` (`:986`) → Ctrl+C ไม่ได้อะไรติดมา ต้องเขียน handler เอง แปลง selection เป็น TSV
-
-### 3. Delete Row / Column ไม่เลื่อนข้อมูล
+### 2. Delete Row / Column ไม่เลื่อนข้อมูล
 
 `deleteRow` (`:878`) / `deleteCol` (`:919`) แค่ล้างค่าในแถวเป้าหมายแล้วลด count → ข้อมูลข้างล่างไม่เลื่อนขึ้น ผลคือแถวสุดท้ายหายแทนแถวที่เลือก
 ประเด็นเดียวกัน: `addRow`/`addCol` ต่อท้ายอย่างเดียว แทรกกลางไม่ได้
 
-### 4. ขยาย Undo ให้ครอบ style / merge / resize
+### 3. ขยาย Undo ให้ครอบ style / merge / resize
 
 ตอนนี้ `pushHistory` ถูกเรียกเฉพาะตอนแก้ค่าเซลล์ (`commitEdit`, `handlePaste`, ปุ่ม Delete) ไม่ครอบ `applyStyle`, `mergeCells`, resize, เพิ่ม/ลบแถว และไม่มีปุ่ม undo/redo บน toolbar
 
@@ -43,6 +39,11 @@
 
 ## ✅ เสร็จแล้ว
 
+- **16 ก.ย. 2569** — Copy / Cut (FR-8.14) + ซ่อมประวัติ undo ที่ถูกบันทึกซ้ำ
+  ใช้รูปแบบ TSV เดียวกับ paste เดิม จึงคัดลอกไป-กลับกับ Excel ได้สองทาง · ปุ่ม Delete ใช้ helper `clearSelectedCells` ตัวเดียวกับ cut
+  **เจอระหว่างทดสอบ:** `pushHistory` ถูกเรียก**ข้างใน** `setCells` updater ซึ่ง React StrictMode เรียกซ้ำสองรอบใน dev → ประวัติถูกบันทึกซ้ำ ต้องกด undo สองครั้งต่อการกระทำเดียว แก้โดยย้าย `pushHistory`/`queueCellSave` ออกมานอก updater ทั้ง 3 จุด (commitEdit, clearSelectedCells, handlePaste) — updater ต้องเป็นฟังก์ชันบริสุทธิ์
+  ยืนยันบนสมุดทดสอบที่สร้าง-แล้ว-ลบทิ้ง: copy ได้ TSV ถูกต้อง · copy→paste ได้ข้อมูลตรง · cut ได้ TSV + ล้างเซลล์ · undo หลัง cut กดครั้งเดียวย้อนได้ · DB ตรงกับที่เห็นบนจอ
+  ⚠️ หมายเหตุ: คลิปบอร์ดจริงของ OS ไม่เชื่อมกับ automation จึงทดสอบด้วยการยิง ClipboardEvent ตรง ๆ — **ควรลองกด Ctrl+C / Ctrl+V ด้วยมือจริงอีกครั้ง**
 - **16 ก.ย. 2569** — แก้ปัญหาลบสมาชิกไม่ได้ (migration `20260916000000_decouple_user_refs` **apply ลง production แล้ว**)
   8 relation ที่ชี้ User แบบไม่ได้ตั้ง `onDelete` → ประวัติ + ผู้สร้างของส่วนกลาง (`SongVersion`, `StageLayoutVersion`, `AuditLog`, `PracticeSchedule`, `AvailabilityPoll`) เป็น `SetNull` + เก็บชื่อ snapshot; ข้อมูลรายคน (`Rsvp`, `SongAssignment`, `RehearsalAttendance`) เป็น `Cascade`
   ยืนยันบน production แล้ว: `user.delete()` สำเร็จ (เดิม throw FK error) · `SongVersion` อยู่ต่อโดย `createdById=null` แต่ชื่อยังอยู่ · `Rsvp`/`SongAssignment` หายตาม · backfill เติมชื่อแถวเดิมครบ · ข้อมูลทดสอบลบทิ้งหมดแล้ว

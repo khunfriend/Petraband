@@ -38,6 +38,34 @@ export function Toolbar({
   const hasSelection = selection.length > 0;
   const canMerge = selection.length > 1;
 
+  const [borderWidth, setBorderWidth] = useState("1px");
+  const [borderStyle, setBorderStyle] = useState("solid");
+
+  const borderBtn = (
+    label: string,
+    title: string,
+    sides: { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean },
+    clear = false
+  ) => {
+    const value = clear ? "" : `${borderWidth} ${borderStyle} #000000`;
+    const patch: CellStyle = {};
+    if (sides.top) patch.borderTop = value;
+    if (sides.right) patch.borderRight = value;
+    if (sides.bottom) patch.borderBottom = value;
+    if (sides.left) patch.borderLeft = value;
+    return (
+      <button
+        type="button"
+        onClick={() => onStyleChange(patch)}
+        disabled={!hasSelection}
+        title={title}
+        className="h-8 w-8 rounded-md border border-hairline bg-surface-card text-ink text-sm hover:border-primary disabled:opacity-40 transition-colors duration-[var(--duration-pb-base)]"
+      >
+        {label}
+      </button>
+    );
+  };
+
   // Local state so typing multi-digit sizes doesn't fire onChange per keystroke
   // (which would re-apply style + steal focus back to the editor after digit 1).
   const [sizeInput, setSizeInput] = useState<string>(String(currentStyle.fontSize ?? 14));
@@ -116,6 +144,23 @@ export function Toolbar({
 
       <span className="w-px h-6 bg-hairline mx-1" />
 
+      {toggleBtn(currentStyle.verticalAlign === "top", "⤒", () => onStyleChange({ verticalAlign: "top" }), "ชิดบน")}
+      {toggleBtn(
+        (currentStyle.verticalAlign ?? "middle") === "middle",
+        "⇳",
+        () => onStyleChange({ verticalAlign: "middle" }),
+        "กึ่งกลางแนวตั้ง"
+      )}
+      {toggleBtn(currentStyle.verticalAlign === "bottom", "⤓", () => onStyleChange({ verticalAlign: "bottom" }), "ชิดล่าง")}
+      {toggleBtn(
+        !!currentStyle.wrapText,
+        "↵",
+        () => onStyleChange({ wrapText: !currentStyle.wrapText }),
+        "ตัดคำขึ้นบรรทัดใหม่"
+      )}
+
+      <span className="w-px h-6 bg-hairline mx-1" />
+
       <label className="flex items-center gap-1 text-xs text-muted">
         <span>ขนาด</span>
         <input
@@ -171,6 +216,42 @@ export function Toolbar({
           className="w-8 h-8 border border-hairline rounded-md bg-surface-card cursor-pointer disabled:opacity-40"
         />
       </label>
+
+      <span className="w-px h-6 bg-hairline mx-1" />
+
+      <label className="flex items-center gap-1 text-xs text-muted" title="ความหนาเส้นขอบ">
+        <span>เส้น</span>
+        <select
+          value={borderWidth}
+          onChange={(e) => setBorderWidth(e.target.value)}
+          disabled={!hasSelection}
+          className="h-8 border border-hairline rounded-md px-1 text-xs bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50 disabled:opacity-40"
+        >
+          {["1px", "2px", "3px"].map((w) => (
+            <option key={w} value={w}>{w}</option>
+          ))}
+        </select>
+      </label>
+
+      <select
+        value={borderStyle}
+        onChange={(e) => setBorderStyle(e.target.value)}
+        disabled={!hasSelection}
+        title="รูปแบบเส้นขอบ"
+        className="h-8 border border-hairline rounded-md px-1 text-xs bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50 disabled:opacity-40"
+      >
+        <option value="solid">ทึบ</option>
+        <option value="dashed">ประ</option>
+        <option value="dotted">จุด</option>
+        <option value="double">คู่</option>
+      </select>
+
+      {borderBtn("⊞", "รอบทั้งหมด", { top: true, right: true, bottom: true, left: true })}
+      {borderBtn("⎺", "ด้านบน", { top: true })}
+      {borderBtn("⎽", "ด้านล่าง", { bottom: true })}
+      {borderBtn("▏", "ด้านซ้าย", { left: true })}
+      {borderBtn("▕", "ด้านขวา", { right: true })}
+      {borderBtn("⊘", "ลบเส้นขอบ", { top: true, right: true, bottom: true, left: true }, true)}
 
       <span className="w-px h-6 bg-hairline mx-1" />
 

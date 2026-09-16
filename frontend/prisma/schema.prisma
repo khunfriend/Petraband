@@ -631,8 +631,16 @@ model CellStyle {
   isItalic       Boolean @default(false)
   isUnderline    Boolean @default(false)
   textAlign      String  @default("center")
+  verticalAlign  String  @default("middle") // top | middle | bottom
+  wrapText       Boolean @default(false)
   textColor      String  @default("#000000")
   highlightColor String?
+  // CSS border shorthand per side, e.g. "1px solid #000000". Empty = no border.
+  // One column per side covers width and style without four more fields each.
+  borderTop      String  @default("")
+  borderRight    String  @default("")
+  borderBottom   String  @default("")
+  borderLeft     String  @default("")
 
   cell Cell @relation(fields: [cellId], references: [id], onDelete: Cascade)
 }

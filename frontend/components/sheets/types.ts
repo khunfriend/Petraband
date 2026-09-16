@@ -5,8 +5,15 @@ export interface CellStyle {
   isItalic?: boolean;
   isUnderline?: boolean;
   textAlign?: "left" | "center" | "right";
+  verticalAlign?: "top" | "middle" | "bottom";
+  wrapText?: boolean;
   textColor?: string;
   highlightColor?: string | null;
+  // CSS border shorthand per side, e.g. "1px solid #000000"; "" means none.
+  borderTop?: string;
+  borderRight?: string;
+  borderBottom?: string;
+  borderLeft?: string;
 }
 
 export interface CellRun {

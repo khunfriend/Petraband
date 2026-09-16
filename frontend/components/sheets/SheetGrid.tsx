@@ -153,8 +153,14 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
               isItalic: c.style.isItalic,
               isUnderline: c.style.isUnderline,
               textAlign: c.style.textAlign,
+              verticalAlign: c.style.verticalAlign,
+              wrapText: c.style.wrapText,
               textColor: c.style.textColor,
               highlightColor: c.style.highlightColor,
+              borderTop: c.style.borderTop,
+              borderRight: c.style.borderRight,
+              borderBottom: c.style.borderBottom,
+              borderLeft: c.style.borderLeft,
             }
           : null,
       });
@@ -1301,12 +1307,18 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                   fontStyle: style.isItalic ? "italic" : "normal",
                   textDecoration: style.isUnderline ? "underline" : "none",
                   textAlign: (style.textAlign ?? "center") as React.CSSProperties["textAlign"],
+                  verticalAlign: style.verticalAlign ?? "middle",
                   color: style.textColor ?? "#000000",
                   backgroundColor: style.highlightColor ?? undefined,
                   padding: "2px 4px",
                   overflow: "hidden",
-                  whiteSpace: "nowrap",
-                  textOverflow: "ellipsis",
+                  whiteSpace: style.wrapText ? "pre-wrap" : "nowrap",
+                  wordBreak: style.wrapText ? "break-word" : undefined,
+                  textOverflow: style.wrapText ? undefined : "ellipsis",
+                  borderTop: style.borderTop || undefined,
+                  borderRight: style.borderRight || undefined,
+                  borderBottom: style.borderBottom || undefined,
+                  borderLeft: style.borderLeft || undefined,
                 };
                 return (
                   <td
@@ -1391,7 +1403,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                           fontFamily: inlineStyle.fontFamily,
                           fontSize: inlineStyle.fontSize,
                           textAlign: inlineStyle.textAlign,
-                          whiteSpace: "nowrap",
+                          whiteSpace: inlineStyle.whiteSpace,
                           minHeight: "1em",
                         }}
                       />

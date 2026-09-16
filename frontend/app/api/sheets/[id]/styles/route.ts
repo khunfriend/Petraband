@@ -14,8 +14,15 @@ const styleSchema = z.object({
   isItalic: z.boolean().optional(),
   isUnderline: z.boolean().optional(),
   textAlign: z.enum(["left", "center", "right"]).optional(),
+  verticalAlign: z.enum(["top", "middle", "bottom"]).optional(),
+  wrapText: z.boolean().optional(),
   textColor: z.string().optional(),
   highlightColor: z.string().nullable().optional(),
+  // CSS border shorthand, e.g. "1px solid #000000"; "" clears the side.
+  borderTop: z.string().max(64).optional(),
+  borderRight: z.string().max(64).optional(),
+  borderBottom: z.string().max(64).optional(),
+  borderLeft: z.string().max(64).optional(),
 });
 
 const patchSchema = z.object({

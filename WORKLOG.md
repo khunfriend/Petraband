@@ -9,16 +9,25 @@
 
 ## 🔴 กำลังทำอยู่
 
-ว่าง — หยิบข้อถัดไปได้เลย
+### ⏸️ Border / จัดแนวตั้ง / Wrap Text — **โค้ดครบแล้ว ยังไม่ได้ apply migration**
+
+**เหลือขั้นตอนเดียว** รันใน `frontend/`:
+
+```bash
+npx prisma migrate deploy
+```
+
+ผมรันเองไม่ได้ ถูก auto-mode classifier บล็อกเพราะเป็น production deploy
+
+**⚠️ จนกว่าจะรัน การจัดรูปแบบเซลล์จะพัง** เพราะโค้ดส่งฟิลด์ `verticalAlign` / `wrapText` / `border*` ที่ยังไม่มีคอลัมน์ใน DB
+
+**ทำไปแล้ว:** `CellStyle` เพิ่ม 6 คอลัมน์ (`verticalAlign`, `wrapText`, `borderTop/Right/Bottom/Left`) · migration `20260916120000_cell_border_align_wrap` มีแต่ `ADD COLUMN` ไม่มี DROP/DELETE · ต่อ zod, types, การแสดงผล และปุ่มบน toolbar ครบ · `tsc` / `npm test` (28) ผ่าน
+
+**หลัง apply แล้วต้องทดสอบ:** ใส่เส้นขอบทีละด้าน, เปลี่ยนความหนา/รูปแบบ, จัดบน-กลาง-ล่าง, ตัดคำ แล้วเช็คว่าบันทึกลง DB และ undo ย้อนได้
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
-### 1. [ต้อง migrate DB] Border / จัดบน-กลาง-ล่าง / Wrap Text
-
-`CellStyle` ทั้งใน `frontend/components/sheets/types.ts` และ `schema.prisma` **ไม่มีฟิลด์** `border*`, `verticalAlign`, `wrapText` → ทำ UI อย่างเดียวไม่พอ ต้อง migration ก่อน
-(`whiteSpace: "nowrap"` hardcode อยู่ที่ `SheetGrid.tsx:1060`)
-
-### 2. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A−
+### 1. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A−
 
 `shiftCells`/`shiftSizes`/`shiftMerges` ใน `SheetGrid.tsx` กับ endpoint `structure` ใช้ต่อกับ move row/col ได้เลย (ย้าย = ลบแล้วแทรก)
 

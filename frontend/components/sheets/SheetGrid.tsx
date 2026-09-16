@@ -153,8 +153,9 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     return true;
   }
 
-  // Undo / Redo history
-  const historyRef = useRef<Map<string, CellData>[]>([new Map()]);
+  // Undo / Redo history. The baseline snapshot must be the sheet as loaded —
+  // seeding it empty makes the first undo clear every cell and persist that.
+  const historyRef = useRef<Map<string, CellData>[]>([cells]);
   const historyIndexRef = useRef(0);
 
   function cloneCells(m: Map<string, CellData>): Map<string, CellData> {

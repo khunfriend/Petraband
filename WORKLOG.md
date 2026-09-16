@@ -3,23 +3,21 @@
 > ไฟล์สถานะงานสด — session ใหม่อ่านไฟล์นี้ก่อนเสมอ (ดู [CLAUDE.md](CLAUDE.md))
 > อัปเดตทุกครั้งที่จบก้อนงาน ไม่ใช่ตอนจบ session อย่างเดียว
 
-**อัปเดตล่าสุด:** 16 ก.ย. 2569 · commit ล่าสุด `8a95836`
+**อัปเดตล่าสุด:** 16 ก.ย. 2569 · commit ล่าสุด `bfc9926`
 
 ---
 
 ## 🔴 กำลังทำอยู่
 
-ยังไม่ได้เริ่มงานเขียนโค้ด — งานถัดไปคือซ่อมบั๊ก sheet editor (ดูหัวข้อถัดไป)
+ว่าง — งาน P0 เสร็จแล้ว หยิบข้อถัดไปได้เลย
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
-### 1. 🐛 [P0] Undo ครั้งแรกล้างข้อมูลทั้งชีต
+### 0. ❓ Cmd+Z ไม่ทำงาน มีแต่ Ctrl+Z (ยังไม่ยืนยัน)
 
-`frontend/components/sheets/SheetGrid.tsx:157` เริ่ม history ด้วย `[new Map()]` (Map ว่าง) ไม่ใช่เซลล์ที่โหลดมาจริง
+ระหว่าง verify บั๊ก undo พบว่ากด **Ctrl+Z ทำงาน แต่ Cmd+Z ไม่ทำงาน** ทดสอบซ้ำได้ทั้งสองรอบ ทั้งที่ `handleKeyDown` (`SheetGrid.tsx:618`) เช็ค `(e.ctrlKey || e.metaKey)` และ probe ยืนยันว่า event เข้าถึง container จริงพร้อม `metaKey:true`, `defaultPrevented:false`
 
-ผลคือ: เปิดชีตที่มีข้อมูล → พิมพ์ 1 เซลล์ → history เป็น `[ว่าง, เต็ม]` → กด Ctrl+Z → ย้อนไป snapshot ว่าง → **เซลล์หายหมด** และ `saveCellDiff` (`:460`) เขียน `null` ลง DB ตามไปด้วย ไม่ใช่แค่หายบนจอ
-
-**แนวทาง:** seed `historyRef` ด้วย snapshot ของ `cells` ตอน mount แทน Map ว่าง
+ผู้ใช้ส่วนใหญ่อยู่บน Mac และจะกด Cmd+Z เป็นธรรมชาติ → **ต้องลองด้วยมือบน Mac จริงก่อน** ว่าเป็นบั๊กจริงหรือเป็นข้อจำกัดของ automation harness ที่ใช้ทดสอบ ถ้าเป็นบั๊กจริงถือว่าสำคัญ เพราะแปลว่า undo ใช้ไม่ได้สำหรับคนส่วนใหญ่
 
 ### 2. Copy / Cut (paste มีแล้ว แต่ copy ไม่มี)
 
@@ -45,6 +43,8 @@
 
 ## ✅ เสร็จแล้ว
 
+- **16 ก.ย. 2569** — 🐛 [P0] ซ่อม undo ล้างข้อมูลทั้งชีต: `SheetGrid.tsx:157` เคย seed history ด้วย `[new Map()]` ทำให้ Ctrl+Z ครั้งแรกล้างเซลล์ทั้งหมดและเขียน `null` ลง DB → เปลี่ยนเป็น `[cells]` (ปลอดภัยเพราะ snapshot ไม่เคยถูก mutate in-place และ component มี `key={sheet.id}` อยู่แล้ว)
+  verify ในเบราว์เซอร์ 2 รอบบนสมุดโน้ตทดสอบที่สร้าง-แล้ว-ลบทิ้ง: undo ย้อนเฉพาะช่องล่าสุด เซลล์เดิมอยู่ครบทั้งบนจอและใน DB · `tsc` / `eslint` / `npm test` (28) ผ่าน
 - **16 ก.ย. 2569** — PRD v4.0 (`8a95836`): เปลี่ยน auth เป็น Google sign-in, คง Credentials เฉพาะบัญชีชั่วคราว, ตัด FR-1.4 / แคบ FR-5.4, บันทึกงานค้าง auth ในหัวข้อ 5
 - **16 ก.ย. 2569** — ตรวจ sheet editor ครบ 5 หมวดตาม checklist (ผลอยู่ในหัวข้อ "ถัดไปคือ" ด้านบน)
 
@@ -60,3 +60,12 @@
 
 - **repo ซ้อน 2 ตัว** — อ่าน CLAUDE.md ก่อนใช้ git ทุกครั้ง
 - ไฟล์ PRD ใน repo นอกเป็นคนละเวอร์ชันกับ repo ใน อย่าเอามาเทียบกัน
+- **🚨 `frontend/.env` ชี้ `DATABASE_URL` ไปที่ Supabase production โดยตรง** (`aws-0-ap-southeast-1.pooler.supabase.com`) — ไม่มี DB local, ไม่มี `.env.local`
+  → **`npm run dev` ในเครื่อง = อ่าน/เขียนฐานข้อมูลจริงของวงทันที** ไม่มีตัวกั้นใด ๆ ตรวจ `DATABASE_URL` ก่อนรันอะไรที่เขียน DB เสมอ
+  → ปัจจุบันมีโน้ตจริง 3,841 เซลล์ใน 12 สมุด — ห้ามทดสอบฟีเจอร์ที่ลบ/ล้างข้อมูล (undo, delete row/col, paste ทับ) บนโน้ตจริง ให้สร้างสมุดทดสอบเองแล้วลบทิ้ง
+  → ห้ามรัน `npm run db:seed` ส่ง ๆ เพราะ upsert ทับข้อมูลจริงได้
+  → **ควรพิจารณาทำ DB สำหรับ dev แยกต่างหาก** เรื่องนี้ยังไม่ได้ตัดสินใจ
+- **ลบ User ตรง ๆ จะติด FK ถ้าคนนั้นมี `SongVersion`** — `SongVersion.createdBy` ไม่ได้ตั้ง `onDelete` Prisma จึงใช้ `Restrict` ส่วน `PerformanceMember`/`PracticeAvailability` เป็น `Cascade` (หายเงียบ ๆ)
+  → `DELETE /api/users/[id]` (`route.ts:80`) ไม่มี try/catch จึงโยน FK error เป็น 500 ดิบ ๆ ให้หน้า admin — **ยังไม่ได้แก้**
+- **บัญชี seed `admin@petraband.club` มีอยู่จริงแต่รหัสไม่ใช่ `admin1234` แล้ว** — ต้องให้เจ้าของ login ให้เองตอนต้องทดสอบผ่าน UI อย่าเดารหัส
+- Prisma 7 ที่นี่ใช้ driver adapter — สร้าง `PrismaClient` ต้องส่ง `new PrismaPg({connectionString})` เสมอ (ดู `frontend/lib/prisma.ts`) เขียนสคริปต์ probe แบบ `new PrismaClient()` เปล่า ๆ จะพังทันที และสคริปต์ต้องวางใน `frontend/` ถึงจะ resolve โมดูลเจอ

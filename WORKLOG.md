@@ -3,7 +3,7 @@
 > ไฟล์สถานะงานสด — session ใหม่อ่านไฟล์นี้ก่อนเสมอ (ดู [CLAUDE.md](CLAUDE.md))
 > อัปเดตทุกครั้งที่จบก้อนงาน ไม่ใช่ตอนจบ session อย่างเดียว
 
-**อัปเดตล่าสุด:** 16 ก.ย. 2569 · commit ล่าสุด `67a47f8`
+**อัปเดตล่าสุด:** 16 ก.ย. 2569 · commit ล่าสุด `<pending>`
 
 ---
 
@@ -13,23 +13,26 @@
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
-### 1. Delete Row / Column ไม่เลื่อนข้อมูล
-
-`deleteRow` (`:878`) / `deleteCol` (`:919`) แค่ล้างค่าในแถวเป้าหมายแล้วลด count → ข้อมูลข้างล่างไม่เลื่อนขึ้น ผลคือแถวสุดท้ายหายแทนแถวที่เลือก
-ประเด็นเดียวกัน: `addRow`/`addCol` ต่อท้ายอย่างเดียว แทรกกลางไม่ได้
-
-วิธี: ทำฟังก์ชัน "ขยับพิกัด" กลางตัวเดียว (ขยับ cells + merges + colWidths + rowHeights พร้อมกัน) แล้วขยับที่ฝั่ง DB ด้วย SQL `UPDATE "Cell" SET "rowIndex" = "rowIndex" - 1 WHERE ...` เพื่อให้ `CellStyle` ที่ผูกกับ `cellId` ตามไปเอง — สร้างครั้งเดียวใช้ได้กับข้อ 5 (move row/col, fill handle) ด้วย
-
-### 2. [ต้อง migrate DB] Border / จัดบน-กลาง-ล่าง / Wrap Text
+### 1. [ต้อง migrate DB] Border / จัดบน-กลาง-ล่าง / Wrap Text
 
 `CellStyle` ทั้งใน `frontend/components/sheets/types.ts` และ `schema.prisma` **ไม่มีฟิลด์** `border*`, `verticalAlign`, `wrapText` → ทำ UI อย่างเดียวไม่พอ ต้อง migration ก่อน
 (`whiteSpace: "nowrap"` hardcode อยู่ที่ `SheetGrid.tsx:1060`)
 
-### 3. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A-
+### 2. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A−
+
+`shiftCells`/`shiftSizes`/`shiftMerges` ใน `SheetGrid.tsx` กับ endpoint `structure` ใช้ต่อกับ move row/col ได้เลย (ย้าย = ลบแล้วแทรก)
 
 ---
 
 ## ✅ เสร็จแล้ว
+
+- **16 ก.ย. 2569** — ลบ/แทรกแถว-คอลัมน์ให้เลื่อนข้อมูลถูกต้อง (FR-8.10)
+  เดิมลบแถวกลางแล้วข้อมูลข้างล่างไม่ขยับ กลายเป็นแถวสุดท้ายหายแทน · ตอนนี้ขยับครบทั้ง cells, merges, `ColumnWidth`, `RowHeight` และ `rowCount`/`columnCount`
+  ฝั่ง DB: `POST /api/sheets/[id]/structure` ({axis, op, at}) ทำใน transaction เดียว ขยับ `Cell` เองเพื่อให้ `CellStyle` ที่ผูก `cellId` ตามไปด้วย · ต้องพักค่า index ไว้ที่ +1,000,000 ก่อนแล้วดึงกลับ เพราะ `Cell`/`RowHeight`/`ColumnWidth` มี unique/PK บนพิกัด จะชนกันกลางคำสั่ง
+  ฝั่ง client มี `shiftCells`/`shiftSizes`/`shiftMerges` สะท้อน logic เดียวกันเพื่อไม่ต้อง refetch — **ถ้าแก้ฝั่งใดต้องแก้อีกฝั่งด้วย**
+  undo บันทึก `op` ไว้ใน snapshot แล้วสั่งคำสั่งตรงข้ามกับ server แทนการ diff พิกัดที่ขยับไปแล้ว
+  **บั๊กที่เจอระหว่างทดสอบ 2 ตัว:** (1) merge ที่จบพอดีที่แถว/คอลัมน์ที่ถูกลบไม่หด — เงื่อนไขต้องเป็น `end >= at` ไม่ใช่ `end > at` (2) undo ไม่คืนขอบเขต merge ที่หดไป เพราะการแทรกกลับไม่ขยาย merge ให้ — แก้โดยให้ endpoint คืน merges ปัจจุบันกลับมา แล้ว diff กับ snapshot
+  ยืนยันใน DB จริง: ลบแถวกลาง (ข้อมูล+merge+ความสูงเลื่อนครบ) · ลบคอลัมน์ (merge หดจาก endCol 1→0) · undo ทั้งสองแบบคืนค่าครบรวม merge
 
 - **16 ก.ย. 2569** — ขยาย Undo / Redo ให้ครอบทุกอย่าง (FR-8.15) + ปุ่ม ↶ ↷ บน toolbar
   snapshot เปลี่ยนจากเก็บเฉพาะ `cells` เป็นเก็บทั้งชุด (`cells` + `merges` + `colWidths` + `rowHeights` + `rowCount`/`colCount`) · `pushHistory({...})` รับเฉพาะส่วนที่เปลี่ยน ที่เหลืออ่านจาก state ปัจจุบัน

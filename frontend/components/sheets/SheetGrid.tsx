@@ -41,6 +41,74 @@ function escapeForEditor(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+type Axis = "row" | "col";
+type StructureOp = { axis: Axis; kind: "insert" | "delete"; at: number };
+
+// Mirrors what /api/sheets/[id]/structure does server-side, so the grid can
+// update without refetching. Keep the two in step.
+function shiftCells(
+  cells: Map<string, CellData>,
+  { axis, kind, at }: StructureOp
+): Map<string, CellData> {
+  const out = new Map<string, CellData>();
+  for (const [k, v] of cells) {
+    const [r, c] = k.split(",").map(Number);
+    const i = axis === "row" ? r : c;
+    if (kind === "delete") {
+      if (i === at) continue;
+      const moved = i > at ? i - 1 : i;
+      out.set(axis === "row" ? cellKey(moved, c) : cellKey(r, moved), v);
+    } else {
+      const moved = i >= at ? i + 1 : i;
+      out.set(axis === "row" ? cellKey(moved, c) : cellKey(r, moved), v);
+    }
+  }
+  return out;
+}
+
+function shiftSizes(
+  sizes: Map<number, number>,
+  kind: "insert" | "delete",
+  at: number
+): Map<number, number> {
+  const out = new Map<number, number>();
+  for (const [i, px] of sizes) {
+    if (kind === "delete") {
+      if (i === at) continue;
+      out.set(i > at ? i - 1 : i, px);
+    } else {
+      out.set(i >= at ? i + 1 : i, px);
+    }
+  }
+  return out;
+}
+
+function shiftMerges(
+  merges: MergedCellData[],
+  { axis, kind, at }: StructureOp
+): MergedCellData[] {
+  const startKey = axis === "row" ? "startRow" : "startCol";
+  const endKey = axis === "row" ? "endRow" : "endCol";
+  const out: MergedCellData[] = [];
+  for (const m of merges) {
+    const start = m[startKey];
+    const end = m[endKey];
+    if (kind === "delete") {
+      if (start === at && end === at) continue;
+      // `end >= at` on purpose: a merge ending exactly on the removed line
+      // still has to lose one column/row.
+      if (start <= at && end >= at) out.push({ ...m, [endKey]: end - 1 });
+      else if (start > at) out.push({ ...m, [startKey]: start - 1, [endKey]: end - 1 });
+      else out.push(m);
+    } else {
+      if (start < at && end >= at) out.push({ ...m, [endKey]: end + 1 });
+      else if (start >= at) out.push({ ...m, [startKey]: start + 1, [endKey]: end + 1 });
+      else out.push(m);
+    }
+  }
+  return out;
+}
+
 export interface SheetGridHandle {
   getSelection: () => CellRef[];
   applyStyle: (style: CellStyle) => void;
@@ -166,6 +234,9 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     rowHeights: Map<number, number>;
     rowCount: number;
     colCount: number;
+    // Set when this entry was produced by an insert/delete. Undo replays the
+    // opposite op on the server rather than trying to diff shifted coordinates.
+    op?: StructureOp;
   };
 
   const historyRef = useRef<Snapshot[]>([
@@ -562,8 +633,22 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     [cells]
   );
 
+  // Resolves with the merges the sheet actually has afterwards. Shifting is
+  // lossy — a merge shrunk by a delete does not grow back when the line is
+  // re-inserted — so undo needs the real state to diff against.
+  function applyStructure(op: StructureOp): Promise<MergedCellData[] | null> {
+    return fetch(`/api/sheets/${sheetId}/structure`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ axis: op.axis, op: op.kind, at: op.at }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data?.merges ?? null)
+      .catch(() => null);
+  }
+
   const restoreSnapshot = useCallback(
-    (from: Snapshot, to: Snapshot) => {
+    (from: Snapshot, to: Snapshot, structure?: StructureOp) => {
       setCells(new Map(to.cells));
       setMerges(to.merges);
       setColWidths(new Map(to.colWidths));
@@ -573,18 +658,26 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       onRowCountChange?.(to.rowCount);
       onColCountChange?.(to.colCount);
 
-      saveCellDiff(from.cells, to.cells);
-      saveStyleDiff(from.cells, to.cells);
-      saveSizeDiff(from.colWidths, to.colWidths, "columns");
-      saveSizeDiff(from.rowHeights, to.rowHeights, "rows");
-      saveMergeDiff(from.merges, to.merges);
-      if (from.rowCount !== to.rowCount || from.colCount !== to.colCount) {
-        fetch(`/api/sheets/${sheetId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rowCount: to.rowCount, columnCount: to.colCount }),
-        }).catch(() => {});
-      }
+      // Re-shape the sheet first so the writes below land on the coordinates
+      // they belong to. The structure endpoint already moves cells, sizes,
+      // merges and the counts; a re-inserted row comes back empty, which the
+      // cell diff then refills.
+      void (structure ? applyStructure(structure) : Promise.resolve(null)).then((shifted) => {
+        saveCellDiff(from.cells, to.cells);
+        saveStyleDiff(from.cells, to.cells);
+        saveSizeDiff(from.colWidths, to.colWidths, "columns");
+        saveSizeDiff(from.rowHeights, to.rowHeights, "rows");
+        saveMergeDiff(shifted ?? from.merges, to.merges);
+
+        if (structure) return;
+        if (from.rowCount !== to.rowCount || from.colCount !== to.colCount) {
+          fetch(`/api/sheets/${sheetId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rowCount: to.rowCount, columnCount: to.colCount }),
+          }).catch(() => {});
+        }
+      });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sheetId, onRowCountChange, onColCountChange]
@@ -594,14 +687,19 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     if (historyIndexRef.current <= 0) return;
     const from = historyRef.current[historyIndexRef.current];
     historyIndexRef.current--;
-    restoreSnapshot(from, historyRef.current[historyIndexRef.current]);
+    const inverse: StructureOp | undefined = from.op && {
+      ...from.op,
+      kind: from.op.kind === "insert" ? "delete" : "insert",
+    };
+    restoreSnapshot(from, historyRef.current[historyIndexRef.current], inverse);
   }, [restoreSnapshot]);
 
   const handleRedo = useCallback(() => {
     if (historyIndexRef.current >= historyRef.current.length - 1) return;
     const from = historyRef.current[historyIndexRef.current];
     historyIndexRef.current++;
-    restoreSnapshot(from, historyRef.current[historyIndexRef.current]);
+    const to = historyRef.current[historyIndexRef.current];
+    restoreSnapshot(from, to, to.op);
   }, [restoreSnapshot]);
 
   const commitEdit = useCallback(() => {
@@ -1037,88 +1135,60 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       .catch(() => {});
   }, [selectedCells, merges, sheetId, pushHistory]);
 
-  const updateSheetMeta = useCallback(
-    (patch: { rowCount?: number; columnCount?: number }) => {
-      fetch(`/api/sheets/${sheetId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      }).catch(() => {});
+  const runStructure = useCallback(
+    (op: StructureOp) => {
+      const nextCells = shiftCells(cells, op);
+      const nextMerges = shiftMerges(merges, op);
+      const delta = op.kind === "insert" ? 1 : -1;
+      const nextRowCount = op.axis === "row" ? rowCount + delta : rowCount;
+      const nextColCount = op.axis === "col" ? colCount + delta : colCount;
+      const nextColWidths =
+        op.axis === "col" ? shiftSizes(colWidths, op.kind, op.at) : colWidths;
+      const nextRowHeights =
+        op.axis === "row" ? shiftSizes(rowHeights, op.kind, op.at) : rowHeights;
+
+      setCells(nextCells);
+      setMerges(nextMerges);
+      setColWidths(nextColWidths);
+      setRowHeights(nextRowHeights);
+      setRowCount(nextRowCount);
+      setColCount(nextColCount);
+      onRowCountChange?.(nextRowCount);
+      onColCountChange?.(nextColCount);
+
+      applyStructure(op);
+      pushHistory({
+        cells: nextCells,
+        merges: nextMerges,
+        colWidths: nextColWidths,
+        rowHeights: nextRowHeights,
+        rowCount: nextRowCount,
+        colCount: nextColCount,
+        op,
+      });
     },
-    [sheetId]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cells, merges, colWidths, rowHeights, rowCount, colCount, pushHistory, onRowCountChange, onColCountChange]
   );
 
+  // Insert below the selected row, or append when nothing is selected.
   const addRow = useCallback(() => {
-    const nn = rowCount + 1;
-    setRowCount(nn);
-    updateSheetMeta({ rowCount: nn });
-    onRowCountChange?.(nn);
-    pushHistory({ rowCount: nn });
-  }, [rowCount, updateSheetMeta, onRowCountChange, pushHistory]);
+    runStructure({ axis: "row", kind: "insert", at: anchor ? anchor.row + 1 : rowCount });
+  }, [runStructure, anchor, rowCount]);
 
   const deleteRow = useCallback(() => {
     if (rowCount <= 1) return;
-    // Determine target row = anchor.row (or last)
-    const targetRow = anchor ? anchor.row : rowCount - 1;
-    // Clear cells in that row
-    const toClear: Array<{ rowIndex: number; colIndex: number; cellValue: null }> = [];
-    const next = new Map(cells);
-    for (let c = 0; c < colCount; c++) {
-      const k = cellKey(targetRow, c);
-      if (next.has(k)) {
-        next.delete(k);
-        toClear.push({ rowIndex: targetRow, colIndex: c, cellValue: null });
-      }
-    }
-    setCells(next);
-    if (toClear.length > 0) {
-      fetch(`/api/sheets/${sheetId}/cells`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cells: toClear }),
-      }).catch(() => {});
-    }
-    const nn = rowCount - 1;
-    setRowCount(nn);
-    updateSheetMeta({ rowCount: nn });
-    onRowCountChange?.(nn);
-    pushHistory({ cells: next, rowCount: nn });
-  }, [anchor, cells, rowCount, colCount, sheetId, updateSheetMeta, onRowCountChange, pushHistory]);
+    runStructure({ axis: "row", kind: "delete", at: anchor ? anchor.row : rowCount - 1 });
+  }, [runStructure, anchor, rowCount]);
 
   const addCol = useCallback(() => {
-    const nn = colCount + 1;
-    setColCount(nn);
-    updateSheetMeta({ columnCount: nn });
-    onColCountChange?.(nn);
-    pushHistory({ colCount: nn });
-  }, [colCount, updateSheetMeta, onColCountChange, pushHistory]);
+    runStructure({ axis: "col", kind: "insert", at: anchor ? anchor.col + 1 : colCount });
+  }, [runStructure, anchor, colCount]);
 
   const deleteCol = useCallback(() => {
     if (colCount <= 1) return;
-    const targetCol = anchor ? anchor.col : colCount - 1;
-    const toClear: Array<{ rowIndex: number; colIndex: number; cellValue: null }> = [];
-    const next = new Map(cells);
-    for (let r = 0; r < rowCount; r++) {
-      const k = cellKey(r, targetCol);
-      if (next.has(k)) {
-        next.delete(k);
-        toClear.push({ rowIndex: r, colIndex: targetCol, cellValue: null });
-      }
-    }
-    setCells(next);
-    if (toClear.length > 0) {
-      fetch(`/api/sheets/${sheetId}/cells`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cells: toClear }),
-      }).catch(() => {});
-    }
-    const nn = colCount - 1;
-    setColCount(nn);
-    updateSheetMeta({ columnCount: nn });
-    onColCountChange?.(nn);
-    pushHistory({ cells: next, colCount: nn });
-  }, [anchor, cells, colCount, rowCount, sheetId, updateSheetMeta, onColCountChange, pushHistory]);
+    runStructure({ axis: "col", kind: "delete", at: anchor ? anchor.col : colCount - 1 });
+  }, [runStructure, anchor, colCount]);
 
   useImperativeHandle(ref, () => ({
     getSelection: () =>

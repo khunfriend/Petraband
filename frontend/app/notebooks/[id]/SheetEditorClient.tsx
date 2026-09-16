@@ -217,6 +217,8 @@ export default function SheetEditorClient({ notebook: initialNotebook }: Props) 
         onDeleteRow={() => gridRef.current?.deleteRow()}
         onAddCol={() => gridRef.current?.addCol()}
         onDeleteCol={() => gridRef.current?.deleteCol()}
+        onUndo={() => gridRef.current?.undo()}
+        onRedo={() => gridRef.current?.redo()}
       />
 
       {/* Grid */}

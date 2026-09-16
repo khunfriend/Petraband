@@ -3,7 +3,7 @@
 > ไฟล์สถานะงานสด — session ใหม่อ่านไฟล์นี้ก่อนเสมอ (ดู [CLAUDE.md](CLAUDE.md))
 > อัปเดตทุกครั้งที่จบก้อนงาน ไม่ใช่ตอนจบ session อย่างเดียว
 
-**อัปเดตล่าสุด:** 16 ก.ย. 2569 · commit ล่าสุด `e573098`
+**อัปเดตล่าสุด:** 16 ก.ย. 2569 · commit ล่าสุด `<pending>`
 
 ---
 
@@ -13,47 +13,34 @@
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
-### 1. ❓ รอทดสอบด้วยมือ — Cmd+Z และ Ctrl+C/Ctrl+V (เร็วมาก แต่ค้างการตัดสินใจอยู่)
-
-ทั้งสองเรื่องทดสอบผ่าน automation ไม่ได้ผลชัด ต้องให้เจ้าของกดเองบน Mac จริง:
-- **Ctrl+C / Ctrl+V** — โค้ดถูกต้องแน่นอน (ยิง event ทดสอบแล้วได้ TSV ตรง) แต่คลิปบอร์ดจริงของ OS ไม่เชื่อมกับ automation
-- **Cmd+Z** — รายละเอียดด้านล่าง
-
-ระหว่าง verify บั๊ก undo พบว่ากด **Ctrl+Z ทำงาน แต่ Cmd+Z ไม่ทำงาน** ทดสอบซ้ำได้ทั้งสองรอบ ทั้งที่ `handleKeyDown` (`SheetGrid.tsx:618`) เช็ค `(e.ctrlKey || e.metaKey)` และ probe ยืนยันว่า event เข้าถึง container จริงพร้อม `metaKey:true`, `defaultPrevented:false`
-
-ผู้ใช้ส่วนใหญ่อยู่บน Mac และจะกด Cmd+Z เป็นธรรมชาติ → **ต้องลองด้วยมือบน Mac จริงก่อน** ว่าเป็นบั๊กจริงหรือเป็นข้อจำกัดของ automation harness ที่ใช้ทดสอบ ถ้าเป็นบั๊กจริงถือว่าสำคัญ เพราะแปลว่า undo ใช้ไม่ได้สำหรับคนส่วนใหญ่
-
-### 2. ขยาย Undo ให้ครอบ style / merge / resize
-
-ตอนนี้ `pushHistory` ถูกเรียกเฉพาะตอนแก้ค่าเซลล์ (`commitEdit`, `handlePaste`, ปุ่ม Delete) ไม่ครอบ `applyStyle`, `mergeCells`, resize, เพิ่ม/ลบแถว และไม่มีปุ่ม undo/redo บน toolbar
-
-วิธี: เปลี่ยน snapshot จากที่เก็บเฉพาะ `cells` เป็นเก็บทั้งชุด (`cells` + `merges` + `colWidths` + `rowHeights` + `rowCount`/`colCount`)
-
-**ทำก่อนข้อ 3** เพราะข้อ 3 คือการลบแถว ถ้า undo ยังไม่ครอบ ลบผิดแล้วกู้ไม่ได้
-
-### 3. Delete Row / Column ไม่เลื่อนข้อมูล
+### 1. Delete Row / Column ไม่เลื่อนข้อมูล
 
 `deleteRow` (`:878`) / `deleteCol` (`:919`) แค่ล้างค่าในแถวเป้าหมายแล้วลด count → ข้อมูลข้างล่างไม่เลื่อนขึ้น ผลคือแถวสุดท้ายหายแทนแถวที่เลือก
 ประเด็นเดียวกัน: `addRow`/`addCol` ต่อท้ายอย่างเดียว แทรกกลางไม่ได้
 
 วิธี: ทำฟังก์ชัน "ขยับพิกัด" กลางตัวเดียว (ขยับ cells + merges + colWidths + rowHeights พร้อมกัน) แล้วขยับที่ฝั่ง DB ด้วย SQL `UPDATE "Cell" SET "rowIndex" = "rowIndex" - 1 WHERE ...` เพื่อให้ `CellStyle` ที่ผูกกับ `cellId` ตามไปเอง — สร้างครั้งเดียวใช้ได้กับข้อ 5 (move row/col, fill handle) ด้วย
 
-### 4. [ต้อง migrate DB] Border / จัดบน-กลาง-ล่าง / Wrap Text
+### 2. [ต้อง migrate DB] Border / จัดบน-กลาง-ล่าง / Wrap Text
 
 `CellStyle` ทั้งใน `frontend/components/sheets/types.ts` และ `schema.prisma` **ไม่มีฟิลด์** `border*`, `verticalAlign`, `wrapText` → ทำ UI อย่างเดียวไม่พอ ต้อง migration ก่อน
 (`whiteSpace: "nowrap"` hardcode อยู่ที่ `SheetGrid.tsx:1060`)
 
-### 5. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A-
+### 3. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A-
 
 ---
 
 ## ✅ เสร็จแล้ว
 
+- **16 ก.ย. 2569** — ขยาย Undo / Redo ให้ครอบทุกอย่าง (FR-8.15) + ปุ่ม ↶ ↷ บน toolbar
+  snapshot เปลี่ยนจากเก็บเฉพาะ `cells` เป็นเก็บทั้งชุด (`cells` + `merges` + `colWidths` + `rowHeights` + `rowCount`/`colCount`) · `pushHistory({...})` รับเฉพาะส่วนที่เปลี่ยน ที่เหลืออ่านจาก state ปัจจุบัน
+  การย้อนบันทึกลง DB ครบทุกชนิด: เพิ่ม `saveStyleDiff` (ของเดิม `saveCellDiff` ไม่ครอบ style) · `saveSizeDiff` · `saveMergeDiff` ที่จับคู่ merge **ด้วยพิกัด ไม่ใช่ id** เพราะ merge ที่สร้างใหม่จะได้ id ใหม่
+  ปรับขนาด = 1 ครั้งต่อการลาก (push ตอน mouseup) ไม่ใช่ทุก mousemove
+  ยืนยันบนสมุดทดสอบที่สร้าง-แล้ว-ลบทิ้ง: merge→undo (DELETE 200) →redo (POST 201) · bold→undo (700→400) · เพิ่มแถว→undo (11→10) · ลากขยายคอลัมน์→undo (192px→100px) · DB ตรงทุกค่า
 - **16 ก.ย. 2569** — Copy / Cut (FR-8.14) + ซ่อมประวัติ undo ที่ถูกบันทึกซ้ำ
   ใช้รูปแบบ TSV เดียวกับ paste เดิม จึงคัดลอกไป-กลับกับ Excel ได้สองทาง · ปุ่ม Delete ใช้ helper `clearSelectedCells` ตัวเดียวกับ cut
   **เจอระหว่างทดสอบ:** `pushHistory` ถูกเรียก**ข้างใน** `setCells` updater ซึ่ง React StrictMode เรียกซ้ำสองรอบใน dev → ประวัติถูกบันทึกซ้ำ ต้องกด undo สองครั้งต่อการกระทำเดียว แก้โดยย้าย `pushHistory`/`queueCellSave` ออกมานอก updater ทั้ง 3 จุด (commitEdit, clearSelectedCells, handlePaste) — updater ต้องเป็นฟังก์ชันบริสุทธิ์
   ยืนยันบนสมุดทดสอบที่สร้าง-แล้ว-ลบทิ้ง: copy ได้ TSV ถูกต้อง · copy→paste ได้ข้อมูลตรง · cut ได้ TSV + ล้างเซลล์ · undo หลัง cut กดครั้งเดียวย้อนได้ · DB ตรงกับที่เห็นบนจอ
-  ⚠️ หมายเหตุ: คลิปบอร์ดจริงของ OS ไม่เชื่อมกับ automation จึงทดสอบด้วยการยิง ClipboardEvent ตรง ๆ — **ควรลองกด Ctrl+C / Ctrl+V ด้วยมือจริงอีกครั้ง**
+  ✅ เจ้าของยืนยันด้วยมือจริงแล้วว่า Ctrl+C / Ctrl+V และ Cmd+Z ใช้ได้ปกติ (อาการที่เจอตอนทดสอบเป็นข้อจำกัดของ automation ไม่ใช่บั๊ก)
 - **16 ก.ย. 2569** — แก้ปัญหาลบสมาชิกไม่ได้ (migration `20260916000000_decouple_user_refs` **apply ลง production แล้ว**)
   8 relation ที่ชี้ User แบบไม่ได้ตั้ง `onDelete` → ประวัติ + ผู้สร้างของส่วนกลาง (`SongVersion`, `StageLayoutVersion`, `AuditLog`, `PracticeSchedule`, `AvailabilityPoll`) เป็น `SetNull` + เก็บชื่อ snapshot; ข้อมูลรายคน (`Rsvp`, `SongAssignment`, `RehearsalAttendance`) เป็น `Cascade`
   ยืนยันบน production แล้ว: `user.delete()` สำเร็จ (เดิม throw FK error) · `SongVersion` อยู่ต่อโดย `createdById=null` แต่ชื่อยังอยู่ · `Rsvp`/`SongAssignment` หายตาม · backfill เติมชื่อแถวเดิมครบ · ข้อมูลทดสอบลบทิ้งหมดแล้ว

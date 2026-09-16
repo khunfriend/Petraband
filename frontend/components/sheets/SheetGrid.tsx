@@ -51,6 +51,8 @@ export interface SheetGridHandle {
   addCol: () => void;
   deleteCol: () => void;
   getCurrentStyle: () => CellStyle;
+  undo: () => void;
+  redo: () => void;
 }
 
 interface Props {
@@ -153,21 +155,50 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     return true;
   }
 
-  // Undo / Redo history. The baseline snapshot must be the sheet as loaded —
-  // seeding it empty makes the first undo clear every cell and persist that.
-  const historyRef = useRef<Map<string, CellData>[]>([cells]);
+  // Undo / Redo history. A snapshot covers everything an edit can change, not
+  // just cell values — undoing a merge or a resize has to restore those too.
+  // The baseline must be the sheet as loaded; seeding it empty would make the
+  // first undo clear the sheet and persist that.
+  type Snapshot = {
+    cells: Map<string, CellData>;
+    merges: MergedCellData[];
+    colWidths: Map<number, number>;
+    rowHeights: Map<number, number>;
+    rowCount: number;
+    colCount: number;
+  };
+
+  const historyRef = useRef<Snapshot[]>([
+    {
+      cells,
+      merges: initialData.mergedCells,
+      colWidths,
+      rowHeights,
+      rowCount: initialData.rowCount,
+      colCount: initialData.columnCount,
+    },
+  ]);
   const historyIndexRef = useRef(0);
 
-  function cloneCells(m: Map<string, CellData>): Map<string, CellData> {
-    return new Map(m);
-  }
-
-  const pushHistory = useCallback((newCells: Map<string, CellData>) => {
-    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
-    historyRef.current.push(cloneCells(newCells));
-    if (historyRef.current.length > 100) historyRef.current.shift();
-    historyIndexRef.current = historyRef.current.length - 1;
-  }, []);
+  // Callers pass only the parts they changed; the rest is read from current state.
+  const pushHistory = useCallback(
+    (patch: Partial<Snapshot>) => {
+      const next: Snapshot = {
+        cells,
+        merges,
+        colWidths,
+        rowHeights,
+        rowCount,
+        colCount,
+        ...patch,
+      };
+      historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+      historyRef.current.push(next);
+      if (historyRef.current.length > 100) historyRef.current.shift();
+      historyIndexRef.current = historyRef.current.length - 1;
+    },
+    [cells, merges, colWidths, rowHeights, rowCount, colCount]
+  );
 
   function saveCellDiff(prevMap: Map<string, CellData>, nextMap: Map<string, CellData>) {
     const payload: Array<{
@@ -200,6 +231,85 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cells: payload }),
     }).catch(() => {});
+  }
+
+  // saveCellDiff only carries values; styles live in their own table.
+  function saveStyleDiff(prevMap: Map<string, CellData>, nextMap: Map<string, CellData>) {
+    const payload: Array<{ rowIndex: number; colIndex: number } & CellStyle> = [];
+    for (const k of new Set([...prevMap.keys(), ...nextMap.keys()])) {
+      const before = JSON.stringify(prevMap.get(k)?.style ?? null);
+      const after = nextMap.get(k)?.style ?? null;
+      if (before === JSON.stringify(after)) continue;
+      const [rowIndex, colIndex] = k.split(",").map(Number);
+      payload.push({ rowIndex, colIndex, ...(after ?? {}) });
+    }
+    if (payload.length === 0) return;
+    fetch(`/api/sheets/${sheetId}/styles`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ styles: payload }),
+    }).catch(() => {});
+  }
+
+  function saveSizeDiff(
+    prev: Map<number, number>,
+    next: Map<number, number>,
+    kind: "columns" | "rows"
+  ) {
+    const indexKey = kind === "columns" ? "colIndex" : "rowIndex";
+    const sizeKey = kind === "columns" ? "widthPx" : "heightPx";
+    const fallback = kind === "columns" ? DEFAULT_COL_WIDTH : DEFAULT_ROW_HEIGHT;
+    const payload: Array<Record<string, number>> = [];
+    for (const i of new Set([...prev.keys(), ...next.keys()])) {
+      const before = prev.get(i) ?? fallback;
+      const after = next.get(i) ?? fallback;
+      if (before !== after) payload.push({ [indexKey]: i, [sizeKey]: after });
+    }
+    if (payload.length === 0) return;
+    fetch(`/api/sheets/${sheetId}/${kind}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [kind]: payload }),
+    }).catch(() => {});
+  }
+
+  // Re-created merges come back with a fresh id, so they are matched by
+  // geometry rather than by id.
+  function mergeGeometry(m: MergedCellData) {
+    return `${m.startRow},${m.startCol},${m.endRow},${m.endCol}`;
+  }
+
+  function saveMergeDiff(prev: MergedCellData[], next: MergedCellData[]) {
+    const nextKeys = new Set(next.map(mergeGeometry));
+    const prevKeys = new Set(prev.map(mergeGeometry));
+
+    for (const m of prev) {
+      if (!nextKeys.has(mergeGeometry(m))) {
+        fetch(`/api/sheets/${sheetId}/merges/${m.id}`, { method: "DELETE" }).catch(() => {});
+      }
+    }
+    for (const m of next) {
+      if (prevKeys.has(mergeGeometry(m))) continue;
+      fetch(`/api/sheets/${sheetId}/merges`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startRow: m.startRow,
+          startCol: m.startCol,
+          endRow: m.endRow,
+          endCol: m.endCol,
+        }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.merge) return;
+          // Swap the restored placeholder for the row the server actually created.
+          setMerges((cur) =>
+            cur.map((x) => (mergeGeometry(x) === mergeGeometry(data.merge) ? data.merge : x))
+          );
+        })
+        .catch(() => {});
+    }
   }
 
   // Debounce refs
@@ -452,25 +562,47 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     [cells]
   );
 
+  const restoreSnapshot = useCallback(
+    (from: Snapshot, to: Snapshot) => {
+      setCells(new Map(to.cells));
+      setMerges(to.merges);
+      setColWidths(new Map(to.colWidths));
+      setRowHeights(new Map(to.rowHeights));
+      setRowCount(to.rowCount);
+      setColCount(to.colCount);
+      onRowCountChange?.(to.rowCount);
+      onColCountChange?.(to.colCount);
+
+      saveCellDiff(from.cells, to.cells);
+      saveStyleDiff(from.cells, to.cells);
+      saveSizeDiff(from.colWidths, to.colWidths, "columns");
+      saveSizeDiff(from.rowHeights, to.rowHeights, "rows");
+      saveMergeDiff(from.merges, to.merges);
+      if (from.rowCount !== to.rowCount || from.colCount !== to.colCount) {
+        fetch(`/api/sheets/${sheetId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rowCount: to.rowCount, columnCount: to.colCount }),
+        }).catch(() => {});
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sheetId, onRowCountChange, onColCountChange]
+  );
+
   const handleUndo = useCallback(() => {
     if (historyIndexRef.current <= 0) return;
-    const prevSnapshot = historyRef.current[historyIndexRef.current];
+    const from = historyRef.current[historyIndexRef.current];
     historyIndexRef.current--;
-    const targetSnapshot = historyRef.current[historyIndexRef.current];
-    setCells(cloneCells(targetSnapshot));
-    saveCellDiff(prevSnapshot, targetSnapshot);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sheetId]);
+    restoreSnapshot(from, historyRef.current[historyIndexRef.current]);
+  }, [restoreSnapshot]);
 
   const handleRedo = useCallback(() => {
     if (historyIndexRef.current >= historyRef.current.length - 1) return;
-    const prevSnapshot = historyRef.current[historyIndexRef.current];
+    const from = historyRef.current[historyIndexRef.current];
     historyIndexRef.current++;
-    const targetSnapshot = historyRef.current[historyIndexRef.current];
-    setCells(cloneCells(targetSnapshot));
-    saveCellDiff(prevSnapshot, targetSnapshot);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sheetId]);
+    restoreSnapshot(from, historyRef.current[historyIndexRef.current]);
+  }, [restoreSnapshot]);
 
   const commitEdit = useCallback(() => {
     if (!editingCell) return;
@@ -492,7 +624,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     const existing = next.get(key);
     next.set(key, { cellValue: value, richValue: rich, style: existing?.style ?? null });
     setCells(next);
-    pushHistory(next);
+    pushHistory({ cells: next });
     // Save immediately (no debounce for single-cell commits)
     if (cellSaveTimer.current) clearTimeout(cellSaveTimer.current);
     pendingCells.current.set(key, { cellValue: value, richValue: rich });
@@ -525,7 +657,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       queueCellSave(r, c, null, null);
     }
     setCells(next);
-    pushHistory(next);
+    pushHistory({ cells: next });
   }, [cells, selectedCells, queueCellSave, pushHistory]);
 
   // Same TSV shape handlePaste reads, so copying round-trips through Excel.
@@ -655,7 +787,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         });
       });
       setCells(next);
-      pushHistory(next);
+      pushHistory({ cells: next });
     },
     [editingCell, anchor, cells, selectedCells, sheetId, pushHistory, queueCellSave, onRowCountChange, onColCountChange]
   );
@@ -754,6 +886,8 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       }
     }
     function onUp() {
+      // One history entry per drag, not per mousemove.
+      if (resizeRef.current) pushHistory({});
       resizeRef.current = null;
     }
     window.addEventListener("mousemove", onMove);
@@ -762,7 +896,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [queueColSave, queueRowSave]);
+  }, [queueColSave, queueRowSave, pushHistory]);
 
   // Flush on unmount
   useEffect(() => {
@@ -829,28 +963,27 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
 
       if (selectedCells.size === 0) return;
       const stylesPayload: Array<{ rowIndex: number; colIndex: number } & CellStyle> = [];
-      setCells((prev) => {
-        const m = new Map(prev);
-        for (const k of selectedCells) {
-          const [r, c] = k.split(",").map(Number);
-          const existing = m.get(k);
-          const merged: CellStyle = { ...(existing?.style ?? {}), ...patch };
-          m.set(k, {
-            cellValue: existing?.cellValue ?? null,
-            richValue: existing?.richValue ?? null,
-            style: merged,
-          });
-          stylesPayload.push({ rowIndex: r, colIndex: c, ...patch });
-        }
-        return m;
-      });
+      const next = new Map(cells);
+      for (const k of selectedCells) {
+        const [r, c] = k.split(",").map(Number);
+        const existing = next.get(k);
+        const merged: CellStyle = { ...(existing?.style ?? {}), ...patch };
+        next.set(k, {
+          cellValue: existing?.cellValue ?? null,
+          richValue: existing?.richValue ?? null,
+          style: merged,
+        });
+        stylesPayload.push({ rowIndex: r, colIndex: c, ...patch });
+      }
+      setCells(next);
+      pushHistory({ cells: next });
       fetch(`/api/sheets/${sheetId}/styles`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ styles: stylesPayload }),
       }).catch(() => {});
     },
-    [editingCell, selectedCells, sheetId]
+    [editingCell, cells, selectedCells, sheetId, pushHistory]
   );
 
   const mergeCells = useCallback(() => {
@@ -870,12 +1003,13 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.merge) {
-          setMerges((prev) => [...prev, data.merge]);
-        }
+        if (!data.merge) return;
+        const next = [...merges, data.merge];
+        setMerges(next);
+        pushHistory({ merges: next });
       })
       .catch(() => {});
-  }, [selectedCells, sheetId]);
+  }, [selectedCells, merges, sheetId, pushHistory]);
 
   const unmergeCells = useCallback(() => {
     if (selectedCells.size === 0) return;
@@ -896,10 +1030,12 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       )
     )
       .then(() => {
-        setMerges((prev) => prev.filter((m) => !toRemove.some((t) => t.id === m.id)));
+        const next = merges.filter((m) => !toRemove.some((t) => t.id === m.id));
+        setMerges(next);
+        pushHistory({ merges: next });
       })
       .catch(() => {});
-  }, [selectedCells, merges, sheetId]);
+  }, [selectedCells, merges, sheetId, pushHistory]);
 
   const updateSheetMeta = useCallback(
     (patch: { rowCount?: number; columnCount?: number }) => {
@@ -913,13 +1049,12 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
   );
 
   const addRow = useCallback(() => {
-    setRowCount((n) => {
-      const nn = n + 1;
-      updateSheetMeta({ rowCount: nn });
-      onRowCountChange?.(nn);
-      return nn;
-    });
-  }, [updateSheetMeta, onRowCountChange]);
+    const nn = rowCount + 1;
+    setRowCount(nn);
+    updateSheetMeta({ rowCount: nn });
+    onRowCountChange?.(nn);
+    pushHistory({ rowCount: nn });
+  }, [rowCount, updateSheetMeta, onRowCountChange, pushHistory]);
 
   const deleteRow = useCallback(() => {
     if (rowCount <= 1) return;
@@ -927,17 +1062,15 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     const targetRow = anchor ? anchor.row : rowCount - 1;
     // Clear cells in that row
     const toClear: Array<{ rowIndex: number; colIndex: number; cellValue: null }> = [];
-    setCells((prev) => {
-      const m = new Map(prev);
-      for (let c = 0; c < colCount; c++) {
-        const k = cellKey(targetRow, c);
-        if (m.has(k)) {
-          m.delete(k);
-          toClear.push({ rowIndex: targetRow, colIndex: c, cellValue: null });
-        }
+    const next = new Map(cells);
+    for (let c = 0; c < colCount; c++) {
+      const k = cellKey(targetRow, c);
+      if (next.has(k)) {
+        next.delete(k);
+        toClear.push({ rowIndex: targetRow, colIndex: c, cellValue: null });
       }
-      return m;
-    });
+    }
+    setCells(next);
     if (toClear.length > 0) {
       fetch(`/api/sheets/${sheetId}/cells`, {
         method: "PATCH",
@@ -945,38 +1078,34 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         body: JSON.stringify({ cells: toClear }),
       }).catch(() => {});
     }
-    setRowCount((n) => {
-      const nn = n - 1;
-      updateSheetMeta({ rowCount: nn });
-      onRowCountChange?.(nn);
-      return nn;
-    });
-  }, [anchor, rowCount, colCount, sheetId, updateSheetMeta, onRowCountChange]);
+    const nn = rowCount - 1;
+    setRowCount(nn);
+    updateSheetMeta({ rowCount: nn });
+    onRowCountChange?.(nn);
+    pushHistory({ cells: next, rowCount: nn });
+  }, [anchor, cells, rowCount, colCount, sheetId, updateSheetMeta, onRowCountChange, pushHistory]);
 
   const addCol = useCallback(() => {
-    setColCount((n) => {
-      const nn = n + 1;
-      updateSheetMeta({ columnCount: nn });
-      onColCountChange?.(nn);
-      return nn;
-    });
-  }, [updateSheetMeta, onColCountChange]);
+    const nn = colCount + 1;
+    setColCount(nn);
+    updateSheetMeta({ columnCount: nn });
+    onColCountChange?.(nn);
+    pushHistory({ colCount: nn });
+  }, [colCount, updateSheetMeta, onColCountChange, pushHistory]);
 
   const deleteCol = useCallback(() => {
     if (colCount <= 1) return;
     const targetCol = anchor ? anchor.col : colCount - 1;
     const toClear: Array<{ rowIndex: number; colIndex: number; cellValue: null }> = [];
-    setCells((prev) => {
-      const m = new Map(prev);
-      for (let r = 0; r < rowCount; r++) {
-        const k = cellKey(r, targetCol);
-        if (m.has(k)) {
-          m.delete(k);
-          toClear.push({ rowIndex: r, colIndex: targetCol, cellValue: null });
-        }
+    const next = new Map(cells);
+    for (let r = 0; r < rowCount; r++) {
+      const k = cellKey(r, targetCol);
+      if (next.has(k)) {
+        next.delete(k);
+        toClear.push({ rowIndex: r, colIndex: targetCol, cellValue: null });
       }
-      return m;
-    });
+    }
+    setCells(next);
     if (toClear.length > 0) {
       fetch(`/api/sheets/${sheetId}/cells`, {
         method: "PATCH",
@@ -984,13 +1113,12 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         body: JSON.stringify({ cells: toClear }),
       }).catch(() => {});
     }
-    setColCount((n) => {
-      const nn = n - 1;
-      updateSheetMeta({ columnCount: nn });
-      onColCountChange?.(nn);
-      return nn;
-    });
-  }, [anchor, colCount, rowCount, sheetId, updateSheetMeta, onColCountChange]);
+    const nn = colCount - 1;
+    setColCount(nn);
+    updateSheetMeta({ columnCount: nn });
+    onColCountChange?.(nn);
+    pushHistory({ cells: next, colCount: nn });
+  }, [anchor, cells, colCount, rowCount, sheetId, updateSheetMeta, onColCountChange, pushHistory]);
 
   useImperativeHandle(ref, () => ({
     getSelection: () =>
@@ -1006,6 +1134,8 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     addCol,
     deleteCol,
     getCurrentStyle: () => currentStyle,
+    undo: handleUndo,
+    redo: handleRedo,
   }));
 
   // ============ Rendering ============

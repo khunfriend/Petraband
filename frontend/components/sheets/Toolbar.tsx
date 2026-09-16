@@ -15,6 +15,8 @@ interface Props {
   onDeleteRow: () => void;
   onAddCol: () => void;
   onDeleteCol: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
 const FONT_FAMILIES = ["Sarabun", "Roboto", "monospace"];
@@ -30,6 +32,8 @@ export function Toolbar({
   onDeleteRow,
   onAddCol,
   onDeleteCol,
+  onUndo,
+  onRedo,
 }: Props) {
   const hasSelection = selection.length > 0;
   const canMerge = selection.length > 1;
@@ -81,6 +85,25 @@ export function Toolbar({
       data-sheets-toolbar
       className="flex items-center gap-1 flex-wrap border-b border-hairline bg-surface-soft px-3 py-2"
     >
+      <button
+        type="button"
+        onClick={onUndo}
+        title="ย้อนกลับ (Ctrl+Z)"
+        className="h-8 w-8 rounded-md border border-hairline bg-surface-card text-ink text-sm hover:border-primary transition-colors duration-[var(--duration-pb-base)]"
+      >
+        ↶
+      </button>
+      <button
+        type="button"
+        onClick={onRedo}
+        title="ทำซ้ำ (Ctrl+Y)"
+        className="h-8 w-8 rounded-md border border-hairline bg-surface-card text-ink text-sm hover:border-primary transition-colors duration-[var(--duration-pb-base)]"
+      >
+        ↷
+      </button>
+
+      <span className="w-px h-6 bg-hairline mx-1" />
+
       {toggleBtn(currentStyle.isBold, "B", () => onStyleChange({ isBold: !currentStyle.isBold }), "ตัวหนา")}
       {toggleBtn(currentStyle.isItalic, "I", () => onStyleChange({ isItalic: !currentStyle.isItalic }), "ตัวเอียง")}
       {toggleBtn(currentStyle.isUnderline, "U", () => onStyleChange({ isUnderline: !currentStyle.isUnderline }), "ขีดเส้นใต้")}

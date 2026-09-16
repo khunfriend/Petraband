@@ -23,6 +23,26 @@ import {
 const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
 
+// Mirrors the CellStyle defaults in schema.prisma.
+const DEFAULT_CELL_STYLE: Required<Omit<CellStyle, "highlightColor">> & {
+  highlightColor: string | null;
+} = {
+  fontFamily: "Sarabun",
+  fontSize: 14,
+  isBold: false,
+  isItalic: false,
+  isUnderline: false,
+  textAlign: "center",
+  verticalAlign: "middle",
+  wrapText: false,
+  textColor: "#000000",
+  highlightColor: null,
+  borderTop: "",
+  borderRight: "",
+  borderBottom: "",
+  borderLeft: "",
+};
+
 function colLetter(col: number): string {
   let s = "";
   let n = col;
@@ -318,7 +338,10 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       const after = nextMap.get(k)?.style ?? null;
       if (before === JSON.stringify(after)) continue;
       const [rowIndex, colIndex] = k.split(",").map(Number);
-      payload.push({ rowIndex, colIndex, ...(after ?? {}) });
+      // Every property is sent, defaults included: a snapshot that simply lacks
+      // a key means "back to default", and omitting it would leave the old
+      // value sitting in the database.
+      payload.push({ rowIndex, colIndex, ...DEFAULT_CELL_STYLE, ...(after ?? {}) });
     }
     if (payload.length === 0) return;
     fetch(`/api/sheets/${sheetId}/styles`, {

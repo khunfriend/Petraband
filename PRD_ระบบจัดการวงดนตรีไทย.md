@@ -1,9 +1,9 @@
 # Product Requirements Document (PRD)
 ## ระบบจัดการวงดนตรีไทย (Thai Music Ensemble Management System)
 
-**เวอร์ชันเอกสาร:** 3.0
-**วันที่อัปเดต:** 22 กรกฎาคม 2569
-**เวอร์ชันก่อนหน้า:** 2.0 (15 กรกฎาคม 2569)
+**เวอร์ชันเอกสาร:** 4.0
+**วันที่อัปเดต:** 16 กันยายน 2569
+**เวอร์ชันก่อนหน้า:** 3.0 (22 กรกฎาคม 2569)
 
 ---
 
@@ -24,12 +24,12 @@
 | Framework | Next.js 16 (App Router) + React 19 |
 | ภาษา | TypeScript |
 | ฐานข้อมูล | PostgreSQL 15+ ผ่าน Prisma 7 ORM |
-| Authentication | NextAuth 5 (Credentials + bcryptjs) |
+| Authentication | NextAuth 5 (Google OAuth Provider + Credentials เฉพาะบัญชีชั่วคราว, bcryptjs) |
 | Styling | Tailwind CSS 4 |
 | Excel I/O | `xlsx` |
 | Word Export | `docxtemplater` + `pizzip` |
 | Image capture | `html-to-image` (สำหรับ export ผังเวที) |
-| Email | Resend (สำหรับ password reset) |
+| Email | Resend (สำหรับแจ้งเตือน admin/ผลการอนุมัติ) |
 
 ---
 
@@ -49,30 +49,39 @@
 
 ### 3.1 ระบบสมาชิก (Authentication & Profile)
 
-- FR-1.1: **Self-registration** — สมาชิกสมัครบัญชีเองได้จากหน้า Login (ไม่ต้องให้ admin สร้างให้)
-- FR-1.1.1: **Email verification via Supabase Auth** — หน้า `/register` เรียก `supabase.auth.signUp()` ให้ Supabase เป็นผู้ส่งลิงก์ยืนยันอีเมล (built-in) ผู้ใช้ต้องคลิกยืนยันก่อนบัญชีจึงจะถูกส่งเข้าคิวรออนุมัติ
-- FR-1.1.2: **Admin approval** — หลัง email verified callback → สร้าง row `User` ใน Prisma สถานะ `PENDING_APPROVAL` และ **ยังเข้าระบบไม่ได้** จนกว่า admin จะอนุมัติผ่านหน้า admin panel (อนุมัติ / ปฏิเสธ / ระบุเหตุผล)
-- FR-1.1.3: **Notification** — เมื่อมีบัญชีใหม่รอการอนุมัติ ระบบส่งแจ้งเตือน (email + in-app notice) ไปยัง admin ทุกคน และเมื่อ admin อนุมัติ/ปฏิเสธ ระบบแจ้งกลับให้ผู้สมัครทางอีเมล
-- FR-1.1.4: **Session** — Login ยังใช้ NextAuth Credentials (bcrypt + JWT session) เหมือนเดิม โดย `authorize()` เพิ่มเงื่อนไข `status === "ACTIVE"` และ Supabase `email_confirmed_at !== null`
+> **เปลี่ยนแปลงสำคัญใน v4.0:** ระบบ login/register ของ**สมาชิกทุกคน** เปลี่ยนจาก email+password มาใช้ **"Sign in with Google"** — NextAuth Credentials เดิมคงไว้เฉพาะ**บัญชีชั่วคราว** (FR-1.5) เท่านั้น ดูเหตุผลและสถานะการ implement ในหัวข้อ 5
 
-**สถาปัตยกรรม auth (Hybrid — Approach B):**
-- **Supabase Auth**: รับผิดชอบ email verification, ส่งเมลยืนยัน, verify token/callback
-- **NextAuth Credentials**: รับผิดชอบ session, JWT, role-based middleware (ของเดิม)
-- **Prisma `User`**: source of truth ของข้อมูลสมาชิก (nickname, role, status, …) — ผูกกับ Supabase user ด้วย `supabaseUserId` หรือ email
-- User เดิมที่มีอยู่ก่อน migration → mark `emailVerified = true` และ `status = ACTIVE` เลย ไม่ต้องส่ง verify ใหม่
-- FR-1.2: โปรไฟล์สมาชิก: ชื่อเล่น, รุ่น, เครื่องดนตรีหลัก, เครื่องดนตรีรอง, รูปโปรไฟล์ (avatar upload)
+- FR-1.1: **Self-registration ผ่าน Google** — สมาชิกกดปุ่ม **"Sign in with Google"** จากหน้า Login ไม่มีฟอร์มกรอกอีเมล/รหัสผ่านอีกต่อไป (ไม่มีทั้ง self-registration แบบเดิมและ Supabase email-link verification)
+- FR-1.1.1: **Verified email ผ่าน Google OAuth** — Google เป็นผู้ยืนยันตัวตนและอีเมลให้แล้วในขั้นตอน OAuth consent จึงไม่ต้องมีขั้นตอนส่ง verification email แยกต่างหากอีก (ตัด Supabase Auth ออกจากระบบทั้งหมด)
+- FR-1.1.2: **Admin approval (deny-by-default ยังคงอยู่)** — ครั้งแรกที่ผู้ใช้ sign in ด้วย Google สำเร็จ → สร้าง row `User` ใน Prisma ผูกกับ Google account (เช่น ด้วย email หรือ Google `sub`) สถานะ `PENDING_APPROVAL` และ **ยังเข้าระบบไม่ได้** จนกว่า admin จะอนุมัติผ่านหน้า admin panel (อนุมัติ / ปฏิเสธ / ระบุเหตุผล) — พฤติกรรม deny-by-default นี้เหมือนเดิมทุกประการ เปลี่ยนแค่วิธียืนยันตัวตนเท่านั้น
+- FR-1.1.3: **Notification** — เมื่อมีบัญชีใหม่รอการอนุมัติ ระบบส่งแจ้งเตือน (email + in-app notice) ไปยัง admin ทุกคน และเมื่อ admin อนุมัติ/ปฏิเสธ ระบบแจ้งกลับให้ผู้สมัครทางอีเมล (ใช้ Resend เหมือนเดิม — ส่วนนี้ไม่กระทบจากการเปลี่ยน auth)
+- FR-1.1.4: **Session** — Login ใช้ NextAuth Google OAuth Provider เป็นช่องทางหลัก session/JWT callback เพิ่มเงื่อนไข `status === "ACTIVE"` เหมือนเดิม ก่อนอนุญาตให้เข้าระบบ
+
+**สถาปัตยกรรม auth (v4.0 — Google-first + Credentials เฉพาะบัญชีชั่วคราว):**
+- **NextAuth Google Provider**: ช่องทางเดียวของ**สมาชิกทุกคน** รับผิดชอบทั้งการยืนยันตัวตนและอีเมล (แทน Supabase Auth + Credentials เดิม)
+- **NextAuth Credentials Provider**: คงไว้ **เฉพาะบัญชีชั่วคราว** (`isTemporary = true`) เท่านั้น — ดู FR-1.5
+- **Prisma `User`**: ยังเป็น source of truth ของข้อมูลสมาชิก (nickname, role, status, …) — สมาชิกปกติผูกกับ Google account ด้วยฟิลด์ผูกบัญชี (เช่น `googleId`/email) แทน `supabaseUserId` เดิม; `passwordHash` ยังคงอยู่ใน schema แต่ใช้กับบัญชีชั่วคราวเท่านั้น (สมาชิกปกติเป็น null)
+- **Migration สมาชิกเดิม**: สมาชิกที่เคย login ด้วย email+password ต้อง sign in ด้วย Google account ที่ใช้อีเมลตรงกับบัญชีเดิมเพื่อ "link" เข้ากับ row `User` เดิมโดยอัตโนมัติ (จับคู่ด้วย email) ไม่ต้องสมัครใหม่และไม่ต้องผ่าน admin approval ซ้ำถ้าบัญชีเดิม `status = ACTIVE` อยู่แล้ว — หลัง migration ต้อง**ล้าง `passwordHash` ของสมาชิกปกติทิ้ง**เพื่อปิดทางเข้าเดิม
+- FR-1.2: โปรไฟล์สมาชิก: ชื่อเล่น, รุ่น, เครื่องดนตรีหลัก, เครื่องดนตรีรอง, รูปโปรไฟล์ (avatar upload — เริ่มต้นดึงจากรูป Google ได้ แต่ยังแก้ไขเองได้)
 - FR-1.3: ประวัติการแสดงย้อนหลังของสมาชิก — บันทึกอัตโนมัติจากระบบจองคิวเครื่องดนตรี
-- FR-1.4: Password Reset ผ่านอีเมล (ใช้ Resend ในการส่ง)
-- FR-1.5: บัญชีชั่วคราว (Temporary Account) สำหรับผู้ร่วมแสดงที่ไม่ได้เป็นสมาชิกถาวร (สร้างโดย admin เท่านั้น ไม่ผ่านขั้นตอน self-registration)
+- FR-1.5: **บัญชีชั่วคราว (Temporary Account) — login ด้วย Credentials** สำหรับผู้ร่วมแสดงที่ไม่ได้เป็นสมาชิกถาวรและอาจไม่มี/ไม่สะดวกผูก Google account:
+  - สร้างโดย **admin เท่านั้น** (ไม่ผ่าน self-registration) โดย admin ตั้ง username/อีเมล + รหัสผ่านให้แล้วส่งให้ผู้ร่วมแสดงโดยตรง — บัญชีถูก mark `isTemporary = true` และผูกกับงานแสดง (`linkedPerformanceId`)
+  - บัญชีชั่วคราวที่ admin สร้าง **ข้ามขั้น `PENDING_APPROVAL`** ได้ทันที (`status = ACTIVE`) เพราะ admin เป็นผู้สร้างเอง = อนุมัติในตัว
+  - **ข้อจำกัดสำคัญ (deny-by-default):** `authorize()` ของ Credentials provider ต้องปฏิเสธทุก user ที่ `isTemporary !== true` เสมอ เพื่อกันไม่ให้สมาชิกปกติย้อนกลับไป login ด้วย password ได้ และต้องเช็ค `status === "ACTIVE"` เหมือน provider หลัก
+  - ไม่มี self-service password reset สำหรับบัญชีชั่วคราว — ให้ admin ตั้งรหัสใหม่ให้แทน (ดู FR-5.4)
+  - หมดอายุแล้วเปลี่ยนสถานะเป็น `EXPIRED` พร้อม utility ล้างบัญชีที่หมดอายุ (เหมือนเดิม)
+
+~~FR-1.4: Password Reset ผ่านอีเมล~~ — **ตัดออก** ไม่มี password ในระบบอีกต่อไปหลังเปลี่ยนเป็น Google-only login
 
 **สถานะบัญชี (Account Status):**
 | สถานะ | ความหมาย | เข้าระบบได้? |
 |---|---|---|
-| `PENDING_EMAIL` | สมัครแล้ว รอยืนยันอีเมล | ❌ |
-| `PENDING_APPROVAL` | ยืนยันอีเมลแล้ว รอ admin อนุมัติ | ❌ |
+| `PENDING_APPROVAL` | Sign in with Google สำเร็จครั้งแรก รอ admin อนุมัติ | ❌ |
 | `ACTIVE` | อนุมัติแล้ว | ✅ |
 | `REJECTED` | admin ปฏิเสธ | ❌ |
 | `SUSPENDED` | ถูกระงับภายหลัง | ❌ |
+| `EXPIRED` | บัญชีชั่วคราวหมดอายุ (ดู FR-1.5) | ❌ |
+| ~~`PENDING_EMAIL`~~ | เลิกใช้ — ไม่มีขั้นตอนยืนยันอีเมลของระบบเองแล้ว (ยังคงค่าไว้ใน enum `AccountStatus` เพื่อไม่ให้ migration พัง) | ❌ |
 
 ---
 
@@ -153,7 +162,7 @@
 - FR-5.1: Admin ดูข้อมูลสมาชิกทั้งหมด (ชื่อเล่น, รุ่น, เครื่องดนตรีหลัก-รอง) พร้อม filter/search
 - FR-5.2: สร้างตารางซ้อม เลือกงานแสดงที่จะซ้อมและกำหนดวันที่ซ้อม
 - FR-5.3: Role-based Access Control — HEAD แก้ไขได้เฉพาะงานที่ตนถูก assign, ADMIN แก้ได้ทุกส่วน
-- FR-5.4: Password Reset โดย Admin
+- FR-5.4: **Password Reset โดย Admin — เฉพาะบัญชีชั่วคราว** (FR-1.5) เท่านั้น; สมาชิกปกติไม่มี password ให้ reset แล้ว (login ผ่าน Google) admin จัดการได้ด้วยการอนุมัติ/ปฏิเสธ/ระงับบัญชี (`ACTIVE` / `REJECTED` / `SUSPENDED`) แทน
 - FR-5.5: Audit Log บันทึกผู้แก้ไข วันเวลา เชื่อมกับ Version History (append-only) — *สถานะ: schema พร้อม แต่ยังไม่ wire เข้า endpoint, ดูหัวข้อ 5*
 
 ---
@@ -281,6 +290,10 @@ GROUP BY ps.id;
 
 | หัวข้อ | รายละเอียด | สถานะ |
 |---|---|---|
+| **Google sign-in (FR-1.1)** | หัวข้อ 3.1 v4.0 เป็น **target design ยังไม่ได้เขียนโค้ด** — ปัจจุบันหน้า `/register` + `/login` ยังเป็น email+password (NextAuth Credentials + bcrypt) สำหรับทุกคนอยู่ | **ยังไม่ implement** |
+| **สถานะ auth ในโค้ดปัจจุบัน** | commit `a67337a` (12 ส.ค. 2569) ปิดขั้นตอน email verification เพราะ Resend ส่งเมลไม่เสถียร — `POST /api/auth/register` จึงสร้าง `User` สถานะ `PENDING_APPROVAL` ทันทีโดยไม่ verify อีเมล ส่วนโค้ด Supabase (`/auth/callback`, model `PendingRegistration`, `supabaseUserId`) ยังอยู่ในโปรเจกต์แต่ **ไม่ถูกเรียกใช้** (dead path, tag `v1-email-verification`) | ของเดิมรอลบทิ้งเมื่อย้ายไป Google |
+| Migration สมาชิกเดิม → Google | ต้องยืนยันว่าสมาชิกทุกคนมีอีเมลที่ผูก Google account ได้จริง (เช่น อีเมลมหาวิทยาลัย/Gmail) ก่อนตัด password login ทิ้ง มิฉะนั้นจะมีคน login ไม่ได้ | รอตรวจสอบรายชื่ออีเมลสมาชิก |
+| บัญชีชั่วคราว (FR-1.5) กับ Google-only | **ตัดสินใจแล้ว (16 ก.ย. 2569): คง Credentials provider ไว้เฉพาะบัญชีชั่วคราว** โดย `authorize()` ต้อง reject ทุก user ที่ `isTemporary !== true` — ข้อนี้คือจุดที่พลาดแล้วเปิดช่องให้สมาชิกปกติ login ด้วย password ได้ ต้องมี test ครอบ | ตัดสินใจแล้ว รอ implement |
 | Anti double-booking (FR-4.12) | ยังไม่มี unique constraint / validation กันการจองเครื่องดนตรีซ้ำใน SongAssignment | **ยังไม่ implement** |
 | Audit Log wiring (FR-5.5) | Prisma model `AuditLog` มีอยู่แล้ว แต่ยังไม่มี endpoint ใดเรียกเขียน log | **ยังไม่ implement** |
 | Stage search | ไม่มีการค้นหา/กรองผังเวที (ดูได้เฉพาะผ่านการ์ดในหน้ารายการ) | ยังไม่มีแผน |

@@ -71,6 +71,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       name,
       deadline: deadline ? new Date(deadline) : null,
       createdById: session.user.id,
+      createdByName: session.user.name ?? "",
       slots: {
         create: slots.map((s, order) => ({
           date: new Date(s.date),

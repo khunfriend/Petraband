@@ -9,7 +9,25 @@
 
 ## 🔴 กำลังทำอยู่
 
-ว่าง — งาน P0 เสร็จแล้ว หยิบข้อถัดไปได้เลย
+### ⏸️ Migration แก้ปัญหาลบสมาชิกไม่ได้ — **เขียนครบแล้ว ยังไม่ได้ apply ลง production**
+
+**เหลือขั้นตอนเดียว** รันใน `frontend/`:
+
+```bash
+npx prisma migrate deploy
+```
+
+ผมรันเองไม่ได้ ถูก auto-mode classifier บล็อกเพราะเป็น production deploy — เจ้าของต้องรันเอง หรืออนุญาตผ่าน settings
+
+**⚠️ จนกว่าจะรัน แอปจะพังถ้าใช้งานฟีเจอร์เหล่านี้** เพราะโค้ดเขียน `createdByName` แต่คอลัมน์ยังไม่มีใน DB: แก้เพลง, กู้คืนเวอร์ชันเพลง, บันทึก/กู้คืนผังเวที, สร้างตารางซ้อม, สร้างโพล
+
+**ทำไปแล้ว:**
+- Backup ทั้ง DB → `/Users/friend/Petraband-backups/petraband-2026-09-16T07-30-47-146Z.json` (42 ตาราง 4,774 แถว, มี PII อย่าเผลอ commit)
+- แก้ `schema.prisma` 8 จุด · migration `prisma/migrations/20260916000000_decouple_user_refs/` (68 บรรทัด + backfill ชื่อจาก `User.nickname`)
+- ตรวจแล้วว่าไม่มี `DROP TABLE` / `DROP COLUMN` / `TRUNCATE` / `DELETE`
+- เขียน `createdByName` ที่ call site ครบ 7 จุด · `tsc` / `npm test` (28) ผ่าน
+
+**หลัง apply แล้วควรทำต่อ:** ทดสอบว่าลบสมาชิกที่มีประวัติได้จริง และหน้าประวัติยังแสดงชื่อคนแก้ถูกต้อง
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 

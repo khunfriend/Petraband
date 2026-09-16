@@ -47,6 +47,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         duration: current.duration,
         message: commitMessage?.trim() || "แก้ไขโน้ต",
         createdById: session.user.id,
+        createdByName: session.user.name ?? "",
       },
     }),
     prisma.song.update({ where: { id }, data: songData }),

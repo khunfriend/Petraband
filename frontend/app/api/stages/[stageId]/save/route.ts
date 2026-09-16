@@ -49,6 +49,7 @@ export async function POST(req: Request, { params }: Params) {
         snapshotJson: items,
         changeNote: changeNote ?? undefined,
         createdById: session.user.id,
+        createdByName: session.user.name ?? "",
       },
     }),
     prisma.stageLayout.update({

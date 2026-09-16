@@ -57,6 +57,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         title: parsed.data.title,
         sourcePollId: pollId,
         createdById: session.user.id,
+        createdByName: session.user.name ?? "",
         days: {
           create: dates.map((dateStr, dayOrder) => ({
             date: new Date(dateStr),

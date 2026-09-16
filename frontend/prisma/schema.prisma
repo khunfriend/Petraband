@@ -165,11 +165,13 @@ model SongVersion {
   sheetData   Json?
   duration    Int?
   message     String   @default("แก้ไขโน้ต")
-  createdById String
+  createdById String?
+  // Snapshot of the editor's name: the history outlives the account (NFR-2).
+  createdByName String @default("")
   createdAt   DateTime @default(now())
 
-  song      Song @relation(fields: [songId], references: [id], onDelete: Cascade)
-  createdBy User @relation(fields: [createdById], references: [id])
+  song      Song  @relation(fields: [songId], references: [id], onDelete: Cascade)
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
 }
 
 // ─── Performances ──────────────────────────────────────────
@@ -272,7 +274,7 @@ model Rsvp {
   status            RsvpStatus @default(PENDING)
   updatedAt         DateTime   @updatedAt
 
-  user            User            @relation(fields: [userId], references: [id])
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   performanceDate PerformanceDate @relation(fields: [performanceDateId], references: [id], onDelete: Cascade)
 
   @@unique([userId, performanceDateId])
@@ -288,7 +290,7 @@ model SongAssignment {
   createdAt         DateTime @default(now())
 
   performanceSong PerformanceSong @relation(fields: [performanceSongId], references: [id], onDelete: Cascade)
-  user            User            @relation(fields: [userId], references: [id])
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   instrument      Instrument      @relation(fields: [instrumentId], references: [id])
 
   @@unique([performanceSongId, userId])
@@ -317,11 +319,12 @@ model StageLayoutVersion {
   versionNumber Int      @default(1)
   snapshotJson  Json
   changeNote    String   @default("")
-  createdById   String
+  createdById   String?
+  createdByName String   @default("")
   createdAt     DateTime @default(now())
 
   stageLayout StageLayout @relation(fields: [stageLayoutId], references: [id], onDelete: Cascade)
-  createdBy   User        @relation(fields: [createdById], references: [id])
+  createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
 }
 
 model StageItem {
@@ -377,7 +380,7 @@ model RehearsalAttendance {
   note        String?
 
   rehearsal Rehearsal @relation(fields: [rehearsalId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([rehearsalId, userId])
 }
@@ -432,12 +435,14 @@ model PracticeSchedule {
   performanceId String
   title         String   @default("ตารางซ้อม")
   sourcePollId  String?
-  createdById   String
+  // SetNull, never Cascade: deleting the creator must not delete a schedule the whole band uses.
+  createdById   String?
+  createdByName String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   performance  Performance          @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  createdBy    User                 @relation("ScheduleCreator", fields: [createdById], references: [id])
+  createdBy    User?                @relation("ScheduleCreator", fields: [createdById], references: [id], onDelete: SetNull)
   sourcePoll   AvailabilityPoll?    @relation(fields: [sourcePollId], references: [id], onDelete: SetNull)
   days         PracticeDay[]
   memberGroups PracticeMemberGroup[]
@@ -494,12 +499,13 @@ model AvailabilityPoll {
   deadline       DateTime?
   timezone       String     @default("Asia/Bangkok")
   status         PollStatus @default(OPEN)
-  createdById    String
+  createdById    String?
+  createdByName  String     @default("")
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
   performance Performance                @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  createdBy   User                       @relation("PollCreator", fields: [createdById], references: [id])
+  createdBy   User?                      @relation("PollCreator", fields: [createdById], references: [id], onDelete: SetNull)
   slots       AvailabilityPollSlot[]
   schedules   PracticeSchedule[]
 
@@ -551,14 +557,15 @@ model PracticeAvailability {
 
 model AuditLog {
   id         String   @id @default(cuid())
-  userId     String
+  userId     String?
+  userName   String   @default("")
   action     String   // e.g. "UPDATE_STAGE_LAYOUT", "CREATE_REHEARSAL"
   targetType String   // e.g. "StageLayout", "Rehearsal"
   targetId   String
   payload    Json?    // diff or snapshot
   createdAt  DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 // ─── Global Instrument Equipment Settings ─────────────────

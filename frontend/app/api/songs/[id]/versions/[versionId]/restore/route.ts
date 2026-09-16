@@ -29,6 +29,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
         duration: current.duration,
         message: `ก่อนย้อนกลับเป็น "${version.message}"`,
         createdById: session.user.id,
+        createdByName: session.user.name ?? "",
       },
     }),
     // Restore

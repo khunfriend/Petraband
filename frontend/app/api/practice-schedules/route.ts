@@ -84,6 +84,7 @@ export async function POST(req: Request) {
       performanceId,
       title,
       createdById: session.user.id,
+      createdByName: session.user.name ?? "",
       days: {
         create: days.map((d, dayOrder) => ({
           date: new Date(d.date),

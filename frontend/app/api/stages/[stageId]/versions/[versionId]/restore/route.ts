@@ -49,6 +49,7 @@ export async function POST(_req: Request, { params }: Params) {
         snapshotJson: items,
         changeNote: `กู้คืนเวอร์ชัน #${version.versionNumber}`,
         createdById: session.user.id,
+        createdByName: session.user.name ?? "",
       },
     }),
     prisma.stageLayout.update({

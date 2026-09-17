@@ -1,7 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { sendAdminNewPendingEmail } from "@/lib/email";
 import { authConfig } from "./auth.config";
 import type { Role } from "@prisma/client";
 
@@ -23,9 +25,24 @@ async function downgradeExpiredTempAccounts() {
   } catch { /* silent */ }
 }
 
+async function notifyAdminsOfPending(nickname: string, email: string) {
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN", status: "ACTIVE" },
+      select: { email: true, nickname: true },
+    });
+    await Promise.all(
+      admins.map((a) => sendAdminNewPendingEmail(a.email, a.nickname, nickname, email))
+    );
+  } catch (e) {
+    console.error("[google signIn] admin notify failed:", e);
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
+    Google,
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
@@ -45,6 +62,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (!user) { console.error("[authorize] user not found:", credentials.email); return null; }
+
+        // Password sign-in exists only for temporary accounts (PRD FR-1.5).
+        // Without this, a member could skip Google entirely and the migration
+        // would buy nothing.
+        if (!user.isTemporary) {
+          console.error("[authorize] not a temporary account, use Google:", credentials.email);
+          return null;
+        }
 
         let isValid;
         try {
@@ -76,8 +101,70 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user, trigger }) {
+
+    // Google is the members' only way in. A first sign-in creates the account
+    // but does NOT let it through — an admin still has to approve it.
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "google") return true;
+
+      const email = user.email;
+      if (!email || profile?.email_verified === false) return "/login?error=google_email";
+
+      const existing = await prisma.user.findUnique({ where: { email } });
+
+      if (!existing) {
+        const created = await prisma.user.create({
+          data: {
+            email,
+            // Google carries the identity; nothing signs in with this hash.
+            passwordHash: "",
+            nickname: user.name?.slice(0, 60) || email.split("@")[0],
+            avatarUrl: user.image ?? null,
+            emailVerifiedAt: new Date(),
+            status: "PENDING_APPROVAL",
+            role: "MEMBER",
+          },
+        });
+        void notifyAdminsOfPending(created.nickname, created.email);
+        return "/login?pending=1";
+      }
+
+      if (existing.status !== "ACTIVE") {
+        return existing.status === "PENDING_APPROVAL"
+          ? "/login?pending=1"
+          : `/login?error=${existing.status.toLowerCase()}`;
+      }
+
+      // Existing member signing in with Google for the first time: record that
+      // Google vouched for the address, and drop any leftover password.
+      if (!existing.emailVerifiedAt || existing.passwordHash !== "") {
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: {
+            emailVerifiedAt: existing.emailVerifiedAt ?? new Date(),
+            passwordHash: existing.isTemporary ? existing.passwordHash : "",
+          },
+        });
+      }
+      return true;
+    },
+
+    async jwt({ token, user, account, trigger }) {
       if (user) {
+        // Google hands back its own profile, not our row — look ours up.
+        if (account?.provider === "google") {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email as string },
+            select: { id: true, role: true, avatarUrl: true, tokenVersion: true, nickname: true },
+          });
+          if (!dbUser) return null;
+          token.id = dbUser.id;
+          token.role = dbUser.role;
+          token.avatarUrl = dbUser.avatarUrl;
+          token.tokenVersion = dbUser.tokenVersion;
+          token.name = dbUser.nickname;
+          return token;
+        }
         token.id = user.id as string;
         token.role = (user as { role: Role }).role;
         token.avatarUrl = (user as unknown as { avatarUrl?: string | null }).avatarUrl ?? null;

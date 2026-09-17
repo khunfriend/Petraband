@@ -2,11 +2,24 @@
 
 import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Eyebrow } from "@/components/ui/Eyebrow";
-import { loginAction } from "./actions";
+import { loginAction, googleSignInAction } from "./actions";
+
+// Messages the Google sign-in flow redirects back with.
+const NOTICES: Record<string, { text: string; tone: "info" | "error" }> = {
+  pending: {
+    text: "สมัครเรียบร้อยแล้ว — รอผู้ดูแลอนุมัติบัญชีก่อนจึงจะเข้าใช้งานได้ ระบบแจ้งผู้ดูแลให้แล้ว",
+    tone: "info",
+  },
+  rejected: { text: "บัญชีนี้ถูกปฏิเสธ กรุณาติดต่อผู้ดูแล", tone: "error" },
+  suspended: { text: "บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแล", tone: "error" },
+  expired: { text: "บัญชีชั่วคราวนี้หมดอายุแล้ว", tone: "error" },
+  google_email: { text: "ไม่สามารถยืนยันอีเมลจาก Google ได้", tone: "error" },
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -24,6 +37,10 @@ function SubmitButton() {
 
 export default function LoginPage() {
   const [state, action] = useActionState(loginAction, null);
+  const params = useSearchParams();
+  const notice = params.get("pending")
+    ? NOTICES.pending
+    : NOTICES[params.get("error") ?? ""];
 
   useEffect(() => {
     if (state && "success" in state) {
@@ -41,7 +58,31 @@ export default function LoginPage() {
         เข้าสู่ระบบเพื่อดูตารางงานและซ้อมของวง
       </p>
 
-      <form action={action} className="mt-8 flex flex-col gap-4">
+      {notice && (
+        <p
+          className={`mt-6 rounded-md border px-4 py-3 text-sm leading-[1.7] ${
+            notice.tone === "info"
+              ? "border-primary/30 bg-primary/5 text-body-strong"
+              : "border-error/30 bg-error/5 text-error"
+          }`}
+        >
+          {notice.text}
+        </p>
+      )}
+
+      <form action={googleSignInAction} className="mt-8">
+        <Button type="submit" variant="secondary" className="w-full h-11">
+          เข้าสู่ระบบด้วย Google
+        </Button>
+      </form>
+
+      <div className="mt-6 flex items-center gap-3">
+        <span className="h-px flex-1 bg-hairline" />
+        <span className="text-xs text-muted">หรือ สำหรับผู้ร่วมแสดงเฉพาะกิจ</span>
+        <span className="h-px flex-1 bg-hairline" />
+      </div>
+
+      <form action={action} className="mt-6 flex flex-col gap-4">
         <Input
           label="อีเมล"
           id="email"

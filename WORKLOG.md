@@ -9,7 +9,17 @@
 
 ## 🔴 กำลังทำอยู่
 
-ว่าง — หยิบข้อถัดไปได้เลย
+### ⏸️ Google Sign-in — โค้ดเสร็จ ทดสอบบน dev ได้บางส่วน **ยังห้าม deploy**
+
+🚨 **ห้าม deploy ขึ้น production จนกว่าจะยืนยันว่า Google login ใช้ได้จริง** — การ์ดใหม่ใน Credentials ปฏิเสธทุกบัญชีที่ `isTemporary !== true` ถ้าขึ้น production ก่อนที่ Google จะทำงาน **ทั้งวงจะเข้าระบบไม่ได้ทันที** และไม่มีใครเข้าไปแก้ได้ด้วย
+
+**ทำไปแล้ว:** Google provider ใน `auth.ts` · `signIn` callback สร้าง user สถานะ `PENDING_APPROVAL` เมื่อ login ครั้งแรกแล้วเด้งกลับ `/login?pending=1` (deny-by-default) · link บัญชีเดิมด้วย email + ล้าง `passwordHash` ของสมาชิกปกติ · การ์ด `isTemporary` ใน Credentials · `jwt` callback ดึง row จริงจาก DB เพราะ Google คืนมาแต่ profile ของตัวเอง · ปุ่ม + ข้อความแจ้งสถานะบนหน้า login
+**ผูกบัญชีด้วย email ไม่ใช่ `googleId`** — Google ยืนยันอีเมลให้อยู่แล้ว และเลี่ยง migration เพิ่ม (ถ้าอยากเก็บ `sub` ค่อยเพิ่มทีหลัง)
+
+**ทดสอบแล้ว:** การ์ดบล็อก `admin@petraband.club` จริง (log: `not a temporary account, use Google`) · ปุ่ม Google redirect ไป accounts.google.com ได้ client ID ตรง ไม่มี `redirect_uri_mismatch`
+**ยังทดสอบไม่ได้ (ต้องใช้บัญชี Google ของเจ้าของ):** login จนจบ → สร้าง PENDING_APPROVAL → อนุมัติ → เข้าได้จริง
+
+**ขั้นต่อไป:** เจ้าของกดปุ่ม "เข้าสู่ระบบด้วย Google" บน localhost:3000 แล้วบอกผลมา จากนั้นผมจะ set บัญชีนั้นเป็น ACTIVE+ADMIN ใน dev DB เพื่อทดสอบรอบสอง
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 

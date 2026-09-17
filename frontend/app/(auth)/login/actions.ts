@@ -21,3 +21,9 @@ export async function loginAction(
 
   return { success: true };
 }
+
+export async function googleSignInAction() {
+  // Redirects to Google; the signIn callback in auth.ts decides what happens
+  // when it comes back.
+  await signIn("google", { redirectTo: "/dashboard" });
+}

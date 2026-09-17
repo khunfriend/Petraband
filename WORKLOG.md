@@ -57,6 +57,7 @@
 
 ## 📌 การตัดสินใจที่ค้างอยู่ (อย่าเดาเอง — ถามเจ้าของก่อน)
 
+- **Postgres ในเครื่อง (brew postgresql@16) ตั้ง require password ไว้** — ไม่ใช่ค่าเริ่มต้นของ Homebrew และไม่มีใครรู้รหัส จึงใช้ Docker แทน · มีคอนเทนเนอร์ของ **Petraband v1 เก่ารันค้างอยู่** (`petraband-db` 5433, `petraband-db-1` 5434, `petraband-api`, `petraband-frontend`) ยังไม่ได้ตัดสินใจว่าจะลบไหม **ห้ามแตะจนกว่าจะได้คำสั่ง**
 - **repo นอกที่ `/Users/friend`** — ค้าง 275 ไฟล์, ahead 37 / behind 73, มี `secrets.txt`, `.Trash` และมี commit `329653e69` ที่ลงผิดที่ ยังไม่ได้ตัดสินใจว่าจะลบ / ปล่อยไว้ / ย้ายของออก **ห้ามแตะจนกว่าจะได้คำสั่ง**
 - **auth migration (PRD หัวข้อ 5)** — ต้องเช็คก่อนว่าสมาชิกทุกคนมีอีเมลผูก Google ได้จริง ก่อนตัด password login
 - **โค้ด Supabase ที่ค้างอยู่** — `app/auth/callback/route.ts`, model `PendingRegistration`, field `supabaseUserId` ไม่ถูกเรียกใช้แล้วตั้งแต่ `a67337a` รอลบตอนย้ายไป Google
@@ -65,11 +66,10 @@
 
 - **repo ซ้อน 2 ตัว** — อ่าน CLAUDE.md ก่อนใช้ git ทุกครั้ง
 - ไฟล์ PRD ใน repo นอกเป็นคนละเวอร์ชันกับ repo ใน อย่าเอามาเทียบกัน
-- **🚨 `frontend/.env` ชี้ `DATABASE_URL` ไปที่ Supabase production โดยตรง** (`aws-0-ap-southeast-1.pooler.supabase.com`) — ไม่มี DB local, ไม่มี `.env.local`
-  → **`npm run dev` ในเครื่อง = อ่าน/เขียนฐานข้อมูลจริงของวงทันที** ไม่มีตัวกั้นใด ๆ ตรวจ `DATABASE_URL` ก่อนรันอะไรที่เขียน DB เสมอ
-  → ปัจจุบันมีโน้ตจริง 3,841 เซลล์ใน 12 สมุด — ห้ามทดสอบฟีเจอร์ที่ลบ/ล้างข้อมูล (undo, delete row/col, paste ทับ) บนโน้ตจริง ให้สร้างสมุดทดสอบเองแล้วลบทิ้ง
-  → ห้ามรัน `npm run db:seed` ส่ง ๆ เพราะ upsert ทับข้อมูลจริงได้
-  → **ควรพิจารณาทำ DB สำหรับ dev แยกต่างหาก** เรื่องนี้ยังไม่ได้ตัดสินใจ
+- **DB: มี dev แยกแล้ว (17 ก.ย. 2569)** — `frontend/.env.local` ชี้ Docker `petraband-dev` (postgres:17 พอร์ต 5435) และถูกอ่านก่อน `.env` เสมอ · `.env` ยังชี้ Supabase production ตามเดิม ไม่ถูกแตะ
+  → **เปลี่ยน `.env.local` แล้วต้องรีสตาร์ท dev server** เพราะ `lib/prisma.ts` แคช client ไว้ใน `globalForPrisma` (Next.js reload env เองแต่ client ตัวเก่ายังถือ connection string เดิม)
+  → เช็คก่อนทำงานทุกครั้ง: `npx prisma migrate status | grep Datasource` ต้องเป็น `localhost:5435`
+  → production ปัจจุบัน: users 5, songs 12, cells 3,844 — ห้ามทดสอบฟีเจอร์ที่ลบ/ล้างข้อมูลกับมัน
 - **`DELETE /api/users/[id]` (`route.ts:80`) ยังไม่มี try/catch** — error จาก DB จะโยนเป็น 500 ดิบ ๆ ให้หน้า admin โดยไม่บอกสาเหตุ ตอนนี้เคส FK แก้ที่ต้นเหตุไปแล้ว แต่ error handling ยังไม่มี **ยังไม่ได้แก้**
 - **บัญชี seed `admin@petraband.club` มีอยู่จริงแต่รหัสไม่ใช่ `admin1234` แล้ว** — ต้องให้เจ้าของ login ให้เองตอนต้องทดสอบผ่าน UI อย่าเดารหัส
 - Prisma 7 ที่นี่ใช้ driver adapter — สร้าง `PrismaClient` ต้องส่ง `new PrismaPg({connectionString})` เสมอ (ดู `frontend/lib/prisma.ts`) เขียนสคริปต์ probe แบบ `new PrismaClient()` เปล่า ๆ จะพังทันที และสคริปต์ต้องวางใน `frontend/` ถึงจะ resolve โมดูลเจอ

@@ -1,11 +1,29 @@
-import "dotenv/config";
+// .env.local first, matching prisma.config.ts and Next.js. Plain
+// `dotenv/config` reads only .env, which pointed this seed at production.
+import { config as loadEnv } from "dotenv";
+loadEnv({ path: ".env.local" });
+loadEnv({ path: ".env" });
+
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const connectionString = process.env.DATABASE_URL!;
+
+// Seeding overwrites rows by name, so it must never hit the live database by
+// accident. Pass SEED_ALLOW_REMOTE=1 if that is genuinely what you want.
+if (!/localhost|127\.0\.0\.1/.test(connectionString) && process.env.SEED_ALLOW_REMOTE !== "1") {
+  console.error(
+    `\n❌ ยกเลิก: DATABASE_URL ไม่ได้ชี้ไปที่เครื่องนี้\n   ${connectionString.replace(/:[^:@/]*@/, ":***@")}\n` +
+      `   seed เขียนทับข้อมูลตามชื่อ จึงไม่ยอมรันกับฐานข้อมูลนอกเครื่อง\n` +
+      `   ถ้าตั้งใจจริง ให้รันด้วย SEED_ALLOW_REMOTE=1\n`
+  );
+  process.exit(1);
+}
+
+const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 const INSTRUMENTS = [

@@ -38,6 +38,29 @@ git rev-parse --show-toplevel
 - `frontend/prisma/schema.prisma` — DB schema (PostgreSQL)
 - `PRD_ระบบจัดการวงดนตรีไทย.md` — spec หลัก หัวข้อ 5 คือรายการงานค้างระดับโปรดักต์
 
+## ฐานข้อมูล: dev ในเครื่อง vs production
+
+`frontend/.env` ชี้ไป **Supabase production** ส่วน `frontend/.env.local` (ไม่ขึ้น git) ชี้ไป **dev ในเครื่อง** และถูกอ่านก่อนเสมอ ทั้งใน Next.js, `prisma.config.ts` และ `prisma/seed.ts` — ตราบใดที่ `.env.local` อยู่ ทุกอย่างในเครื่องจะวิ่งเข้า dev
+
+```bash
+docker start petraband-dev     # เปิด dev DB (postgres:17 พอร์ต 5435)
+docker stop petraband-dev      # ปิด
+```
+
+บัญชีสำหรับ dev: `admin@petraband.club` / `admin1234` (จาก `npm run db:seed`)
+
+**ยืนยันว่าต่อถูกที่ก่อนทำงานเสมอ:**
+
+```bash
+cd frontend && npx prisma migrate status | grep Datasource
+```
+
+ต้องขึ้น `localhost:5435` ถ้าขึ้น `pooler.supabase.com` แปลว่ากำลังจะแก้ข้อมูลจริงของวง
+
+**⚠️ เปลี่ยน `.env.local` แล้วต้องรีสตาร์ท dev server** — Next.js โหลด env ใหม่เองก็จริง แต่ `lib/prisma.ts` แคช client ไว้ใน `globalForPrisma` เพื่อให้รอด hot-reload ตัวที่แคชไว้ยังถือ connection string เดิม
+
+ถ้าจะกลับไปใช้ production ชั่วคราว ให้เปลี่ยนชื่อ `.env.local` เป็น `.env.local.off` แล้วรีสตาร์ท
+
 ## คำสั่ง (รันใน `frontend/`)
 
 ```bash

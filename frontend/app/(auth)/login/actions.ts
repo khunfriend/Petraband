@@ -7,14 +7,14 @@ export async function loginAction(
   _prev: { error: string } | { success: true } | null,
   formData: FormData
 ): Promise<{ error: string } | { success: true } | null> {
-  const email = formData.get("email") as string;
+  const username = formData.get("username") as string;
   const password = formData.get("password") as string;
 
   try {
-    await signIn("credentials", { email, password, redirect: false });
+    await signIn("credentials", { username, password, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" };
+      return { error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" };
     }
     return { error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
   }

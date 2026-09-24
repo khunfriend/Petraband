@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { tempNicknameTaken } from "@/lib/guest-server";
 
 const updateSchema = z.object({
   nickname: z.string().min(1).max(50).optional(),
@@ -34,6 +35,13 @@ export async function PATCH(
   }
 
   const { secondaryInstrumentIds, ...rest } = parsed.data;
+
+  if (rest.nickname !== undefined) {
+    const target = await prisma.user.findUnique({ where: { id }, select: { isTemporary: true } });
+    if (target?.isTemporary && (await tempNicknameTaken(rest.nickname, id))) {
+      return NextResponse.json({ error: "ชื่อนี้มีบัญชีชั่วคราวใช้อยู่แล้ว" }, { status: 409 });
+    }
+  }
 
   const user = await prisma.user.update({
     where: { id },

@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { guestEmail } from "@/lib/guest";
+import { tempNicknameTaken } from "@/lib/guest-server";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -40,20 +42,15 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ users });
 }
 
+// Members join through Google (/register); admins only create temporary
+// accounts here, which sign in with nickname + password.
 const createSchema = z.object({
-  email: z.string().email(),
   password: z.string().min(8),
-  nickname: z.string().min(1).max(50),
-  firstName: z.string().max(50).optional(),
-  lastName: z.string().max(50).optional(),
-  avatarUrl: z.string().optional(),
+  nickname: z.string().trim().min(1).max(50),
   contact: z.string().max(200).optional(),
-  generation: z.string().default(""),
-  isTemporary: z.boolean().default(false),
-  linkedPerformanceId: z.string().optional(),
+  linkedPerformanceId: z.string().min(1),
   primaryInstrumentId: z.string().optional(),
   secondaryInstrumentIds: z.array(z.string()).default([]),
-  role: z.enum(["MEMBER", "HEAD", "ADMIN"]).default("MEMBER"),
 });
 
 export async function POST(req: NextRequest) {
@@ -72,31 +69,26 @@ export async function POST(req: NextRequest) {
   }
 
   const {
-    email, password, nickname, firstName, lastName, avatarUrl,
-    contact, generation, isTemporary, linkedPerformanceId,
-    primaryInstrumentId, secondaryInstrumentIds, role,
+    password, nickname, contact, linkedPerformanceId,
+    primaryInstrumentId, secondaryInstrumentIds,
   } = parsed.data;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return NextResponse.json({ error: "อีเมลนี้ถูกใช้งานแล้ว" }, { status: 409 });
+  // The nickname is the login name, so it must not collide.
+  if (await tempNicknameTaken(nickname)) {
+    return NextResponse.json({ error: "ชื่อนี้มีบัญชีชั่วคราวใช้อยู่แล้ว" }, { status: 409 });
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
 
   const user = await prisma.user.create({
     data: {
-      email,
+      email: guestEmail(),
       passwordHash,
       nickname,
-      firstName: firstName || null,
-      lastName: lastName || null,
-      avatarUrl: avatarUrl || null,
       contact: contact || null,
-      generation,
-      isTemporary,
-      linkedPerformanceId: isTemporary ? (linkedPerformanceId || null) : null,
-      role: isTemporary ? "MEMBER" : role,
+      isTemporary: true,
+      linkedPerformanceId,
+      role: "MEMBER",
       primaryInstrumentId: primaryInstrumentId || null,
       secondaryInstruments: {
         create: secondaryInstrumentIds.map((instrumentId) => ({ instrumentId })),

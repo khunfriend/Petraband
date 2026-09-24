@@ -47,43 +47,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google,
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "ชื่อผู้ใช้", type: "text" },
         password: { label: "Password", type: "password" },
       },
+      // Only temporary accounts sign in here (PRD FR-1.5), by nickname.
+      // Members use Google.
       authorize: async (credentials) => {
-        if (!credentials?.email || !credentials?.password) return null;
+        const username = String(credentials?.username ?? "").trim();
+        const password = String(credentials?.password ?? "");
+        if (!username || !password) return null;
 
-        let user;
+        let candidates;
         try {
-          user = await prisma.user.findUnique({
-            where: { email: credentials.email as string },
+          candidates = await prisma.user.findMany({
+            where: { isTemporary: true, nickname: { equals: username, mode: "insensitive" } },
           });
         } catch (e) {
           console.error("[authorize] prisma error:", e);
           return null;
         }
 
-        if (!user) { console.error("[authorize] user not found:", credentials.email); return null; }
-
-        // Password sign-in exists only for temporary accounts (PRD FR-1.5).
-        // Without this, a member could skip Google entirely and the migration
-        // would buy nothing.
-        if (!user.isTemporary) {
-          console.error("[authorize] not a temporary account, use Google:", credentials.email);
-          return null;
+        // Nicknames are unique among temporary accounts for new ones, but
+        // older accounts may still share one — the password tells them apart.
+        let user = null;
+        for (const c of candidates) {
+          try {
+            if (c.passwordHash && (await bcrypt.compare(password, c.passwordHash))) { user = c; break; }
+          } catch (e) {
+            console.error("[authorize] bcrypt error:", e);
+          }
         }
-
-        let isValid;
-        try {
-          isValid = await bcrypt.compare(credentials.password as string, user.passwordHash);
-        } catch (e) {
-          console.error("[authorize] bcrypt error:", e);
-          return null;
-        }
-        if (!isValid) { console.error("[authorize] wrong password for:", credentials.email); return null; }
+        if (!user) { console.error("[authorize] no temporary account matches:", username); return null; }
 
         if (user.status !== "ACTIVE") {
-          console.error(`[authorize] account not active (${user.status}):`, credentials.email);
+          console.error(`[authorize] account not active (${user.status}):`, username);
           return null;
         }
 

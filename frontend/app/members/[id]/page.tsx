@@ -209,11 +209,16 @@ export default async function MemberDetailPage({
                     ? [user.firstName, user.lastName].filter(Boolean).join(" ")
                     : null}
                 </InfoRow>
-                <InfoRow label="อีเมล">{user.email || null}</InfoRow>
+                {/* Temporary accounts only have a placeholder address */}
+                {!user.isTemporary && (
+                  <InfoRow label="อีเมล">{user.email || null}</InfoRow>
+                )}
               </>
             )}
             <InfoRow label="Contact">{user.contact || null}</InfoRow>
-            <InfoRow label="รุ่น Petra">{user.generation || null}</InfoRow>
+            {!user.isTemporary && (
+              <InfoRow label="รุ่น Petra">{user.generation || null}</InfoRow>
+            )}
             <InfoRow label="เครื่องดนตรีหลัก">
               {user.primaryInstrument?.nameThai || null}
             </InfoRow>

@@ -33,18 +33,17 @@ export default function GuestLoginPage() {
       <Eyebrow>Guest sign in</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">ผู้ร่วมแสดงเฉพาะกิจ</h1>
       <p className="mt-2 text-sm text-body leading-[1.7]">
-        ใช้อีเมลและรหัสผ่านที่ผู้ดูแลวงให้ไว้
+        ใช้ชื่อผู้ใช้และรหัสผ่านที่ผู้ดูแลวงให้ไว้
       </p>
 
       <form action={action} className="mt-8 flex flex-col gap-4">
         <Input
-          label="อีเมล"
-          id="email"
-          name="email"
-          type="email"
-          placeholder="yourname@example.com"
+          label="ชื่อผู้ใช้"
+          id="username"
+          name="username"
+          type="text"
           required
-          autoComplete="email"
+          autoComplete="username"
         />
         <Input
           label="รหัสผ่าน"

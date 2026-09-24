@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
+import { isGuestEmail } from "@/lib/guest";
 
 type Role = "MEMBER" | "HEAD" | "ADMIN";
 type Status = "PENDING_EMAIL" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "EXPIRED";
@@ -50,15 +51,6 @@ function RoleBadge({ role }: { role: Role }) {
 const selectClass =
   "h-10 rounded-[var(--radius-md)] border border-hairline bg-white px-3.5 text-sm text-ink transition-colors duration-[var(--duration-pb-base)] focus:outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15";
 
-function getGenerations() {
-  const currentYear = new Date().getFullYear();
-  const currentGen = currentYear - 2006;
-  const gens: string[] = [];
-  for (let i = currentGen; i >= 1; i--) gens.push(`#${i}`);
-  gens.push("#สมทบ", "#อาจารย์");
-  return gens;
-}
-
 export default function MembersClient({
   initialUsers,
   currentUserId,
@@ -82,21 +74,17 @@ export default function MembersClient({
   const [showExpired, setShowExpired] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
-  const [createMode, setCreateMode] = useState<"regular" | "temporary">("regular");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
-  const [form, setForm] = useState({
-    email: "",
+  // Admins only create temporary accounts; members join via Google.
+  const emptyForm = {
     password: "",
     nickname: "",
-    firstName: "",
-    lastName: "",
     contact: "",
-    generation: `#${new Date().getFullYear() - 2006}`,
     primaryInstrumentId: "",
     linkedPerformanceId: "",
-    role: "MEMBER" as Role,
-  });
+  };
+  const [form, setForm] = useState(emptyForm);
 
   const canManageRoles = isAdmin || isHead;
 
@@ -204,23 +192,13 @@ export default function MembersClient({
     setCreateError("");
     setCreateLoading(true);
     try {
-      const isTemp = createMode === "temporary";
-      const payload: Record<string, unknown> = {
-        email: form.email,
+      const payload = {
         password: form.password,
         nickname: form.nickname,
         contact: form.contact || undefined,
         primaryInstrumentId: form.primaryInstrumentId || undefined,
-        isTemporary: isTemp,
+        linkedPerformanceId: form.linkedPerformanceId,
       };
-      if (isTemp) {
-        payload.linkedPerformanceId = form.linkedPerformanceId || undefined;
-      } else {
-        payload.firstName = form.firstName || undefined;
-        payload.lastName = form.lastName || undefined;
-        payload.generation = form.generation;
-        payload.role = form.role;
-      }
 
       const res = await fetch("/api/users", {
         method: "POST",
@@ -233,18 +211,7 @@ export default function MembersClient({
         return;
       }
       setShowCreate(false);
-      setForm({
-        email: "",
-        password: "",
-        nickname: "",
-        firstName: "",
-        lastName: "",
-        contact: "",
-        generation: `#${new Date().getFullYear() - 2006}`,
-        primaryInstrumentId: "",
-        linkedPerformanceId: "",
-        role: "MEMBER",
-      });
+      setForm(emptyForm);
       router.refresh();
     } finally {
       setCreateLoading(false);
@@ -285,7 +252,7 @@ export default function MembersClient({
                 ) : (
                   <>
                     <Plus size={16} strokeWidth={1.75} />
-                    เพิ่มสมาชิก
+                    เพิ่มบัญชีชั่วคราว
                   </>
                 )}
               </Button>
@@ -368,80 +335,14 @@ export default function MembersClient({
           onSubmit={handleCreate}
           className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 md:p-6 flex flex-col gap-4"
         >
-          {/* Mode switch — navy filled active, no coral */}
-          <div className="flex rounded-[var(--radius-md)] border border-hairline overflow-hidden">
-            {(["regular", "temporary"] as const).map((mode, i) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setCreateMode(mode)}
-                className={cn(
-                  "flex-1 py-2 text-sm font-medium transition-colors duration-[var(--duration-pb-base)]",
-                  i > 0 && "border-l border-hairline",
-                  createMode === mode
-                    ? "bg-primary text-on-primary"
-                    : "bg-canvas text-muted hover:text-ink hover:bg-surface-cream-strong"
-                )}
-              >
-                {mode === "regular" ? "บัญชีทั่วไป" : "บัญชีชั่วคราว"}
-              </button>
-            ))}
-          </div>
-
           <Input
-            label="ชื่อ User (ชื่อเล่น)"
+            label="ชื่อผู้ใช้ (ใช้เข้าสู่ระบบ)"
             id="nickname"
             value={form.nickname}
             onChange={(e) => setField("nickname", e.target.value)}
             required
+            autoComplete="off"
           />
-
-          {createMode === "regular" && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="ชื่อจริง"
-                  id="firstName"
-                  value={form.firstName}
-                  onChange={(e) => setField("firstName", e.target.value)}
-                />
-                <Input
-                  label="นามสกุล"
-                  id="lastName"
-                  value={form.lastName}
-                  onChange={(e) => setField("lastName", e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-ink">รุ่น Petra</label>
-                  <select
-                    className={selectClass}
-                    value={form.generation}
-                    onChange={(e) => setField("generation", e.target.value)}
-                  >
-                    {getGenerations().map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-ink">Role</label>
-                  <select
-                    className={selectClass}
-                    value={form.role}
-                    onChange={(e) => setField("role", e.target.value as Role)}
-                  >
-                    <option value="MEMBER">Member</option>
-                    <option value="HEAD">Head</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                </div>
-              </div>
-            </>
-          )}
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-ink">เครื่องดนตรีหลัก</label>
@@ -459,38 +360,36 @@ export default function MembersClient({
             </select>
           </div>
 
-          {createMode === "temporary" && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-ink">
-                งานที่แสดง <span className="text-error">*</span>
-              </label>
-              <select
-                className={selectClass}
-                value={form.linkedPerformanceId}
-                onChange={(e) =>
-                  setField("linkedPerformanceId", e.target.value)
-                }
-                required
-              >
-                <option value="">-- เลือกงานแสดง --</option>
-                {upcomingPerformances.map((p) => {
-                  const date = p.firstDate
-                    ? new Date(p.firstDate).toLocaleDateString("th-TH", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "";
-                  return (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                      {date ? ` (${date})` : ""}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          )}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-ink">
+              งานที่แสดง <span className="text-error">*</span>
+            </label>
+            <select
+              className={selectClass}
+              value={form.linkedPerformanceId}
+              onChange={(e) =>
+                setField("linkedPerformanceId", e.target.value)
+              }
+              required
+            >
+              <option value="">-- เลือกงานแสดง --</option>
+              {upcomingPerformances.map((p) => {
+                const date = p.firstDate
+                  ? new Date(p.firstDate).toLocaleDateString("th-TH", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "";
+                return (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {date ? ` (${date})` : ""}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
 
           <Input
             label="Contact"
@@ -502,17 +401,10 @@ export default function MembersClient({
 
           <div className="border-t border-hairline-soft pt-4 flex flex-col gap-3">
             <Input
-              label="อีเมล"
-              id="email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setField("email", e.target.value)}
-              required
-            />
-            <Input
               label="รหัสผ่าน"
               id="password"
               type="password"
+              autoComplete="new-password"
               value={form.password}
               onChange={(e) => setField("password", e.target.value)}
               required
@@ -522,7 +414,7 @@ export default function MembersClient({
           </div>
 
           <Button type="submit" variant="primary" disabled={createLoading}>
-            {createLoading ? "กำลังสร้าง..." : "สร้างบัญชี"}
+            {createLoading ? "กำลังสร้าง..." : "สร้างบัญชีชั่วคราว"}
           </Button>
         </form>
       )}
@@ -574,7 +466,7 @@ export default function MembersClient({
                     {user.contact}
                   </p>
                 )}
-                {user.email && (
+                {user.email && !isGuestEmail(user.email) && (
                   <p className="text-xs text-muted-soft">{user.email}</p>
                 )}
               </Link>

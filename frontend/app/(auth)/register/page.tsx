@@ -50,8 +50,8 @@ export default function RegisterPage() {
           pattern="[฀-๿]+"
           title="ภาษาไทยเท่านั้น"
           placeholder="เช่น น้ำ"
-          defaultValue={state?.values.nickname}
-          error={state?.errors.nickname}
+          defaultValue={state?.values?.nickname}
+          error={state?.errors?.nickname}
         />
         <Input
           label="รุ่น (ตัวเลข)"
@@ -64,8 +64,8 @@ export default function RegisterPage() {
           pattern="\d{1,3}"
           title="ตัวเลขเท่านั้น"
           placeholder="เช่น 20"
-          defaultValue={state?.values.generation}
-          error={state?.errors.generation}
+          defaultValue={state?.values?.generation}
+          error={state?.errors?.generation}
         />
         <SubmitButton />
       </form>

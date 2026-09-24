@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import type { CellData, CellRef, CellRun, CellStyle, FullSheet, MergedCellData } from "./types";
 import {
   addFakeSelection,
-  applyStyleToSelection,
+  applyStyleToRange,
   domToRuns,
   removeFakeSelection,
   runsToHtml,
@@ -235,18 +235,6 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     if (el.contains(r.commonAncestorContainer)) {
       savedRangeRef.current = r.cloneRange();
     }
-  }
-
-  function restoreEditorSelection(): boolean {
-    const el = editorRef.current;
-    const r = savedRangeRef.current;
-    if (!el || !r) return false;
-    if (!el.contains(r.commonAncestorContainer)) return false;
-    const sel = window.getSelection();
-    if (!sel) return false;
-    sel.removeAllRanges();
-    sel.addRange(r);
-    return true;
   }
 
   // Undo / Redo history. A snapshot covers everything an edit can change, not
@@ -604,28 +592,6 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
 
   const dragStartRef = useRef<CellRef | null>(null);
 
-  const handleCellMouseDown = useCallback(
-    (e: React.MouseEvent, row: number, col: number) => {
-      if (editingCell) return;
-      if (e.shiftKey && anchor) {
-        selectRange(anchor.row, anchor.col, row, col);
-      } else if (e.ctrlKey || e.metaKey) {
-        setSelectedCells((prev) => {
-          const s = new Set(prev);
-          const k = cellKey(row, col);
-          if (s.has(k)) s.delete(k);
-          else s.add(k);
-          return s;
-        });
-        setAnchor({ row, col });
-      } else {
-        selectSingle(row, col);
-        dragStartRef.current = { row, col };
-      }
-    },
-    [editingCell, anchor, selectRange, selectSingle]
-  );
-
   const handleCellMouseEnter = useCallback(
     (row: number, col: number) => {
       const start = dragStartRef.current;
@@ -758,6 +724,36 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     flushCellSaves();
     setEditingCell(null);
   }, [editingCell, cells, flushCellSaves, pushHistory]);
+
+  const handleCellMouseDown = useCallback(
+    (e: React.MouseEvent, row: number, col: number) => {
+      if (editingCell) {
+        // Clicks inside the editor are for placing the caret.
+        if (editorRef.current?.contains(e.target as Node)) return;
+        // Focus may be in the toolbar (styling part of the text), in which case
+        // the editor never blurs — so clicking another cell has to finish the
+        // edit itself, or the text is never saved.
+        if (editorRef.current) removeFakeSelection(editorRef.current);
+        commitEdit();
+      }
+      if (e.shiftKey && anchor) {
+        selectRange(anchor.row, anchor.col, row, col);
+      } else if (e.ctrlKey || e.metaKey) {
+        setSelectedCells((prev) => {
+          const s = new Set(prev);
+          const k = cellKey(row, col);
+          if (s.has(k)) s.delete(k);
+          else s.add(k);
+          return s;
+        });
+        setAnchor({ row, col });
+      } else {
+        selectSingle(row, col);
+        dragStartRef.current = { row, col };
+      }
+    },
+    [editingCell, anchor, selectRange, selectSingle, commitEdit]
+  );
 
   const cancelEdit = useCallback(() => {
     setEditingCell(null);
@@ -1052,36 +1048,37 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
         if (patch.isUnderline != null) runPatch.isUnderline = patch.isUnderline;
         if (patch.textColor != null) runPatch.textColor = patch.textColor;
         if (Object.keys(runPatch).length > 0) {
-          // Toolbar interaction stole focus — unwrap the fake highlight (if any),
-          // restore the real range, then apply per-run styling.
-          const revived = removeFakeSelection(editorRef.current);
-          if (revived) savedRangeRef.current = revived;
-          restoreEditorSelection();
-          const ok = applyStyleToSelection(editorRef.current, runPatch);
-          if (ok) {
-            // Update saved range to the new selection wrapping the styled span.
-            saveEditorSelection();
+          // Unwrap the fake highlight (if any) to get back the range the user
+          // selected before clicking the toolbar.
+          const editor = editorRef.current;
+          const revived = removeFakeSelection(editor);
+          const live = window.getSelection();
+          const range =
+            revived ??
+            (live && live.rangeCount > 0 && editor.contains(live.getRangeAt(0).commonAncestorContainer)
+              ? live.getRangeAt(0).cloneRange()
+              : savedRangeRef.current?.cloneRange() ?? null);
+          const styled = range ? applyStyleToRange(editor, range, runPatch) : null;
+          if (styled) {
+            savedRangeRef.current = styled;
             const active = document.activeElement as HTMLElement | null;
             if (active?.closest("[data-sheets-toolbar]")) {
-              // Keep the user in the toolbar (they may be mid-typing a number)
-              // — redraw the fake highlight over the new range instead of
-              // stealing focus back to the editor.
-              const r = savedRangeRef.current;
-              if (r && !r.collapsed) {
-                addFakeSelection(editorRef.current, r.cloneRange());
-                // Re-save because addFakeSelection wrapped the range in a marker
-                // span; the previous range references detached nodes now.
-                const marker = editorRef.current.querySelector<HTMLElement>(
-                  "span[data-fake-selection]"
-                );
-                if (marker) {
-                  const nr = document.createRange();
-                  nr.selectNodeContents(marker);
-                  savedRangeRef.current = nr;
-                }
+              // Leave focus in the toolbar (the user may press ▲ again or be
+              // typing a number) and redraw the highlight over the new range.
+              addFakeSelection(editor, styled.cloneRange());
+              // addFakeSelection wrapped the range in a marker span, so the
+              // saved range must point at the marker's contents now.
+              const marker = editor.querySelector<HTMLElement>("span[data-fake-selection]");
+              if (marker) {
+                const nr = document.createRange();
+                nr.selectNodeContents(marker);
+                savedRangeRef.current = nr;
               }
             } else {
-              editorRef.current.focus();
+              editor.focus();
+              const sel = window.getSelection();
+              sel?.removeAllRanges();
+              sel?.addRange(styled);
             }
             return;
           }

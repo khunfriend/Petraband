@@ -5,6 +5,7 @@ import {
   runsToHtml,
   domToRuns,
   applyStyleToSelection,
+  applyStyleToRange,
   addFakeSelection,
   removeFakeSelection,
 } from "./richText";
@@ -296,5 +297,38 @@ describe("applyStyleToSelection", () => {
     sel.removeAllRanges();
     sel.addRange(range);
     expect(applyStyleToSelection(root, { fontSize: 12 })).toBe(false);
+  });
+});
+
+// ─── applyStyleToRange ─────────────────────────────────────
+
+describe("applyStyleToRange", () => {
+  it("restyles repeatedly through the returned range (size ▲ ▲ ▲)", () => {
+    document.body.innerHTML = "";
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    root.textContent = "abcdefgh";
+    let range: Range | null = document.createRange();
+    range.setStart(root.firstChild as Text, 5);
+    range.setEnd(root.firstChild as Text, 8);
+    for (const size of [15, 16, 17]) {
+      range = applyStyleToRange(root, range!, { fontSize: size });
+      expect(range).not.toBeNull();
+    }
+    expect(domToRuns(root)).toEqual([{ text: "abcde" }, { text: "fgh", fontSize: 17 }]);
+    // Updated in place, not nested once per step.
+    expect(root.querySelectorAll("span")).toHaveLength(1);
+  });
+
+  it("does not touch the document selection", () => {
+    document.body.innerHTML = "";
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    root.textContent = "abc";
+    window.getSelection()!.removeAllRanges();
+    const range = document.createRange();
+    range.selectNodeContents(root);
+    applyStyleToRange(root, range, { isBold: true });
+    expect(window.getSelection()!.rangeCount).toBe(0);
   });
 });

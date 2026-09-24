@@ -37,6 +37,11 @@ API `/api/instruments` POST + `[id]` PATCH (มี zod แล้ว เดิม
 Migration `20260924140000_accessory_types`: ตาราง `AccessoryType` (seed สแตนโน้ต/ขาไมค์ perPlayer 1, เก้าอี้/โต๊ะ 0 — ผลลัพธ์เท่าของเดิมที่ hard-code) · `InstrumentEquipment.accessories` JSON `{accessoryId: n}` แทน `chairs`/`tables` (ย้ายค่าเดิมให้แล้วค่อย drop — production ณ 16 ก.ย. ตารางนี้ว่าง)
 หมายเหตุต่องาน (`Performance.equipmentNotes`) ยังผูกกับ**ชื่อ**อุปกรณ์ — เปลี่ยนชื่อแล้วหมายเหตุเดิมของชื่อเก่าจะไม่แสดง
 
+### ⏸️ ปรับขนาดเฉพาะข้อความที่คลุมในเซลล์ — แก้แล้ว ทดสอบบน dev ผ่าน · ยังไม่ commit
+
+บั๊ก: คลุมข้อความบางส่วน → กด ▲ ที่ช่องขนาดได้แค่ครั้งแรก (+1) แล้ว focus เด้งกลับเข้าเซลล์ · สาเหตุ: `restoreEditorSelection` ใส่ selection กลับใน contentEditable → **Chrome ย้าย focus ตาม** → เช็ค "ยังอยู่ที่ toolbar" ไม่ผ่าน → `editor.focus()`
+แก้: `applyStyleToRange` (richText.ts) ทำงานกับ Range ที่เก็บไว้ ไม่แตะ `window.getSelection()` · แก้ span เดิมแทนการซ้อน span ใหม่ทุกครั้ง · `commitSize` ตอน blur ไม่ apply ซ้ำ (เดิมดึง focus กลับเข้าเซลล์) · คลิกเซลล์อื่นระหว่างแก้ = บันทึกแล้วจบการแก้ (เดิม `if (editingCell) return` → ข้อความไม่ถูกบันทึกถ้า focus อยู่ที่ toolbar)
+
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
 ### 1. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A−

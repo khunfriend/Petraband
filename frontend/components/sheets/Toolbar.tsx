@@ -72,20 +72,20 @@ export function Toolbar({
   useEffect(() => {
     setSizeInput(String(currentStyle.fontSize ?? 14));
   }, [currentStyle.fontSize]);
+  // Every valid value is already applied live by handleSizeChange, so leaving
+  // the box only has to put the cell's size back on display. Re-applying here
+  // would run after focus has gone elsewhere and drag it back into the cell.
   const commitSize = () => {
-    const n = parseInt(sizeInput, 10);
-    if (Number.isFinite(n) && n > 0 && n !== (currentStyle.fontSize ?? 14)) {
-      onStyleChange({ fontSize: n });
-    } else {
-      setSizeInput(String(currentStyle.fontSize ?? 14));
-    }
+    setSizeInput(String(currentStyle.fontSize ?? 14));
   };
   // Push a live size update every time the value parses to a valid number so
   // the selection reflows in real time as the user types / holds arrow keys.
   const handleSizeChange = (raw: string) => {
     setSizeInput(raw);
     const n = parseInt(raw, 10);
-    if (Number.isFinite(n) && n > 0 && n <= 200 && n !== (currentStyle.fontSize ?? 14)) {
+    // No "differs from the cell's size" check here: with part of a cell's text
+    // selected, setting it back to the cell's own size is a real change.
+    if (Number.isFinite(n) && n > 0 && n <= 200) {
       onStyleChange({ fontSize: n });
     }
   };

@@ -150,14 +150,40 @@ export function removeFakeSelection(root: HTMLElement): Range | null {
   return range;
 }
 
-// Apply a style patch to the current DOM selection inside `root`.
-// If no text is selected, does nothing.
-export function applyStyleToSelection(root: HTMLElement, patch: Partial<CellRun>): boolean {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return false;
-  const range = sel.getRangeAt(0);
-  if (range.collapsed) return false;
-  if (!root.contains(range.commonAncestorContainer)) return false;
+// Apply a style patch to `range` inside `root` and return a range over the
+// styled text. Works on a stored Range rather than window.getSelection(): in
+// Chrome, putting a selection back inside a contentEditable also moves focus
+// there, which would pull the user out of the toolbar mid-edit.
+export function applyStyleToRange(
+  root: HTMLElement,
+  range: Range,
+  patch: Partial<CellRun>
+): Range | null {
+  if (range.collapsed) return null;
+  if (!root.contains(range.commonAncestorContainer)) return null;
+
+  // Restyling exactly the span a previous call made (size ▲ ▲ ▲): update it
+  // in place instead of nesting a new span per step.
+  const host = range.startContainer;
+  if (
+    host === range.endContainer &&
+    host !== root &&
+    host instanceof HTMLElement &&
+    host.tagName === "SPAN" &&
+    !host.hasAttribute("data-fake-selection") &&
+    range.startOffset === 0 &&
+    range.endOffset === host.childNodes.length
+  ) {
+    if (patch.fontSize != null) host.style.fontSize = `${patch.fontSize}px`;
+    if (patch.isBold != null) host.style.fontWeight = patch.isBold ? "bold" : "";
+    if (patch.isItalic != null) host.style.fontStyle = patch.isItalic ? "italic" : "";
+    if (patch.isUnderline != null) host.style.textDecoration = patch.isUnderline ? "underline" : "";
+    if (patch.textColor != null) host.style.color = patch.textColor;
+    stripInnerStyles(host, patch);
+    const same = document.createRange();
+    same.selectNodeContents(host);
+    return same;
+  }
 
   const span = document.createElement("span");
   const styles: string[] = [];
@@ -173,13 +199,22 @@ export function applyStyleToSelection(root: HTMLElement, patch: Partial<CellRun>
     // Strip conflicting styles from descendants so the new outer span wins.
     stripInnerStyles(span, patch);
     range.insertNode(span);
-    // Restore selection over the inserted span
-    const newRange = document.createRange();
-    newRange.selectNodeContents(span);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
-    return true;
+    const styled = document.createRange();
+    styled.selectNodeContents(span);
+    return styled;
   } catch {
-    return false;
+    return null;
   }
+}
+
+// Apply a style patch to the current DOM selection inside `root` and leave
+// the selection over the styled text. If no text is selected, does nothing.
+export function applyStyleToSelection(root: HTMLElement, patch: Partial<CellRun>): boolean {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return false;
+  const styled = applyStyleToRange(root, sel.getRangeAt(0), patch);
+  if (!styled) return false;
+  sel.removeAllRanges();
+  sel.addRange(styled);
+  return true;
 }

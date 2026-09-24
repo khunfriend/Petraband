@@ -31,6 +31,12 @@ Migration `20260924120000_instrument_is_playable`: `Instrument.isPlayable` (defa
 API `/api/instruments` POST + `[id]` PATCH (มี zod แล้ว เดิมไม่ validate) + DELETE · schema ที่ `lib/instrumentSchema.ts`
 ⚠️ ต้องรีสตาร์ท dev server หลัง migrate (Prisma client ค้างใน `globalForPrisma` → `PrismaClientValidationError: isPlayable`)
 
+### ⏸️ อุปกรณ์เสริมตั้งค่าได้ — ทดสอบบน dev ผ่าน · **migration ยังไม่ลง production**
+
+แท็บ "ตั้งค่าอุปกรณ์ในการแสดง" (`app/equipment/InstrumentEquipmentTab.tsx`): เพิ่ม/ลบ/เปลี่ยนชื่ออุปกรณ์เสริมได้ + "ใช้ต่อคน" + ตารางจำนวนต่อเครื่องดนตรี (เลือกจาก `lib/positions.ts` ซึ่งย้ายมาจาก PerformanceClient) · หน้างานแสดงคำนวณด้วย `lib/accessories.ts` (มีเทสต์)
+Migration `20260924140000_accessory_types`: ตาราง `AccessoryType` (seed สแตนโน้ต/ขาไมค์ perPlayer 1, เก้าอี้/โต๊ะ 0 — ผลลัพธ์เท่าของเดิมที่ hard-code) · `InstrumentEquipment.accessories` JSON `{accessoryId: n}` แทน `chairs`/`tables` (ย้ายค่าเดิมให้แล้วค่อย drop — production ณ 16 ก.ย. ตารางนี้ว่าง)
+หมายเหตุต่องาน (`Performance.equipmentNotes`) ยังผูกกับ**ชื่อ**อุปกรณ์ — เปลี่ยนชื่อแล้วหมายเหตุเดิมของชื่อเก่าจะไม่แสดง
+
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
 ### 1. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A−

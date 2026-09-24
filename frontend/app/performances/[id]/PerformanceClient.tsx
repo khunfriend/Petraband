@@ -10,6 +10,8 @@ import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
 import { PerformanceSongSections } from "./PerformanceSongSections";
+import { POSITIONS } from "@/lib/positions";
+import { accessoryTotals, type AccessoryType, type InstrumentAccessories } from "@/lib/accessories";
 import { getInstrumentColor } from "@/lib/instrumentColors";
 
 // ─── Types ─────────────────────────────────────────────────
@@ -38,7 +40,6 @@ type SectionEntry = {
   sectionOrder: number;
 };
 
-type InstrumentRow = { name: string; chairs: number; tables: number | null };
 
 type Performance = {
   id: string;
@@ -81,17 +82,6 @@ type Participant = {
   primaryInstrumentNameThai: string | null;
   position: string;
 };
-
-const POSITIONS = [
-  "ระนาดเอก", "ระนาดทุ้ม", "ฆ้องวงเล็ก", "ฆ้องวงใหญ่",
-  "จะเข้", "ขิม", "ขิม จิ๋ว",
-  "ซออู้", "ซอด้วง", "ซอสามสาย", "ขลุ่ย",
-  "แคน", "แคนจิ๋ว", "กลองแขกตัวผู้", "กลองแขกตัวเมีย",
-  "ตะโพน", "กลองทัดเสียงต่ำ", "กลองทัดเสียงสูง", "ระฆังราว",
-  "ฉาบใหญ่", "ฉิ่ง", "โทนรำมะนา", "คาฮอง",
-  "ฉาบเล็ก", "กรับเสภา", "กรับพวง", "แทมบูรีน",
-  "ลูกแซ็ก", "อื่นๆ",
-];
 
 type AssignedHead = { id: string; nickname: string; generation: string };
 
@@ -475,12 +465,15 @@ export default function PerformanceClient({
   }
 
   // ── Global instrument equipment ───────────────────────────
-  const [globalInstruments, setGlobalInstruments] = useState<InstrumentRow[]>([]);
+  const [accessorySettings, setAccessorySettings] = useState<{
+    accessories: AccessoryType[];
+    rows: InstrumentAccessories[];
+  }>({ accessories: [], rows: [] });
 
   useEffect(() => {
     fetch("/api/instrument-equipment")
       .then((r) => r.json())
-      .then((d) => setGlobalInstruments(d.rows ?? []))
+      .then((d) => setAccessorySettings({ accessories: d.accessories ?? [], rows: d.rows ?? [] }))
       .catch(() => {});
   }, []);
 
@@ -1493,19 +1486,14 @@ export default function PerformanceClient({
           posGroups[p.position] = (posGroups[p.position] ?? 0) + 1;
         }
 
-        const instrData = globalInstruments;
-        const getMeta = (name: string) => instrData.find((r) => r.name === name) ?? null;
-
+        // Each member has one position="" entry, so these are the people.
         const totalPlayers = participants.filter((p) => p.position === "").length;
-
-        const totalChairs = Object.entries(posGroups).reduce((sum, [pos, cnt]) => {
-          const m = getMeta(pos);
-          return sum + (m?.chairs ?? 0) * cnt;
-        }, 0);
-        const totalTables = Object.entries(posGroups).reduce((sum, [pos, cnt]) => {
-          const m = getMeta(pos);
-          return sum + (m?.tables ?? 0) * cnt;
-        }, 0);
+        const totals = accessoryTotals(
+          accessorySettings.accessories,
+          accessorySettings.rows,
+          totalPlayers,
+          posGroups
+        );
 
         return (
           <section>
@@ -1565,12 +1553,7 @@ export default function PerformanceClient({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-hairline-soft">
-                    {[
-                      { label: "สแตนโน้ต", count: totalPlayers },
-                      { label: "ขาไมค์", count: totalPlayers },
-                      { label: "เก้าอี้", count: totalChairs },
-                      { label: "โต๊ะ", count: totalTables },
-                    ].map(({ label, count }) => (
+                    {totals.map(({ name: label, count }) => (
                       <tr key={label}>
                         <td className="px-4 py-2 text-ink">{label}</td>
                         <td className="px-4 py-2 text-center text-ink">{count}</td>

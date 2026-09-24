@@ -573,12 +573,21 @@ model AuditLog {
 
 // ─── Global Instrument Equipment Settings ─────────────────
 
-model InstrumentEquipment {
+// Accessories a performance needs (music stand, mic stand, chair, …).
+// Total per performance = perPlayer × people + Σ per-instrument counts.
+model AccessoryType {
   id        String @id @default(cuid())
   name      String @unique
-  chairs    Int    @default(0)
-  tables    Int?
+  perPlayer Int    @default(0)
   sortOrder Int    @default(0)
+}
+
+// Keyed by position name (the performance page's instrument positions).
+model InstrumentEquipment {
+  id          String @id @default(cuid())
+  name        String @unique
+  accessories Json   @default("{}") // { [AccessoryType.id]: count }
+  sortOrder   Int    @default(0)
 }
 
 // ─── Sheet Music Editor ────────────────────────────────────

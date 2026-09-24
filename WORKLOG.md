@@ -3,7 +3,7 @@
 > ไฟล์สถานะงานสด — session ใหม่อ่านไฟล์นี้ก่อนเสมอ (ดู [CLAUDE.md](CLAUDE.md))
 > อัปเดตทุกครั้งที่จบก้อนงาน ไม่ใช่ตอนจบ session อย่างเดียว
 
-**อัปเดตล่าสุด:** 17 ก.ย. 2569 · commit ล่าสุด `a34dc1d`
+**อัปเดตล่าสุด:** 24 ก.ย. 2569 · commit ล่าสุด `a34dc1d`
 
 ---
 
@@ -19,6 +19,7 @@
 **ทดสอบแล้ว:** การ์ดบล็อก `admin@petraband.club` จริง (log: `not a temporary account, use Google`) · ปุ่ม Google redirect ไป accounts.google.com ได้ client ID ตรง ไม่มี `redirect_uri_mismatch`
 **ยังทดสอบไม่ได้ (ต้องใช้บัญชี Google ของเจ้าของ):** login จนจบ → สร้าง PENDING_APPROVAL → อนุมัติ → เข้าได้จริง
 
+**24 ก.ย.:** หน้า `/login` เหลือแค่ปุ่ม Google · ฟอร์มอีเมล/รหัสผ่านย้ายไป `/login/guest` (เฉพาะบัญชีชั่วคราว) · `/register` เหลือปุ่ม "สมัครด้วย Google" (Google login ครั้งแรก = สมัคร) · `POST /api/auth/register` ตอบ 410 แล้ว (บัญชีรหัสผ่านที่สร้างจากตรงนั้นเข้าระบบไม่ได้อยู่ดี) · ยังค้าง: ลบ `/forgot-password`, `/reset-password`, `/verify-pending`, `/auth/callback` (ตัวหลังยัง redirect ไป `?pending_approval=1`)
 **ขั้นต่อไป:** เจ้าของกดปุ่ม "เข้าสู่ระบบด้วย Google" บน localhost:3000 แล้วบอกผลมา จากนั้นผมจะ set บัญชีนั้นเป็น ACTIVE+ADMIN ใน dev DB เพื่อทดสอบรอบสอง
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)

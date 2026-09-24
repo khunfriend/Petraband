@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/**" },
+      // Google profile photos, stored as avatarUrl on first Google sign-in
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
   },
 };

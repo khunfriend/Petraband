@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import EquipmentClient from "./EquipmentClient";
 import InstrumentEquipmentTab from "./InstrumentEquipmentTab";
 import EquipmentTabs from "./EquipmentTabs";
+import StageLibraryTab from "./StageLibraryTab";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 export const metadata = { title: "อุปกรณ์ · PETRAband" };
@@ -39,6 +40,8 @@ export default async function EquipmentPage({
       <EquipmentTabs activeTab={tab}>
         {tab === "settings" ? (
           <InstrumentEquipmentTab isAdmin={isAdmin} />
+        ) : tab === "stage" ? (
+          <StageLibraryTab isAdmin={isAdmin} />
         ) : (
           <EquipmentClient equipment={equipment} isAdmin={isAdmin} />
         )}

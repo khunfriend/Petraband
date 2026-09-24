@@ -133,6 +133,9 @@ model Instrument {
   footprintW       Float   @default(1)
   footprintH       Float   @default(1)
   iconType         String  @default("default")
+  // false = stage equipment (table, mic, …): shown on the stage palette only,
+  // never offered as someone's instrument
+  isPlayable       Boolean @default(true)
 
   primaryUsers         User[]                    @relation("PrimaryInstrument")
   secondaryUsers       UserSecondaryInstrument[]

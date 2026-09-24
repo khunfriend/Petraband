@@ -6,6 +6,7 @@ import { type ReactNode } from "react";
 const TABS = [
   { key: "list", label: "รายการอุปกรณ์" },
   { key: "settings", label: "ตั้งค่าอุปกรณ์ในการแสดง" },
+  { key: "stage", label: "ตั้งค่าสำหรับผังเวที" },
 ];
 
 interface Props {

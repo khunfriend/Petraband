@@ -43,6 +43,7 @@ export default async function MembersPage() {
     }),
     isAdmin
       ? prisma.instrument.findMany({
+          where: { isPlayable: true },
           orderBy: { nameThai: "asc" },
           select: { id: true, nameThai: true, name: true },
         })

@@ -78,6 +78,7 @@ export default async function ProfilePage() {
     .slice(0, 20);
 
   const instruments = await prisma.instrument.findMany({
+    where: { isPlayable: true },
     orderBy: { nameThai: "asc" },
     select: { id: true, name: true, nameThai: true },
   });

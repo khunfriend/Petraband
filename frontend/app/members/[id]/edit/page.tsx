@@ -35,6 +35,7 @@ export default async function MemberEditPage({
       },
     }),
     prisma.instrument.findMany({
+      where: { isPlayable: true },
       orderBy: { nameThai: "asc" },
       select: { id: true, name: true, nameThai: true },
     }),

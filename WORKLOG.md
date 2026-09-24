@@ -24,6 +24,13 @@
 **24 ก.ย. (3):** แอดมินสร้างได้แค่บัญชีชั่วคราว (หน้าสมาชิกไม่มีสวิตช์ทั่วไป/ชั่วคราว ไม่มีช่องอีเมล · `POST /api/users` บังคับ `isTemporary` + ต้องมีงานแสดง) · บัญชีชั่วคราว login ด้วย **ชื่อเล่น + รหัสผ่านที่แอดมินตั้ง** ที่ `/login/guest` · อีเมลเป็น placeholder `<uuid>@guest.petraband.invalid` (ไม่ต้อง migration, ส่งเมลไม่ถึงแน่นอน) · ชื่อเล่นห้ามซ้ำในบัญชีชั่วคราว (ไม่สนตัวพิมพ์) ทั้งตอนสร้างและตอนแก้ · บัญชีชั่วคราวเก่าที่ชื่อซ้ำกัน `authorize` ใช้รหัสผ่านแยกให้
 **ขั้นต่อไป:** เจ้าของกดปุ่ม "เข้าสู่ระบบด้วย Google" บน localhost:3000 แล้วบอกผลมา จากนั้นผมจะ set บัญชีนั้นเป็น ACTIVE+ADMIN ใน dev DB เพื่อทดสอบรอบสอง
 
+### ⏸️ คลังผังเวที — โค้ดเสร็จ ทดสอบบน dev ผ่าน · commit `90dbd5e` · **migration ยังไม่ลง production**
+
+หน้า อุปกรณ์ → แท็บ "ตั้งค่าสำหรับผังเวที" (`app/equipment/StageLibraryTab.tsx`): แก้ชื่อ / ไอคอน (เลือกจาก 9 แบบใน `components/stage/InstrumentIcon.tsx`) / กว้าง×ลึก (0.1–10 ม.) / ประเภท · เพิ่มชิ้นใหม่ · ลบได้เฉพาะชิ้นที่ไม่มีผังเวที เพลง หรือสมาชิกอ้างถึง (409)
+Migration `20260924120000_instrument_is_playable`: `Instrument.isPlayable` (default true) — `false` = อุปกรณ์บนเวที ขึ้นใน palette หมวด "อุปกรณ์" ของผังเวที แต่ไม่ขึ้นในช่องเลือกเครื่องดนตรีของโปรไฟล์/สมาชิก
+API `/api/instruments` POST + `[id]` PATCH (มี zod แล้ว เดิมไม่ validate) + DELETE · schema ที่ `lib/instrumentSchema.ts`
+⚠️ ต้องรีสตาร์ท dev server หลัง migrate (Prisma client ค้างใน `globalForPrisma` → `PrismaClientValidationError: isPlayable`)
+
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
 ### 1. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A−

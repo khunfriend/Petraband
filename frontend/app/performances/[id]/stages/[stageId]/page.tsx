@@ -41,6 +41,7 @@ export default async function StageEditorPage({ params }: Params) {
         footprintW: true,
         footprintH: true,
         iconType: true,
+        isPlayable: true,
       },
     }),
     prisma.performance.findUnique({

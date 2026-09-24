@@ -42,6 +42,10 @@ Migration `20260924140000_accessory_types`: ตาราง `AccessoryType` (see
 บั๊ก: คลุมข้อความบางส่วน → กด ▲ ที่ช่องขนาดได้แค่ครั้งแรก (+1) แล้ว focus เด้งกลับเข้าเซลล์ · สาเหตุ: `restoreEditorSelection` ใส่ selection กลับใน contentEditable → **Chrome ย้าย focus ตาม** → เช็ค "ยังอยู่ที่ toolbar" ไม่ผ่าน → `editor.focus()`
 แก้: `applyStyleToRange` (richText.ts) ทำงานกับ Range ที่เก็บไว้ ไม่แตะ `window.getSelection()` · แก้ span เดิมแทนการซ้อน span ใหม่ทุกครั้ง · `commitSize` ตอน blur ไม่ apply ซ้ำ (เดิมดึง focus กลับเข้าเซลล์) · คลิกเซลล์อื่นระหว่างแก้ = บันทึกแล้วจบการแก้ (เดิม `if (editingCell) return` → ข้อความไม่ถูกบันทึกถ้า focus อยู่ที่ toolbar)
 
+### ⏸️ วงกลมแดงนับคนรออนุมัติบนเมนู — ทดสอบบน dev ผ่าน · ยังไม่ commit
+
+`GET /api/admin/users/pending-count` (ADMIN เท่านั้น, อื่น 403) · TopNav (`usePendingCount`) ดึงเฉพาะเมื่อ role = ADMIN — ตอนเปลี่ยนหน้า / กลับมาที่แท็บ / ทุก 60 วิ / ทันทีหลังอนุมัติ-ปฏิเสธ (event `PENDING_USERS_CHANGED` ใน `lib/pendingUsers.ts`) · 0 = ไม่แสดง · เกิน 99 = "99+"
+
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
 ### 1. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A−

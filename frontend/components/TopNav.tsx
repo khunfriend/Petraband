@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { isGuestEmail } from "@/lib/guest";
+import { PENDING_USERS_CHANGED } from "@/lib/pendingUsers";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -13,8 +14,34 @@ const navLinks = [
   { href: "/performances", label: "งานแสดง" },
   { href: "/members", label: "สมาชิก" },
   { href: "/equipment", label: "อุปกรณ์", roles: ["ADMIN", "HEAD"] as const },
-  { href: "/admin/pending-users", label: "อนุมัติสมาชิก", roles: ["ADMIN"] as const },
+  { href: "/admin/pending-users", label: "อนุมัติสมาชิก", roles: ["ADMIN"] as const, pendingBadge: true },
 ];
+
+// Pending sign-ups for the admin badge. Refreshes on navigation, when the tab
+// regains focus, every minute, and right after an approve/reject.
+function usePendingCount(enabled: boolean, pathname: string) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    const load = () =>
+      fetch("/api/admin/users/pending-count")
+        .then((r) => (r.ok ? r.json() : { count: 0 }))
+        .then((d) => alive && setCount(d.count ?? 0))
+        .catch(() => {});
+    load();
+    const timer = setInterval(load, 60_000);
+    window.addEventListener("focus", load);
+    window.addEventListener(PENDING_USERS_CHANGED, load);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", load);
+      window.removeEventListener(PENDING_USERS_CHANGED, load);
+    };
+  }, [enabled, pathname]);
+  return enabled ? count : 0;
+}
 
 export function TopNav() {
   const pathname = usePathname();
@@ -22,6 +49,7 @@ export function TopNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const role = session?.user.role;
+  const pendingCount = usePendingCount(role === "ADMIN", pathname);
 
   // Hide the whole nav bar (logo + links) when not signed in — auth pages
   // stand on their own without the header
@@ -61,6 +89,14 @@ export function TopNav() {
                 )}
               >
                 {link.label}
+                {"pendingBadge" in link && pendingCount > 0 && (
+                  <span
+                    aria-label={`รออนุมัติ ${pendingCount} คน`}
+                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-white text-[10px] font-bold leading-[18px] text-center"
+                  >
+                    {pendingCount > 99 ? "99+" : pendingCount}
+                  </span>
+                )}
               </Link>
             );
           })}

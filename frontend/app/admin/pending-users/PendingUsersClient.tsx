@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { PENDING_USERS_CHANGED } from "@/lib/pendingUsers";
 import { Button } from "@/components/ui/Button";
 
 type PendingUser = {
@@ -42,6 +43,7 @@ export default function PendingUsersClient({ users }: { users: PendingUser[] }) 
         setBusyId(null);
         return;
       }
+      window.dispatchEvent(new Event(PENDING_USERS_CHANGED));
       startTransition(() => {
         router.refresh();
         setBusyId(null);

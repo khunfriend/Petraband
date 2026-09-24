@@ -4,6 +4,8 @@ import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendAdminNewPendingEmail } from "@/lib/email";
+import { cookies } from "next/headers";
+import { SIGNUP_COOKIE, parseSignup } from "@/lib/signup";
 import { authConfig } from "./auth.config";
 import type { Role } from "@prisma/client";
 
@@ -113,12 +115,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const existing = await prisma.user.findUnique({ where: { email } });
 
       if (!existing) {
+        // The nickname and generation come from the /register form, not from
+        // Google. Without them (e.g. "sign in" clicked by someone who never
+        // registered) no account is made — send them to fill the form.
+        const jar = await cookies();
+        let signup = null;
+        try {
+          signup = parseSignup(JSON.parse(jar.get(SIGNUP_COOKIE)?.value ?? "null"));
+        } catch { /* malformed cookie → treated as missing */ }
+        if (!signup) return "/register?error=need_profile";
+        jar.delete(SIGNUP_COOKIE);
+
         const created = await prisma.user.create({
           data: {
             email,
             // Google carries the identity; nothing signs in with this hash.
             passwordHash: "",
-            nickname: user.name?.slice(0, 60) || email.split("@")[0],
+            nickname: signup.nickname,
+            generation: signup.generation,
             avatarUrl: user.image ?? null,
             emailVerifiedAt: new Date(),
             status: "PENDING_APPROVAL",

@@ -20,6 +20,7 @@
 **ยังทดสอบไม่ได้ (ต้องใช้บัญชี Google ของเจ้าของ):** login จนจบ → สร้าง PENDING_APPROVAL → อนุมัติ → เข้าได้จริง
 
 **24 ก.ย.:** หน้า `/login` เหลือแค่ปุ่ม Google · ฟอร์มอีเมล/รหัสผ่านย้ายไป `/login/guest` (เฉพาะบัญชีชั่วคราว) · `/register` เหลือปุ่ม "สมัครด้วย Google" (Google login ครั้งแรก = สมัคร) · `POST /api/auth/register` ตอบ 410 แล้ว (บัญชีรหัสผ่านที่สร้างจากตรงนั้นเข้าระบบไม่ได้อยู่ดี) · ยังค้าง: ลบ `/forgot-password`, `/reset-password`, `/verify-pending`, `/auth/callback` (ตัวหลังยัง redirect ไป `?pending_approval=1`)
+**24 ก.ย. (2):** `/register` ให้กรอกชื่อเล่น (ไทยล้วน) + รุ่น (ตัวเลข → เก็บเป็น `#20`) ก่อนไป Google · ส่งผ่าน cookie `pb_signup` (httpOnly, 10 นาที) ให้ `signIn` callback · ไม่ใช้ชื่อจาก Google แล้ว · Google account ใหม่ที่ไม่มี cookie (กด login โดยไม่เคยสมัคร) จะไม่ถูกสร้างบัญชี เด้งไป `/register?error=need_profile` · validation อยู่ที่ `lib/signup.ts`
 **ขั้นต่อไป:** เจ้าของกดปุ่ม "เข้าสู่ระบบด้วย Google" บน localhost:3000 แล้วบอกผลมา จากนั้นผมจะ set บัญชีนั้นเป็น ACTIVE+ADMIN ใน dev DB เพื่อทดสอบรอบสอง
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)

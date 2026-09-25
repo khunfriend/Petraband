@@ -210,7 +210,7 @@ export default async function PerformancesPage() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="pb-stagger grid grid-cols-1 md:grid-cols-2 gap-3">
             {upcoming.map((p) => (
               <PerformanceCard key={p.id} p={p} isNext={p.id === nextId} />
             ))}
@@ -224,7 +224,7 @@ export default async function PerformancesPage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
             History
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="pb-stagger grid grid-cols-1 md:grid-cols-2 gap-3">
             {past.map((p) => (
               <PerformanceCard key={p.id} p={p} past />
             ))}

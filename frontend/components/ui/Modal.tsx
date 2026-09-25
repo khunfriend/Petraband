@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 type Props = {
@@ -84,23 +84,36 @@ export function Modal({
     };
   }, [open]);
 
-  if (!open) return null;
+  // Stay mounted after `open` turns false until the closing animation ends.
+  // (State adjusted during render rather than in an effect, per React docs.)
+  const [shown, setShown] = useState(open);
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setShown(true);
+  }
+  const closing = !open && shown;
+
+  if (!open && !shown) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-[8px]"
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-[8px] ${closing ? "pb-scrim-out pointer-events-none" : "pb-scrim-in"}`}
       style={{ backgroundColor: "var(--color-scrim)" }}
-      onClick={closeOnBackdrop ? onClose : undefined}
+      onClick={closeOnBackdrop && !closing ? onClose : undefined}
       role="presentation"
     >
       <div
         ref={panelRef}
+        onAnimationEnd={(e) => {
+          if (closing && e.target === e.currentTarget) setShown(false);
+        }}
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === "string" ? title : undefined}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className={`bg-surface-card border border-hairline rounded-[var(--radius-lg)] w-full ${SIZE_CLASSES[size]} outline-none flex flex-col max-h-[90vh]`}
+        className={`bg-surface-card border border-hairline rounded-[var(--radius-lg)] w-full ${SIZE_CLASSES[size]} outline-none flex flex-col max-h-[90vh] ${closing ? "pb-pop-out" : "pb-pop-in"}`}
       >
         {title && (
           <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-3 border-b border-hairline-soft">

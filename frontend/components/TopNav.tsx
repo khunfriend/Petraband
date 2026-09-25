@@ -47,6 +47,8 @@ export function TopNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Link under the mouse — its underline pops up while hovered.
+  const [hoveredHref, setHoveredHref] = useState<string | null>(null);
 
   const role = session?.user.role;
   const pendingCount = usePendingCount(role === "ADMIN", pathname);
@@ -81,18 +83,35 @@ export function TopNav() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? "page" : undefined}
+                onMouseEnter={() => setHoveredHref(link.href)}
+                onMouseLeave={() => setHoveredHref((h) => (h === link.href ? null : h))}
                 className={cn(
-                  "relative px-3.5 py-2 text-sm font-medium transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)]",
-                  active
-                    ? "text-ink after:content-[''] after:absolute after:left-3.5 after:right-3.5 after:-bottom-[calc(1rem+1px)] after:h-[2px] after:bg-primary"
-                    : "text-muted hover:text-ink"
+                  "group relative px-3.5 py-2 text-sm font-medium transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)]",
+                  active ? "text-ink" : "text-muted hover:text-ink"
                 )}
               >
                 {link.label}
+                {/* Underline: always rendered, scaled to zero when inactive so
+                    it grows in when the page becomes active. Inline styles keep
+                    it independent of generated utility classes. */}
+                <span
+                  aria-hidden
+                  className="absolute bg-primary"
+                  style={{
+                    left: "0.875rem",
+                    right: "0.875rem",
+                    height: 2,
+                    bottom: "calc(-1rem - 1px)",
+                    transform: active || hoveredHref === link.href ? "scaleX(1)" : "scaleX(0)",
+                    // Overshoot curve: pops a touch past full width, then settles.
+                    transition: "transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  }}
+                />
                 {"pendingBadge" in link && pendingCount > 0 && (
                   <span
+                    key={pendingCount}
                     aria-label={`รออนุมัติ ${pendingCount} คน`}
-                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-white text-[10px] font-bold leading-[18px] text-center"
+                    className="pb-badge-pop absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-white text-[10px] font-bold leading-[18px] text-center"
                   >
                     {pendingCount > 99 ? "99+" : pendingCount}
                   </span>
@@ -123,7 +142,7 @@ export function TopNav() {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-10 w-44 bg-surface-card border border-hairline rounded-[var(--radius-lg)] py-1 z-50">
+                <div className="pb-menu-in absolute right-0 top-10 w-44 bg-surface-card border border-hairline rounded-[var(--radius-lg)] py-1 z-50">
                   <div className="px-4 py-2 border-b border-hairline-soft">
                     <p className="text-xs font-medium text-ink">{session.user.name}</p>
                     {!isGuestEmail(session.user.email) && (

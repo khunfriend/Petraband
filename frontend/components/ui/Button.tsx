@@ -33,7 +33,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] cursor-pointer select-none",
-          "transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)]",
+          "transition-[background-color,color,border-color,opacity,transform] duration-[var(--duration-pb-base)] ease-[var(--ease-pb)]",
+          // A small press-in so clicks feel physical; skipped when disabled.
+          "active:scale-[0.97] disabled:active:scale-100",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",
           "disabled:cursor-not-allowed",
           variantClasses[variant],

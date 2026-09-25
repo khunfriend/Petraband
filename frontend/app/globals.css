@@ -245,6 +245,58 @@
   animation: pb-toast-in var(--duration-pb-base) var(--ease-pb-out);
 }
 
+/* Dialog: scrim fades, panel scales from just below its resting size. */
+@keyframes pb-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pb-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes pb-pop-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pb-pop-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(4px) scale(0.98); }
+}
+.pb-scrim-in { animation: pb-fade-in var(--duration-pb-base) var(--ease-pb-out) both; }
+.pb-scrim-out { animation: pb-fade-out var(--duration-pb-fast) var(--ease-pb) both; }
+.pb-pop-in { animation: pb-pop-in var(--duration-pb-slow) var(--ease-pb-out) both; }
+.pb-pop-out { animation: pb-pop-out var(--duration-pb-fast) var(--ease-pb) both; }
+
+/* Dropdown menus grow out of the corner they hang from. */
+@keyframes pb-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pb-menu-in {
+  transform-origin: top right;
+  animation: pb-menu-in var(--duration-pb-base) var(--ease-pb-out) both;
+}
+
+/* Inline panels / forms that open in place. */
+@keyframes pb-reveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.pb-reveal { animation: pb-reveal var(--duration-pb-slow) var(--ease-pb-out) both; }
+
+/* Lists: rows arrive one after another. Only the first rows are staggered so
+   a long list never waits on its tail. */
+.pb-stagger > * { animation: pb-page-in var(--duration-pb-slow) var(--ease-pb-out) both; }
+.pb-stagger > *:nth-child(2) { animation-delay: 30ms; }
+.pb-stagger > *:nth-child(3) { animation-delay: 60ms; }
+.pb-stagger > *:nth-child(4) { animation-delay: 90ms; }
+.pb-stagger > *:nth-child(5) { animation-delay: 120ms; }
+.pb-stagger > *:nth-child(6) { animation-delay: 150ms; }
+.pb-stagger > *:nth-child(7) { animation-delay: 180ms; }
+.pb-stagger > *:nth-child(n + 8) { animation-delay: 210ms; }
+
+/* Count badges pop when their number changes (re-keyed by the number). */
+@keyframes pb-badge-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.pb-badge-pop { animation: pb-badge-pop var(--duration-pb-slow) var(--ease-pb-out) both; }
+
 /* Respect reduced-motion (design-only §7 spirit) */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -259,6 +311,7 @@
 
 /* ─── Base ───────────────────────────────────────────────── */
 html {
+  scroll-behavior: smooth;
   background-color: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);

@@ -19,12 +19,16 @@ type ConfirmContextValue = (options: ConfirmOptions) => Promise<boolean>;
 const ConfirmContext = createContext<ConfirmContextValue | null>(null);
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
+  // `options` is kept after closing so the dialog's text doesn't blank out
+  // while it animates away; `open` drives visibility.
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
+  const [open, setOpen] = useState(false);
   const [typedText, setTypedText] = useState("");
   const resolverRef = useRef<((v: boolean) => void) | null>(null);
 
   const confirm = useCallback((opts: ConfirmOptions) => {
     setOptions(opts);
+    setOpen(true);
     setTypedText("");
     return new Promise<boolean>((resolve) => {
       resolverRef.current = resolve;
@@ -34,8 +38,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const finish = useCallback((result: boolean) => {
     resolverRef.current?.(result);
     resolverRef.current = null;
-    setOptions(null);
-    setTypedText("");
+    setOpen(false);
   }, []);
 
   const requireText = options?.requireText;
@@ -47,7 +50,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <ConfirmContext.Provider value={confirm}>
       {children}
       <Modal
-        open={options !== null}
+        open={open}
         onClose={handleClose}
         title={options?.title ?? "ยืนยัน"}
         size="sm"

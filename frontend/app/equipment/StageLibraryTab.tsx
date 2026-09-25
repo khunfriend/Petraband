@@ -309,7 +309,7 @@ export default function StageLibraryTab({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       {editingId === "new" && (
-        <div className="bg-surface-card border border-primary/40 rounded-[var(--radius-lg)] p-5">
+        <div className="pb-reveal bg-surface-card border border-primary/40 rounded-[var(--radius-lg)] p-5">
           <p className="text-sm font-semibold text-ink mb-4">เพิ่มชิ้นใหม่</p>
           <Editor
             draft={draft}
@@ -324,7 +324,7 @@ export default function StageLibraryTab({ isAdmin }: { isAdmin: boolean }) {
       )}
 
       {groups.map((g) => (
-        <section key={g.title} className="flex flex-col gap-2">
+        <section key={g.title} className="pb-stagger flex flex-col gap-2">
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
             {g.title} · {g.list.length}
           </p>
@@ -335,7 +335,7 @@ export default function StageLibraryTab({ isAdmin }: { isAdmin: boolean }) {
             editingId === it.id ? (
               <div
                 key={it.id}
-                className="bg-surface-card border border-primary/40 rounded-[var(--radius-lg)] p-5"
+                className="pb-reveal bg-surface-card border border-primary/40 rounded-[var(--radius-lg)] p-5"
               >
                 <Editor
                   draft={draft}

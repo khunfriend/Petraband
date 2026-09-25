@@ -77,7 +77,7 @@ export default function PendingUsersClient({ users }: { users: PendingUser[] }) 
             <th className="px-4 py-3 text-right">การดำเนินการ</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="pb-stagger">
           {users.map((u) => (
             <tr key={u.id} className="border-t border-hairline-soft">
               <td className="px-4 py-3 font-medium text-ink">{u.nickname}</td>

@@ -192,7 +192,7 @@ export default function SongListClient({
             description="ลองเปลี่ยนคำค้นหาหรือหมวดหมู่"
           />
         ) : (
-          <div className="flex flex-col divide-y divide-hairline-soft border border-hairline rounded-[var(--radius-lg)] overflow-hidden bg-surface-card">
+          <div className="pb-stagger flex flex-col divide-y divide-hairline-soft border border-hairline rounded-[var(--radius-lg)] overflow-hidden bg-surface-card">
             {filtered.map((song) => (
               <Link
                 key={song.id}

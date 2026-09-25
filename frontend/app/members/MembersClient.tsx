@@ -333,7 +333,7 @@ export default function MembersClient({
       {isAdmin && showCreate && (
         <form
           onSubmit={handleCreate}
-          className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 md:p-6 flex flex-col gap-4"
+          className="pb-reveal bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 md:p-6 flex flex-col gap-4"
         >
           <Input
             label="ชื่อผู้ใช้ (ใช้เข้าสู่ระบบ)"
@@ -420,7 +420,7 @@ export default function MembersClient({
       )}
 
       {/* User list */}
-      <div className="flex flex-col gap-2">
+      <div className="pb-stagger flex flex-col gap-2">
         {visibleUsers.map((user) => {
           const isExpired = user.status === "EXPIRED";
           return (

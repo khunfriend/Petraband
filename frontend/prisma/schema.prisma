@@ -199,6 +199,7 @@ model Performance {
   heads             PerformanceHead[]
   practiceSchedules PracticeSchedule[]
   members           PerformanceMember[]
+  lineupSections    LineupSection[]
   temporaryUsers    User[]              @relation("TempUsers")
   availabilityPolls AvailabilityPoll[]
   userSheetPrefs    UserPerformanceSheetPref[]
@@ -418,17 +419,35 @@ model PerformanceHead {
   @@unique([userId, performanceId])
 }
 
+// One row per (person, section, position). position "" marks that the person
+// is in the performance at all; sectionId "" means "not split into sections"
+// (a plain string rather than a relation, so it can take part in the unique key).
 model PerformanceMember {
   id            String   @id @default(cuid())
   userId        String
   performanceId String
+  sectionId     String   @default("")
   position      String   @default("")
   joinedAt      DateTime @default(now())
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   performance Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, performanceId, position])
+  @@unique([userId, performanceId, sectionId, position])
+}
+
+// Optional split of a performance's lineup into sets / ensembles
+// (e.g. "ชุดที่ 1 วงปี่พาทย์"). A performance with none has a single lineup.
+model LineupSection {
+  id            String   @id @default(cuid())
+  performanceId String
+  name          String
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  performance Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@index([performanceId])
 }
 
 // ─── Practice Schedule ─────────────────────────────────────

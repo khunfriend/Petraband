@@ -32,13 +32,25 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const body = await req.json();
-  const entries: Array<{ userId: string; position?: string }> = Array.isArray(body) ? body : [body];
+  const entries: Array<{ userId: string; position?: string; sectionId?: string }> = Array.isArray(body) ? body : [body];
+
+  // Once a lineup is split, every position belongs to one of its sections;
+  // without sections, positions live in the unsectioned lineup ("").
+  const sectionIds = new Set(
+    (await prisma.lineupSection.findMany({ where: { performanceId: id }, select: { id: true } })).map((s) => s.id)
+  );
+  for (const e of entries) {
+    const sectionId = e.position ? (e.sectionId ?? "") : "";
+    const ok = sectionIds.size === 0 ? sectionId === "" : !e.position || sectionIds.has(sectionId);
+    if (!ok) return NextResponse.json({ error: "ชุดการแสดงไม่ถูกต้อง" }, { status: 400 });
+  }
 
   for (const e of entries) {
+    const sectionId = e.position ? (e.sectionId ?? "") : "";
     await prisma.$executeRaw`
-      INSERT INTO "PerformanceMember" ("id", "userId", "performanceId", "position", "joinedAt")
-      VALUES (gen_random_uuid()::text, ${e.userId}, ${id}, ${e.position ?? ""}, now())
-      ON CONFLICT ("userId", "performanceId", "position") DO NOTHING
+      INSERT INTO "PerformanceMember" ("id", "userId", "performanceId", "sectionId", "position", "joinedAt")
+      VALUES (gen_random_uuid()::text, ${e.userId}, ${id}, ${sectionId}, ${e.position ?? ""}, now())
+      ON CONFLICT ("userId", "performanceId", "sectionId", "position") DO NOTHING
     `;
   }
 
@@ -51,12 +63,12 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
-  const { userId, position } = await req.json();
+  const { userId, position, sectionId } = await req.json();
   if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
 
   if (position !== undefined) {
     await prisma.performanceMember.deleteMany({
-      where: { userId, performanceId: id, position },
+      where: { userId, performanceId: id, position, sectionId: sectionId ?? "" },
     });
   } else {
     await prisma.performanceMember.deleteMany({

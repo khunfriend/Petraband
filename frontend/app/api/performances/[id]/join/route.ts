@@ -29,7 +29,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
   await prisma.$executeRaw`
     INSERT INTO "PerformanceMember" ("id", "userId", "performanceId", "position", "joinedAt")
     VALUES (gen_random_uuid()::text, ${session.user.id}, ${id}, '', now())
-    ON CONFLICT ("userId", "performanceId", "position") DO NOTHING
+    ON CONFLICT ("userId", "performanceId", "sectionId", "position") DO NOTHING
   `;
 
   return NextResponse.json({ ok: true });

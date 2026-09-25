@@ -115,7 +115,6 @@ export default function SongListClient({
       <PageHeader
         eyebrow="Songs"
         title="คลังเพลงของวง"
-        description="ค้นหา จัดหมวดหมู่ และเปิดโน้ตเพลงในที่เดียว"
         actions={
           isAdmin && (
             <Button

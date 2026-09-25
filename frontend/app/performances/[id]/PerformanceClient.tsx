@@ -913,7 +913,7 @@ export default function PerformanceClient({
     const ok = await confirm({
       title: "ลบชุดการแสดง",
       message: isLast
-        ? `ลบ "${section.name}" แล้วรายชื่อจะกลับเป็นแบบไม่แบ่งชุด ตำแหน่งที่กำหนดไว้ยังอยู่ครบ`
+        ? `ลบ "${section.name}" แล้วรายชื่อจะกลับเป็นแบบไม่แบ่งชุด ตำแหน่งยังอยู่ครบ`
         : `ลบ "${section.name}" และตำแหน่งทั้งหมดในชุดนี้? (สมาชิกยังอยู่ในงานแสดง)`,
       confirmLabel: "ลบ",
       variant: "danger",
@@ -1034,7 +1034,7 @@ export default function PerformanceClient({
                     </div>
                   ))}
                   <p className="text-[11px] text-muted-soft pt-1">
-                    วันที่กำหนดตอนสร้างงาน แก้ไม่ได้ — แก้ได้เฉพาะเวลาของแต่ละวัน
+                    แก้ได้เฉพาะเวลา
                   </p>
                 </div>
               </div>
@@ -1120,7 +1120,7 @@ export default function PerformanceClient({
               <p className="text-sm text-ink whitespace-pre-wrap">{performance.costume}</p>
             ) : (
               <p className="text-sm text-muted-soft">
-                {canEdit ? "ยังไม่ได้ระบุ กด แก้ไข เพื่อเพิ่ม" : "ยังไม่ได้ระบุเครื่องแต่งกาย"}
+                {canEdit ? "ยังไม่ได้ระบุ" : "ยังไม่ได้ระบุเครื่องแต่งกาย"}
               </p>
             )}
           </div>
@@ -1164,7 +1164,7 @@ export default function PerformanceClient({
               <p className="text-sm text-ink whitespace-pre-wrap">{performance.description}</p>
             ) : (
               <p className="text-sm text-muted-soft">
-                {canEdit ? "ยังไม่มีหมายเหตุ กด แก้ไข เพื่อเพิ่ม" : "ยังไม่มีหมายเหตุ"}
+                {canEdit ? "ยังไม่มีหมายเหตุ" : "ยังไม่มีหมายเหตุ"}
               </p>
             )}
           </div>
@@ -1261,7 +1261,7 @@ export default function PerformanceClient({
                               setPositionSearch("");
                             }
                           }}
-                          placeholder="ค้นหาตำแหน่ง... (พิมพ์แล้วกด Enter เพื่อเลือก)"
+                          placeholder="ค้นหาตำแหน่ง..."
                           className="w-full mb-4 px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
                         />
                         <div className="flex flex-col gap-4">
@@ -1310,7 +1310,7 @@ export default function PerformanceClient({
                             );
                           })}
                           {POSITIONS.every((p) => !p.toLowerCase().includes(positionSearch.trim().toLowerCase())) && (
-                            <p className="text-sm text-muted-soft">ไม่พบตำแหน่งที่ค้นหา — เลือก &quot;อื่นๆ&quot; เพื่อพิมพ์เอง</p>
+                            <p className="text-sm text-muted-soft">ไม่พบ — เลือก &quot;อื่นๆ&quot; เพื่อพิมพ์เอง</p>
                           )}
                         </div>
                         {selectedPositions.includes("อื่นๆ") && (
@@ -1354,7 +1354,6 @@ export default function PerformanceClient({
 
                     {memberStep === 2 && (
                       <div className="p-4 flex flex-col gap-3">
-                        <p className="text-xs text-muted">แตะชื่อสมาชิกเพื่อเลือก (เฉพาะสมาชิกในงาน)</p>
                         <input
                           type="text"
                           value={memberSearch}
@@ -1898,10 +1897,8 @@ export default function PerformanceClient({
         </>
       ) : (
         <section className="pb-reveal rounded-[var(--radius-lg)] border border-dashed border-hairline bg-surface-card px-6 py-8 text-center flex flex-col items-center gap-3">
-          <p className="text-base font-semibold text-ink">เข้าร่วมงานเพื่อดูรายละเอียดทั้งหมด</p>
-          <p className="text-sm text-muted max-w-md leading-relaxed">
-            รายชื่อสมาชิกและตำแหน่ง ตารางซ้อม ผังการแสดง และรายการอุปกรณ์ จะแสดงเมื่อคุณกดเข้าร่วมงานนี้
-          </p>
+          <p className="text-base font-semibold text-ink">เข้าร่วมงานเพื่อดูรายละเอียด</p>
+          <p className="text-sm text-muted">รายชื่อ ตารางซ้อม และผังเวที</p>
           {!hasEnded && (
             <Button variant="primary" size="sm" onClick={toggleJoin} disabled={joinLoading} className="mt-1">
               {joinLoading ? "กำลังเข้าร่วม..." : "เข้าร่วมงานนี้"}

@@ -33,7 +33,7 @@ export default function GuestLoginPage() {
       <Eyebrow>Guest sign in</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">ผู้ร่วมแสดงเฉพาะกิจ</h1>
       <p className="mt-2 text-sm text-body leading-[1.7]">
-        ใช้ชื่อผู้ใช้และรหัสผ่านที่ผู้ดูแลวงให้ไว้
+        ใช้ชื่อผู้ใช้และรหัสผ่านจากผู้ดูแล
       </p>
 
       <form action={action} className="mt-8 flex flex-col gap-4">

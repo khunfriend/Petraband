@@ -131,7 +131,7 @@ export default function CreatePerformancePage() {
       <PageHeader
         eyebrow="Create"
         title="สร้างงานแสดงใหม่"
-        description="กำหนดชื่องาน สถานที่ และวันที่แสดง — เพิ่มเพลง/สมาชิกภายหลังได้"
+        description="เพิ่มเพลงและสมาชิกได้ภายหลัง"
       />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">

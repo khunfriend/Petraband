@@ -62,6 +62,7 @@ API `/api/performances/[id]/lineup-sections` (POST) + `/lineup-sections/[section
 - แอนิเมชันทั้งเว็บ (`globals.css`: `pb-pop-in/out`, `pb-menu-in`, `pb-reveal`, `pb-stagger`, `pb-badge-pop`) · Modal ค้างไว้จนแอนิเมชันปิดจบ (state ปรับระหว่าง render ไม่ใช่ effect) · ConfirmDialog เก็บ options ไว้ตอนปิด ข้อความจะได้ไม่หาย · ปุ่มยุบตอนกด · เส้นใต้เมนูเด้งตอนชี้ (inline style + state)
 - ตัวเลือกเพลง/สมาชิกในหน้างานแสดง: ชี้แล้วขยาย เลือกแล้วใหญ่ค้าง (`PopChip`, inline style + Web Animations) · ตัวเลือกเพลงไม่ปิดเองหลังเพิ่มแล้ว
 - หน้างานแสดง: คนที่ยังไม่เข้าร่วม (ไม่ใช่ admin/head ของงาน) เห็นแค่ข้อมูลงาน/เครื่องแต่งกาย/หมายเหตุ/เพลง — ข้อมูลส่วนล่าง**ไม่ถูกส่ง**จาก server (`canSeeFull` ใน page.tsx, `key` remount หลังเข้าร่วม)
+- ตัดคำอธิบายยาว/ฟุ่มเฟือยทั้งเว็บ (subtitle ที่ซ้ำหัวข้อ, "กด แก้ไข เพื่อเพิ่ม", คำแนะนำที่เห็นอยู่แล้ว) · ลบหน้า `/design` (หน้าการตลาดที่ไม่เกี่ยวกับวง)
 - ⚠️ ยังเปิดอยู่: `GET /api/performances/[id]/members` ให้ทุกคนที่ล็อกอินดึงรายชื่อได้
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)

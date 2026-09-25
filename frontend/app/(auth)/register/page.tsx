@@ -30,12 +30,12 @@ export default function RegisterPage() {
       <Eyebrow>Register</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">สร้างบัญชีใหม่</h1>
       <p className="mt-2 text-sm text-body leading-[1.7]">
-        กรอกชื่อเล่นและรุ่น แล้วยืนยันตัวตนด้วยบัญชี Google จากนั้นรอผู้ดูแลวงอนุมัติ
+        สมัครด้วย Google แล้วรอผู้ดูแลอนุมัติ
       </p>
 
       {needProfile && (
         <p className="mt-6 rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm leading-[1.7] text-body-strong">
-          บัญชี Google นี้ยังไม่ได้สมัคร — กรอกชื่อเล่นและรุ่นก่อน แล้วกดสมัครอีกครั้ง
+          บัญชีนี้ยังไม่ได้สมัคร กรอกชื่อเล่นและรุ่นก่อน
         </p>
       )}
 

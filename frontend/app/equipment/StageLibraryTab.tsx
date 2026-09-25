@@ -189,7 +189,7 @@ function Editor({
             ))}
           </div>
           <p className="text-xs text-muted-soft">
-            เครื่องดนตรีจะให้สมาชิกเลือกเป็นเครื่องที่เล่นได้ ส่วนอุปกรณ์บนเวทีจะแสดงแค่ในผังเวที
+            อุปกรณ์บนเวทีแสดงแค่ในผังเวที
           </p>
         </div>
 
@@ -294,7 +294,7 @@ export default function StageLibraryTab({ isAdmin }: { isAdmin: boolean }) {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <p className="text-sm text-body leading-[1.7]">
-          รูปและขนาดของแต่ละชิ้นที่ใช้วางบนผังเวที ขนาดคือพื้นที่ที่วางจริงบนพื้นเวที (มองจากด้านบน)
+          ขนาด = พื้นที่บนเวที (มองจากด้านบน)
         </p>
         {isAdmin && editingId !== "new" && (
           <Button

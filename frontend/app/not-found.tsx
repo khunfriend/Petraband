@@ -10,7 +10,7 @@ export default function NotFound() {
           <p className="text-6xl font-bold text-primary leading-none tabular-nums">404</p>
           <h1 className="text-xl font-bold text-ink">ไม่พบหน้าที่คุณต้องการ</h1>
           <p className="text-sm text-muted leading-relaxed">
-            หน้าอาจถูกย้ายหรือลบไปแล้ว ลองกลับไปหน้าหลักหรือย้อนกลับ
+            หน้านี้อาจถูกย้ายหรือลบไปแล้ว
           </p>
           <div className="flex gap-2 mt-2">
             <Link href="/">

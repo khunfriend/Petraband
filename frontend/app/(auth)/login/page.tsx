@@ -8,11 +8,11 @@ import { GoogleButton } from "@/components/auth/GoogleButton";
 // Messages the Google sign-in flow redirects back with.
 const NOTICES: Record<string, { text: string; tone: "info" | "error" }> = {
   pending: {
-    text: "สมัครเรียบร้อยแล้ว — รอผู้ดูแลอนุมัติบัญชีก่อนจึงจะเข้าใช้งานได้ ระบบแจ้งผู้ดูแลให้แล้ว",
+    text: "สมัครแล้ว รอผู้ดูแลอนุมัติ",
     tone: "info",
   },
-  rejected: { text: "บัญชีนี้ถูกปฏิเสธ กรุณาติดต่อผู้ดูแล", tone: "error" },
-  suspended: { text: "บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแล", tone: "error" },
+  rejected: { text: "บัญชีนี้ถูกปฏิเสธ ติดต่อผู้ดูแล", tone: "error" },
+  suspended: { text: "บัญชีนี้ถูกระงับ ติดต่อผู้ดูแล", tone: "error" },
   expired: { text: "บัญชีชั่วคราวนี้หมดอายุแล้ว", tone: "error" },
   google_email: { text: "ไม่สามารถยืนยันอีเมลจาก Google ได้", tone: "error" },
 };
@@ -32,9 +32,6 @@ export default function LoginPage() {
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">
         ยินดีต้อนรับกลับ
       </h1>
-      <p className="mt-2 text-sm text-body leading-[1.7]">
-        เข้าสู่ระบบเพื่อดูตารางงานและซ้อมของวง
-      </p>
 
       {notice && (
         <p

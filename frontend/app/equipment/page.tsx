@@ -34,7 +34,6 @@ export default async function EquipmentPage({
       <PageHeader
         eyebrow="Equipment"
         title="คลังอุปกรณ์"
-        description="รายการอุปกรณ์ทั้งหมด และการตั้งค่าอุปกรณ์ต่องานแสดง"
       />
 
       <EquipmentTabs activeTab={tab}>

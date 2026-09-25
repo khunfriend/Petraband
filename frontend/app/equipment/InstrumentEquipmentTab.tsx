@@ -105,7 +105,7 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted">
-          กำหนดอุปกรณ์เสริมที่ใช้ในงานแสดง ใช้คำนวณ &quot;รายการอุปกรณ์ที่ต้องใช้&quot; ในหน้างานแสดง
+          ใช้คำนวณรายการอุปกรณ์ในหน้างานแสดง
         </p>
         {isAdmin && !editing && (
           <Button size="sm" variant="secondary" onClick={openEdit}>แก้ไข</Button>
@@ -190,7 +190,7 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
                 maxLength={40}
                 onChange={(e) => setNewAccName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addAccessory()}
-                placeholder="อุปกรณ์เสริมใหม่ เช่น พรม, ปลั๊กพ่วง"
+                placeholder="เช่น พรม, ปลั๊กพ่วง"
                 className={`${textInput} flex-1`}
               />
               <Button size="sm" variant="secondary" onClick={addAccessory} disabled={!newAccName.trim()}>
@@ -199,9 +199,6 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
             </div>
           )}
         </div>
-        <p className="text-xs text-muted-soft">
-          &quot;ใช้ต่อคน&quot; นับตามจำนวนคนในงาน เช่น สแตนโน้ต 1 = ทุกคนได้คนละ 1
-        </p>
       </section>
 
       {/* ── Per-instrument counts ── */}
@@ -257,7 +254,7 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
               {list.length === 0 && (
                 <tr>
                   <td colSpan={acc.length + 2} className="px-4 py-6 text-center text-muted">
-                    {editing ? "เลือกเครื่องดนตรีด้านล่างเพื่อเพิ่ม" : "ยังไม่มีข้อมูล — กด แก้ไข เพื่อเพิ่ม"}
+                    {editing ? "เลือกเครื่องดนตรีด้านล่างเพื่อเพิ่ม" : "ยังไม่มีข้อมูล"}
                   </td>
                 </tr>
               )}

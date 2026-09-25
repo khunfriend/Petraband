@@ -38,7 +38,7 @@ export default async function CreatePollPage({ params }: Params) {
         <span className="text-ink">โพลตารางว่าง</span>
       </div>
       <h1 className="text-2xl font-bold text-ink mb-1">สร้างโพลตารางว่าง</h1>
-      <p className="text-sm text-muted mb-6">ระบุช่วงเวลาที่เป็นไปได้ ให้สมาชิกกดว่างก่อนสร้างตารางซ้อมจริง</p>
+      <p className="text-sm text-muted mb-6">ให้สมาชิกเลือกช่วงที่ว่าง ก่อนสร้างตารางซ้อม</p>
 
       <CreatePollClient
         performanceId={id}

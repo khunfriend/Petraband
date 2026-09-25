@@ -171,7 +171,6 @@ export default async function PerformancesPage() {
       <PageHeader
         eyebrow="Performances"
         title="งานแสดงของวง"
-        description="ตารางงานที่กำลังจะมาและประวัติการแสดงย้อนหลัง"
         actions={
           isAdmin && (
             <Link href="/performances/create">

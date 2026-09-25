@@ -108,7 +108,6 @@ export default async function HomePage() {
       <PageHeader
         eyebrow="PETRAband"
         title={`สวัสดี, ${session.user.name}`}
-        description="สรุปงานแสดงและตารางซ้อมของวงในช่วงนี้"
       />
 
       {/* Quick stats — 3 cards, hairline border, no shadow */}

@@ -3,7 +3,7 @@
 > ไฟล์สถานะงานสด — session ใหม่อ่านไฟล์นี้ก่อนเสมอ (ดู [CLAUDE.md](CLAUDE.md))
 > อัปเดตทุกครั้งที่จบก้อนงาน ไม่ใช่ตอนจบ session อย่างเดียว
 
-**อัปเดตล่าสุด:** 24 ก.ย. 2569 · commit ล่าสุด `a34dc1d`
+**อัปเดตล่าสุด:** 25 ก.ย. 2569 · deploy `85e3115`
 
 ---
 
@@ -11,7 +11,7 @@
 
 ### ⏸️ Google Sign-in — โค้ดเสร็จ ทดสอบบน dev ได้บางส่วน **ยังห้าม deploy**
 
-🚨 **ห้าม deploy ขึ้น production จนกว่าจะยืนยันว่า Google login ใช้ได้จริง** — การ์ดใหม่ใน Credentials ปฏิเสธทุกบัญชีที่ `isTemporary !== true` ถ้าขึ้น production ก่อนที่ Google จะทำงาน **ทั้งวงจะเข้าระบบไม่ได้ทันที** และไม่มีใครเข้าไปแก้ได้ด้วย
+✅ **deploy แล้ว 25 ก.ย. 2569** (push `85e3115` → Vercel) — เจ้าของยืนยันว่าทำขั้นเตรียมครบ: backup, Google redirect URI + secret ใหม่, env `AUTH_GOOGLE_ID/SECRET`, migrate deploy 3 ตัว, มีแอดมินที่ใช้ Google ~~ห้าม deploy ขึ้น production จนกว่าจะยืนยันว่า Google login ใช้ได้จริง~~ — การ์ดใหม่ใน Credentials ปฏิเสธทุกบัญชีที่ `isTemporary !== true` ถ้าขึ้น production ก่อนที่ Google จะทำงาน **ทั้งวงจะเข้าระบบไม่ได้ทันที** และไม่มีใครเข้าไปแก้ได้ด้วย
 
 **ทำไปแล้ว:** Google provider ใน `auth.ts` · `signIn` callback สร้าง user สถานะ `PENDING_APPROVAL` เมื่อ login ครั้งแรกแล้วเด้งกลับ `/login?pending=1` (deny-by-default) · link บัญชีเดิมด้วย email + ล้าง `passwordHash` ของสมาชิกปกติ · การ์ด `isTemporary` ใน Credentials · `jwt` callback ดึง row จริงจาก DB เพราะ Google คืนมาแต่ profile ของตัวเอง · ปุ่ม + ข้อความแจ้งสถานะบนหน้า login
 **ผูกบัญชีด้วย email ไม่ใช่ `googleId`** — Google ยืนยันอีเมลให้อยู่แล้ว และเลี่ยง migration เพิ่ม (ถ้าอยากเก็บ `sub` ค่อยเพิ่มทีหลัง)
@@ -24,14 +24,14 @@
 **24 ก.ย. (3):** แอดมินสร้างได้แค่บัญชีชั่วคราว (หน้าสมาชิกไม่มีสวิตช์ทั่วไป/ชั่วคราว ไม่มีช่องอีเมล · `POST /api/users` บังคับ `isTemporary` + ต้องมีงานแสดง) · บัญชีชั่วคราว login ด้วย **ชื่อเล่น + รหัสผ่านที่แอดมินตั้ง** ที่ `/login/guest` · อีเมลเป็น placeholder `<uuid>@guest.petraband.invalid` (ไม่ต้อง migration, ส่งเมลไม่ถึงแน่นอน) · ชื่อเล่นห้ามซ้ำในบัญชีชั่วคราว (ไม่สนตัวพิมพ์) ทั้งตอนสร้างและตอนแก้ · บัญชีชั่วคราวเก่าที่ชื่อซ้ำกัน `authorize` ใช้รหัสผ่านแยกให้
 **ขั้นต่อไป:** เจ้าของกดปุ่ม "เข้าสู่ระบบด้วย Google" บน localhost:3000 แล้วบอกผลมา จากนั้นผมจะ set บัญชีนั้นเป็น ACTIVE+ADMIN ใน dev DB เพื่อทดสอบรอบสอง
 
-### ⏸️ คลังผังเวที — โค้ดเสร็จ ทดสอบบน dev ผ่าน · commit `36a2df0` · **migration ยังไม่ลง production**
+### ⏸️ คลังผังเวที — โค้ดเสร็จ ทดสอบบน dev ผ่าน · commit `36a2df0` · migration ลง production แล้ว (25 ก.ย.)
 
 หน้า อุปกรณ์ → แท็บ "ตั้งค่าสำหรับผังเวที" (`app/equipment/StageLibraryTab.tsx`): แก้ชื่อ / ไอคอน (เลือกจาก 9 แบบใน `components/stage/InstrumentIcon.tsx`) / กว้าง×ลึก (0.1–10 ม.) / ประเภท · เพิ่มชิ้นใหม่ · ลบได้เฉพาะชิ้นที่ไม่มีผังเวที เพลง หรือสมาชิกอ้างถึง (409)
 Migration `20260924120000_instrument_is_playable`: `Instrument.isPlayable` (default true) — `false` = อุปกรณ์บนเวที ขึ้นใน palette หมวด "อุปกรณ์" ของผังเวที แต่ไม่ขึ้นในช่องเลือกเครื่องดนตรีของโปรไฟล์/สมาชิก
 API `/api/instruments` POST + `[id]` PATCH (มี zod แล้ว เดิมไม่ validate) + DELETE · schema ที่ `lib/instrumentSchema.ts`
 ⚠️ ต้องรีสตาร์ท dev server หลัง migrate (Prisma client ค้างใน `globalForPrisma` → `PrismaClientValidationError: isPlayable`)
 
-### ⏸️ อุปกรณ์เสริมตั้งค่าได้ — ทดสอบบน dev ผ่าน · **migration ยังไม่ลง production**
+### ⏸️ อุปกรณ์เสริมตั้งค่าได้ — ทดสอบบน dev ผ่าน · migration ลง production แล้ว (25 ก.ย.)
 
 แท็บ "ตั้งค่าอุปกรณ์ในการแสดง" (`app/equipment/InstrumentEquipmentTab.tsx`): เพิ่ม/ลบ/เปลี่ยนชื่ออุปกรณ์เสริมได้ + "ใช้ต่อคน" + ตารางจำนวนต่อเครื่องดนตรี (เลือกจาก `lib/positions.ts` ซึ่งย้ายมาจาก PerformanceClient) · หน้างานแสดงคำนวณด้วย `lib/accessories.ts` (มีเทสต์)
 Migration `20260924140000_accessory_types`: ตาราง `AccessoryType` (seed สแตนโน้ต/ขาไมค์ perPlayer 1, เก้าอี้/โต๊ะ 0 — ผลลัพธ์เท่าของเดิมที่ hard-code) · `InstrumentEquipment.accessories` JSON `{accessoryId: n}` แทน `chairs`/`tables` (ย้ายค่าเดิมให้แล้วค่อย drop — production ณ 16 ก.ย. ตารางนี้ว่าง)
@@ -50,7 +50,7 @@ Migration `20260924140000_accessory_types`: ตาราง `AccessoryType` (see
 
 `lib/positions.ts` → `POSITION_GROUPS` (ตี / สี-ดีด / เป่า / กลอง / ประกอบจังหวะ / อื่นๆ; ชุด 29 ตำแหน่งเท่าเดิม) · ขั้น 1 ของ "+ เพิ่มตำแหน่ง" เป็นชิปแยกกลุ่ม + ตัวเลขคนที่อยู่ในตำแหน่งนั้นแล้ว + ค้นหาแล้ว Enter เลือกได้เมื่อเหลือตัวเดียว + แถบ "เลือกแล้ว" / ล้าง / ถัดไป (n)
 
-### ⏸️ แบ่งรายชื่อในงานแสดงเป็นชุด/วง (ไม่บังคับ) — ทดสอบบน dev ผ่าน · ยังไม่ commit · **migration ยังไม่ลง production**
+### ⏸️ แบ่งรายชื่อในงานแสดงเป็นชุด/วง (ไม่บังคับ) — ทดสอบบน dev ผ่าน · ยังไม่ commit · migration ลง production แล้ว (25 ก.ย.)
 
 Migration `20260924160000_lineup_sections`: ตาราง `LineupSection` + `PerformanceMember.sectionId` (`""` = ไม่แบ่งชุด, เป็น string ไม่ใช่ FK เพื่อให้อยู่ใน unique key ได้) · unique เปลี่ยนเป็น (userId, performanceId, sectionId, position) — คนเดียวอยู่หลายชุดได้ · `ON CONFLICT` ใน `members` และ `join` แก้ตามแล้ว
 API `/api/performances/[id]/lineup-sections` (POST) + `/lineup-sections/[sectionId]` (PATCH ชื่อ, DELETE) — ADMIN · ชุดแรกรับตำแหน่งเดิมทั้งหมด · ลบชุดสุดท้าย = ตำแหน่งกลับเป็นไม่แบ่งชุด · ลบชุดอื่น = ลบตำแหน่งในชุดนั้น (คนยังอยู่ในงาน) · เมื่อแบ่งแล้ว POST ตำแหน่งต้องมี sectionId ที่ถูก (400)

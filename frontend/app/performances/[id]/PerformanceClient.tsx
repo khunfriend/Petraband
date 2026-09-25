@@ -10,7 +10,8 @@ import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
 import { PerformanceSongSections } from "./PerformanceSongSections";
-import { POSITIONS } from "@/lib/positions";
+import { POSITIONS, POSITION_GROUPS } from "@/lib/positions";
+import { cn } from "@/lib/utils";
 import { accessoryTotals, type AccessoryType, type InstrumentAccessories } from "@/lib/accessories";
 import { getInstrumentColor } from "@/lib/instrumentColors";
 
@@ -81,7 +82,10 @@ type Participant = {
   generation: string;
   primaryInstrumentNameThai: string | null;
   position: string;
+  sectionId: string; // "" = lineup not split into sections
 };
+
+type LineupSection = { id: string; name: string };
 
 type AssignedHead = { id: string; nickname: string; generation: string };
 
@@ -171,6 +175,7 @@ function SongPickerPanel({ addedSongIds, onAdd, onClose }: SongPickerPanelProps)
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/songs?limit=500")
@@ -222,7 +227,8 @@ function SongPickerPanel({ addedSongIds, onAdd, onClose }: SongPickerPanelProps)
           </button>
         ))}
       </div>
-      <div className="max-h-64 overflow-y-auto divide-y divide-hairline-soft">
+      {/* Side padding leaves room for a hovered row to grow without clipping. */}
+      <div className="max-h-64 overflow-y-auto flex flex-col" style={{ padding: "6px 14px", gap: 2 }}>
         {loading ? (
           <p className="px-4 py-4 text-sm text-muted text-center">กำลังโหลด...</p>
         ) : filtered.length === 0 ? (
@@ -230,24 +236,103 @@ function SongPickerPanel({ addedSongIds, onAdd, onClose }: SongPickerPanelProps)
         ) : (
           filtered.map((song) => {
             const added = addedSongIds.has(song.id);
+            const hovered = hoveredId === song.id && !added;
             return (
               <button
                 key={song.id}
                 disabled={added}
-                onClick={() => onAdd(song)}
-                className="w-full text-left px-4 py-2.5 hover:bg-surface-cream-strong transition-colors flex items-center justify-between gap-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                onMouseEnter={() => setHoveredId(song.id)}
+                onMouseLeave={() => setHoveredId((h) => (h === song.id ? null : h))}
+                onClick={(e) => {
+                  // A quick pop on the row just picked (Web Animations, so it
+                  // needs no stylesheet; skipped for reduced-motion users).
+                  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+                    e.currentTarget.animate(
+                      [{ transform: "scale(1.02)" }, { transform: "scale(1.03)" }, { transform: "scale(1)" }],
+                      { duration: 380, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" }
+                    );
+                  }
+                  onAdd(song);
+                }}
+                className="relative w-full text-left px-3 py-2.5 rounded-[var(--radius-md)] flex items-center justify-between gap-3 disabled:cursor-default"
+                style={{
+                  borderRadius: 10,
+                  backgroundColor: added
+                    ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
+                    : hovered
+                      ? "var(--color-surface-cream-strong)"
+                      : "transparent",
+                  // Pointed-at song grows a little, with a slight overshoot.
+                  transform: hovered ? "scale(1.02)" : "scale(1)",
+                  zIndex: hovered ? 1 : undefined,
+                  transition:
+                    "transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 160ms ease",
+                }}
               >
                 <div className="min-w-0">
-                  <p className="text-sm text-ink truncate">{song.title}</p>
+                  <p
+                    className={cn("text-ink truncate", added || hovered ? "font-semibold" : "")}
+                    style={{ fontSize: added || hovered ? 15 : 14, transition: "font-size 200ms ease" }}
+                  >
+                    {song.title}
+                  </p>
                   <p className="text-xs text-muted-soft">{song.category}</p>
                 </div>
-                {added && <span className="text-xs text-muted shrink-0">เพิ่มแล้ว</span>}
+                {added && <span className="text-xs font-medium text-primary shrink-0">✓ เพิ่มแล้ว</span>}
               </button>
             );
           })
         )}
       </div>
     </div>
+  );
+}
+
+// ─── Selectable chip that pops ─────────────────────────────
+// Grows a little under the mouse and stays larger once selected, with a short
+// pop when toggled. Inline styles + Web Animations, so it needs no stylesheet.
+const POP_EASE = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+
+function PopChip({
+  selected,
+  disabled,
+  onClick,
+  className,
+  children,
+}: {
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const scale = disabled ? 1 : selected ? 1.1 : hovered ? 1.06 : 1;
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={(e) => {
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          e.currentTarget.animate(
+            [{ transform: `scale(${scale})` }, { transform: `scale(${selected ? 0.95 : 1.18})` }, { transform: `scale(${selected ? 1 : 1.1})` }],
+            { duration: 320, easing: POP_EASE }
+          );
+        }
+        onClick();
+      }}
+      className={className}
+      style={{
+        transform: `scale(${scale})`,
+        transition: `transform 220ms ${POP_EASE}, background-color 160ms ease, color 160ms ease, border-color 160ms ease`,
+        position: "relative",
+        zIndex: hovered || selected ? 1 : undefined,
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -282,6 +367,8 @@ export default function PerformanceClient({
   stageLayout,
   practiceSchedules,
   polls,
+  lineupSections: initialLineupSections,
+  canSeeFull,
 }: {
   performance: Performance;
   participants: Participant[];
@@ -291,12 +378,16 @@ export default function PerformanceClient({
   stageLayout: StageLayout | null;
   practiceSchedules: PracticeScheduleEntry[];
   polls: PollEntry[];
+  lineupSections: LineupSection[];
+  /** false = not joined (and not admin / head): only the top sections show. */
+  canSeeFull: boolean;
 }) {
   const router = useRouter();
   const confirm = useConfirm();
   const toast = useToast();
   const [performance, setPerformance] = useState(initial);
   const [participants, setParticipants] = useState(initialParticipants);
+  const [lineupSections, setLineupSections] = useState(initialLineupSections);
   const [hasJoined, setHasJoined] = useState(initialHasJoined);
   const [joinLoading, setJoinLoading] = useState(false);
   const [allMembers, setAllMembers] = useState<AssignedHead[]>([]);
@@ -480,14 +571,18 @@ export default function PerformanceClient({
   // ── Songs ─────────────────────────────────────────────────
   const [showPicker, setShowPicker] = useState(false);
 
+  // The picker stays open so several songs can be added in a row; each one
+  // picked is highlighted in place (see SongPickerPanel).
   async function addSong(song: SongSearchResult) {
-    setShowPicker(false);
     const res = await fetch(`/api/performances/${performance.id}/songs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ songId: song.id }),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast.error("เพิ่มเพลงไม่สำเร็จ");
+      return;
+    }
     const data = await res.json();
     const ps = data.performanceSong;
     setPerformance((prev) => ({
@@ -534,6 +629,12 @@ export default function PerformanceClient({
       }
       setHasJoined((v) => !v);
       toast.success(hasJoined ? "ยกเลิกการเข้าร่วมแล้ว" : "เข้าร่วมงานแสดงแล้ว");
+      // For regular members, joining is what unlocks the lineup, practice and
+      // stage sections — fetch them (the page remounts with the new data).
+      if (!isAdmin && !isHead) {
+        router.refresh();
+        return;
+      }
       const membersRes = await fetch(`/api/performances/${performance.id}/members`);
       if (membersRes.ok) {
         const data = await membersRes.json();
@@ -613,7 +714,7 @@ export default function PerformanceClient({
         .filter((uid) => !joinedMembers.some((j) => j.userId === uid))
         .map((uid) => {
           const u = allMembers.find((m) => m.id === uid)!;
-          return { memberId: `${uid}-`, userId: uid, nickname: u.nickname, generation: u.generation, primaryInstrumentNameThai: null, position: "" };
+          return { memberId: `${uid}-`, userId: uid, nickname: u.nickname, generation: u.generation, primaryInstrumentNameThai: null, position: "", sectionId: "" };
         });
       setParticipants((prev) => [...prev, ...newEntries]);
       setShowAddMember(false);
@@ -649,6 +750,8 @@ export default function PerformanceClient({
 
   // ── Position assignment panel ─────────────────────────────
   const [showMemberPanel, setShowMemberPanel] = useState(false);
+  // Which lineup section the panel adds to ("" when the lineup isn't split).
+  const [panelSectionId, setPanelSectionId] = useState("");
   const [memberStep, setMemberStep] = useState<1 | 2>(1);
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
   const [customPosition, setCustomPosition] = useState("");
@@ -657,7 +760,8 @@ export default function PerformanceClient({
   const [memberSearch, setMemberSearch] = useState("");
   const [positionSearch, setPositionSearch] = useState("");
 
-  function openPositionPanel() {
+  function openPositionPanel(sectionId = "") {
+    setPanelSectionId(sectionId);
     setShowMemberPanel(true);
     setMemberStep(1);
     setSelectedPositions([]);
@@ -695,14 +799,15 @@ export default function PerformanceClient({
 
   async function savePositionAssignments(joinedMembers: Participant[], currentPositionEntries: Participant[]) {
     setSaveMembersLoading(true);
-    const pairs: { userId: string; position: string }[] = [];
+    const pairs: { userId: string; position: string; sectionId: string }[] = [];
     for (const pos of resolvedPositions()) {
       const assignKey = selectedPositions.includes("อื่นๆ") && pos === customPosition.trim() ? "อื่นๆ" : pos;
       const userIds = positionAssignments[assignKey] ?? [];
       for (const userId of userIds) {
-        if (!currentPositionEntries.some((p) => p.userId === userId && p.position === pos)) {
-          pairs.push({ userId, position: pos });
-        }
+        const exists = currentPositionEntries.some(
+          (p) => p.userId === userId && p.position === pos && p.sectionId === panelSectionId
+        );
+        if (!exists) pairs.push({ userId, position: pos, sectionId: panelSectionId });
       }
     }
     if (pairs.length === 0) { setShowMemberPanel(false); setSaveMembersLoading(false); return; }
@@ -716,12 +821,13 @@ export default function PerformanceClient({
       const newEntries: Participant[] = pairs.map((pair) => {
         const u = joinedMembers.find((m) => m.userId === pair.userId)!;
         return {
-          memberId: `${pair.userId}-${pair.position}`,
+          memberId: `${pair.userId}-${pair.sectionId}-${pair.position}`,
           userId: pair.userId,
           nickname: u.nickname,
           generation: u.generation,
           primaryInstrumentNameThai: null,
           position: pair.position,
+          sectionId: pair.sectionId,
         };
       });
       setParticipants((prev) => [...prev, ...newEntries]);
@@ -731,8 +837,8 @@ export default function PerformanceClient({
     }
   }
 
-  async function removePositionEntry(userId: string, position: string) {
-    const target = participants.find((p) => p.userId === userId && p.position === position);
+  async function removePositionEntry(userId: string, position: string, sectionId: string) {
+    const target = participants.find((p) => p.userId === userId && p.position === position && p.sectionId === sectionId);
     const nickname = target?.nickname ?? "";
     const ok = await confirm({
       title: "ลบสมาชิกจากตำแหน่ง",
@@ -745,14 +851,86 @@ export default function PerformanceClient({
     const res = await fetch(`/api/performances/${performance.id}/members`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, position }),
+      body: JSON.stringify({ userId, position, sectionId }),
     });
     if (!res.ok) {
       toast.error("ลบไม่สำเร็จ");
       return;
     }
-    setParticipants((prev) => prev.filter((p) => !(p.userId === userId && p.position === position)));
+    setParticipants((prev) =>
+      prev.filter((p) => !(p.userId === userId && p.position === position && p.sectionId === sectionId))
+    );
     toast.success(`ลบ ${nickname} ออกจาก ${position}`);
+  }
+
+  // ── Lineup sections (optional sets / ensembles) ───────────
+  const [renamingSectionId, setRenamingSectionId] = useState<string | null>(null);
+  const [sectionNameDraft, setSectionNameDraft] = useState("");
+
+  async function addLineupSection() {
+    const name = `ชุดที่ ${lineupSections.length + 1}`;
+    const res = await fetch(`/api/performances/${performance.id}/lineup-sections`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) {
+      toast.error("เพิ่มชุดไม่สำเร็จ");
+      return;
+    }
+    const { section } = await res.json();
+    // The first section takes over positions already assigned (server does the same).
+    if (lineupSections.length === 0) {
+      setParticipants((prev) =>
+        prev.map((p) => (p.position !== "" && p.sectionId === "" ? { ...p, sectionId: section.id } : p))
+      );
+    }
+    setLineupSections((prev) => [...prev, { id: section.id, name: section.name }]);
+    setShowMemberPanel(false);
+    setRenamingSectionId(section.id);
+    setSectionNameDraft(section.name);
+  }
+
+  async function renameLineupSection(id: string) {
+    const name = sectionNameDraft.trim();
+    const current = lineupSections.find((s) => s.id === id);
+    setRenamingSectionId(null);
+    if (!name || name === current?.name) return;
+    const res = await fetch(`/api/performances/${performance.id}/lineup-sections/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) {
+      toast.error("เปลี่ยนชื่อไม่สำเร็จ");
+      return;
+    }
+    setLineupSections((prev) => prev.map((s) => (s.id === id ? { ...s, name } : s)));
+  }
+
+  async function deleteLineupSection(section: LineupSection) {
+    const isLast = lineupSections.length === 1;
+    const ok = await confirm({
+      title: "ลบชุดการแสดง",
+      message: isLast
+        ? `ลบ "${section.name}" แล้วรายชื่อจะกลับเป็นแบบไม่แบ่งชุด ตำแหน่งที่กำหนดไว้ยังอยู่ครบ`
+        : `ลบ "${section.name}" และตำแหน่งทั้งหมดในชุดนี้? (สมาชิกยังอยู่ในงานแสดง)`,
+      confirmLabel: "ลบ",
+      variant: "danger",
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/performances/${performance.id}/lineup-sections/${section.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("ลบไม่สำเร็จ");
+      return;
+    }
+    setParticipants((prev) =>
+      isLast
+        ? prev.map((p) => (p.sectionId === section.id ? { ...p, sectionId: "" } : p))
+        : prev.filter((p) => p.sectionId !== section.id)
+    );
+    setLineupSections((prev) => prev.filter((s) => s.id !== section.id));
+    if (panelSectionId === section.id) setShowMemberPanel(false);
   }
 
   // ─── Render ───────────────────────────────────────────────
@@ -1037,14 +1215,256 @@ export default function PerformanceClient({
         )}
       </section>
 
+      {canSeeFull ? (
+        <>
       {/* ── Section 7: รายชื่อสมาชิกและตำแหน่ง ── */}
       <section>
         {(() => {
           const joinedMembers = participants.filter((p) => p.position === "");
           const positionEntries = participants.filter((p) => p.position !== "");
-          const positionGroups = positionEntries.reduce<Record<string, Participant[]>>((acc, p) => {
-            return { ...acc, [p.position]: [...(acc[p.position] ?? []), p] };
-          }, {});
+          const groupByPosition = (entries: Participant[]) =>
+            entries.reduce<Record<string, Participant[]>>((acc, p) => {
+              return { ...acc, [p.position]: [...(acc[p.position] ?? []), p] };
+            }, {});
+          // Entries of the section the panel is adding to — "already in" and
+          // de-duplication are per section, since one person may play in several.
+          const sectionEntries = positionEntries.filter((p) => p.sectionId === panelSectionId);
+          const positionPanel = isAdmin && showMemberPanel ? (
+                  <div className="pb-reveal mb-3 border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
+                    <div className="flex border-b border-hairline-soft">
+                      {[1, 2].map((s) => (
+                        <div
+                          key={s}
+                          className={`flex-1 py-2.5 text-center text-xs font-semibold transition-colors ${
+                            memberStep === s ? "bg-primary text-on-primary" : "bg-surface-soft text-muted-soft"
+                          }`}
+                        >
+                          {s === 1 ? "1 · เลือกตำแหน่ง" : "2 · เลือกสมาชิก"}
+                        </div>
+                      ))}
+                    </div>
+
+                    {memberStep === 1 && (
+                      <div className="p-4">
+                        <input
+                          type="text"
+                          value={positionSearch}
+                          onChange={(e) => setPositionSearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            // Enter picks the only match, so search → Enter → search works.
+                            if (e.key !== "Enter") return;
+                            const q = positionSearch.trim().toLowerCase();
+                            const hits = POSITIONS.filter((p) => p.toLowerCase().includes(q));
+                            if (q && hits.length === 1) {
+                              e.preventDefault();
+                              togglePosition(hits[0]);
+                              setPositionSearch("");
+                            }
+                          }}
+                          placeholder="ค้นหาตำแหน่ง... (พิมพ์แล้วกด Enter เพื่อเลือก)"
+                          className="w-full mb-4 px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
+                        />
+                        <div className="flex flex-col gap-4">
+                          {POSITION_GROUPS.map((group) => {
+                            const q = positionSearch.trim().toLowerCase();
+                            const shown = group.positions.filter((p) => p.toLowerCase().includes(q));
+                            if (shown.length === 0) return null;
+                            return (
+                              <div key={group.label}>
+                                <p className="text-[11px] font-semibold text-muted mb-2">{group.label}</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {shown.map((pos) => {
+                                    const on = selectedPositions.includes(pos);
+                                    const filled = participants.filter((p) => p.position === pos).length;
+                                    return (
+                                      <button
+                                        key={pos}
+                                        type="button"
+                                        onClick={() => togglePosition(pos)}
+                                        aria-pressed={on}
+                                        className={cn(
+                                          "inline-flex items-center gap-1.5 h-8 px-3 rounded-full border text-sm transition-colors duration-[var(--duration-pb-base)]",
+                                          on
+                                            ? "bg-primary border-primary text-on-primary"
+                                            : "bg-canvas border-hairline text-ink hover:border-primary/60"
+                                        )}
+                                      >
+                                        {on && <span aria-hidden>✓</span>}
+                                        {pos}
+                                        {filled > 0 && (
+                                          <span
+                                            title={`มีคนอยู่แล้ว ${filled} คน`}
+                                            className={cn(
+                                              "text-[10px] font-semibold rounded-full px-1.5",
+                                              on ? "bg-white/20" : "bg-surface-cream-strong text-muted"
+                                            )}
+                                          >
+                                            {filled}
+                                          </span>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {POSITIONS.every((p) => !p.toLowerCase().includes(positionSearch.trim().toLowerCase())) && (
+                            <p className="text-sm text-muted-soft">ไม่พบตำแหน่งที่ค้นหา — เลือก &quot;อื่นๆ&quot; เพื่อพิมพ์เอง</p>
+                          )}
+                        </div>
+                        {selectedPositions.includes("อื่นๆ") && (
+                          <input
+                            type="text"
+                            value={customPosition}
+                            onChange={(e) => setCustomPosition(e.target.value)}
+                            placeholder="ระบุตำแหน่งอื่นๆ..."
+                            className="mt-3 w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
+                          />
+                        )}
+                        <div className="mt-4 pt-3 border-t border-hairline-soft flex flex-wrap items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            disabled={selectedPositions.length === 0 || (selectedPositions.includes("อื่นๆ") && !customPosition.trim())}
+                            onClick={() => setMemberStep(2)}
+                          >
+                            ถัดไป{selectedPositions.length > 0 ? ` (${selectedPositions.length})` : ""} →
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => setShowMemberPanel(false)}>
+                            ยกเลิก
+                          </Button>
+                          {selectedPositions.length > 0 && (
+                            <>
+                              <span className="text-xs text-muted ml-1 min-w-0 truncate">
+                                เลือกแล้ว: {selectedPositions.join(", ")}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPositions([])}
+                                className="text-xs text-body-strong hover:text-primary underline-offset-4 hover:underline"
+                              >
+                                ล้าง
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {memberStep === 2 && (
+                      <div className="p-4 flex flex-col gap-3">
+                        <p className="text-xs text-muted">แตะชื่อสมาชิกเพื่อเลือก (เฉพาะสมาชิกในงาน)</p>
+                        <input
+                          type="text"
+                          value={memberSearch}
+                          onChange={(e) => setMemberSearch(e.target.value)}
+                          placeholder="ค้นหาสมาชิก..."
+                          className="w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
+                        />
+                        <div className="border border-hairline-soft rounded-[var(--radius-md)] overflow-hidden">
+                          <div className="grid grid-cols-[160px_1fr] bg-surface-soft border-b border-hairline-soft">
+                            <div className="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง</div>
+                            <div className="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide border-l border-hairline-soft">สมาชิก</div>
+                          </div>
+                          {resolvedPositions().map((pos, idx) => {
+                            const assignKey = selectedPositions.includes("อื่นๆ") && pos === customPosition.trim() ? "อื่นๆ" : pos;
+                            const assigned = positionAssignments[assignKey] ?? [];
+                            const filtered = joinedMembers.filter((m) =>
+                              m.nickname.toLowerCase().includes(memberSearch.toLowerCase()) ||
+                              m.generation.toLowerCase().includes(memberSearch.toLowerCase())
+                            );
+                            return (
+                              <div key={pos} className={`grid grid-cols-[160px_1fr] ${idx > 0 ? "border-t border-hairline-soft" : ""}`}>
+                                <div className="px-3 py-3 flex items-start">
+                                  <span className="text-sm font-medium text-ink">{pos}</span>
+                                </div>
+                                <div className="px-3 py-2.5 border-l border-hairline-soft flex flex-wrap items-center" style={{ gap: 8 }}>
+                                  {filtered.length === 0 ? (
+                                    <span className="text-xs text-muted-soft">ไม่พบสมาชิก</span>
+                                  ) : filtered.map((m) => {
+                                    const alreadyIn = sectionEntries.some((p) => p.userId === m.userId && p.position === pos);
+                                    const takenByOther = !alreadyIn && Object.entries(positionAssignments).some(
+                                      ([p, ids]) => p !== assignKey && ids.includes(m.userId)
+                                    );
+                                    const selected = assigned.includes(m.userId);
+                                    const disabled = alreadyIn || takenByOther;
+                                    return (
+                                      <PopChip
+                                        key={m.userId}
+                                        selected={selected}
+                                        disabled={disabled}
+                                        onClick={() => toggleMemberForPosition(assignKey, m.userId)}
+                                        className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
+                                          alreadyIn
+                                            ? "bg-surface-cream-strong border-hairline text-muted-soft cursor-default"
+                                            : takenByOther
+                                            ? "bg-surface-soft border-hairline text-muted-soft cursor-not-allowed opacity-50"
+                                            : selected
+                                            ? "bg-primary text-on-primary border-primary"
+                                            : "bg-canvas border-hairline text-ink hover:border-primary hover:text-primary"
+                                        }`}
+                                      >
+                                        {m.nickname}
+                                        <span className="opacity-60 ml-0.5">{m.generation}</span>
+                                      </PopChip>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex gap-2 mt-1">
+                          <Button size="sm" variant="primary" onClick={() => savePositionAssignments(joinedMembers, sectionEntries)} disabled={saveMembersLoading}>
+                            {saveMembersLoading ? "กำลังบันทึก..." : "บันทึก"}
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => setMemberStep(1)}>← ย้อนกลับ</Button>
+                          <Button size="sm" variant="secondary" onClick={() => setShowMemberPanel(false)}>ยกเลิก</Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+          ) : null;
+          const renderPositionTable = (entries: Participant[]) => (
+            entries.length === 0 ? (
+                  <p className="text-sm text-muted-soft">ยังไม่มีการกำหนดตำแหน่ง</p>
+                ) : (
+                  <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
+                    <div className="grid grid-cols-[160px_1fr] bg-surface-soft border-b border-hairline-soft">
+                      <div className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง</div>
+                      <div className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wide border-l border-hairline-soft">สมาชิก</div>
+                    </div>
+                    {Object.entries(groupByPosition(entries)).map(([pos, members], idx) => (
+                      <div key={pos} className={`grid grid-cols-[160px_1fr] ${idx > 0 ? "border-t border-hairline-soft" : ""}`}>
+                        <div className="px-4 py-3 flex items-start">
+                          <span className="text-sm font-medium text-ink">{pos}</span>
+                        </div>
+                        <div className="px-4 py-2.5 border-l border-hairline-soft flex flex-wrap gap-1.5 items-center">
+                          {members.map((p) => (
+                            <span
+                              key={`${p.userId}-${p.sectionId}-${p.position}`}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/5 border border-primary/20 text-ink"
+                            >
+                              {p.nickname}
+                              <span className="text-muted-soft">{p.generation}</span>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => removePositionEntry(p.userId, p.position, p.sectionId)}
+                                  className="text-muted hover:text-error transition-colors leading-none ml-0.5"
+                                  aria-label="ลบตำแหน่ง"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+          );
 
           return (
             <>
@@ -1063,7 +1483,7 @@ export default function PerformanceClient({
 
                 {/* add member multi-select */}
                 {isAdmin && showAddMember && (
-                  <div className="mb-3 border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
+                  <div className="pb-reveal mb-3 border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
                     <div className="px-4 pt-3 pb-2">
                       <input
                         autoFocus
@@ -1074,7 +1494,7 @@ export default function PerformanceClient({
                         className="w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
                       />
                     </div>
-                    <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+                    <div className="px-4 pb-3 flex flex-wrap" style={{ gap: 8 }}>
                       {allMembers
                         .filter((m) =>
                           !joinedMembers.some((j) => j.userId === m.id) &&
@@ -1084,11 +1504,11 @@ export default function PerformanceClient({
                         .map((m) => {
                           const selected = selectedAddUserIds.includes(m.id);
                           return (
-                            <button
+                            <PopChip
                               key={m.id}
-                              type="button"
+                              selected={selected}
                               onClick={() => toggleAddUser(m.id)}
-                              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
                                 selected
                                   ? "bg-primary text-on-primary border-primary"
                                   : "bg-canvas border-hairline text-ink hover:border-primary hover:text-primary"
@@ -1096,7 +1516,7 @@ export default function PerformanceClient({
                             >
                               {m.nickname}
                               <span className="opacity-60 ml-0.5">{m.generation}</span>
-                            </button>
+                            </PopChip>
                           );
                         })}
                     </div>
@@ -1139,188 +1559,74 @@ export default function PerformanceClient({
 
               {/* ─── ตำแหน่ง | สมาชิก ─── */}
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2 gap-3">
                   <p className="text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง · สมาชิก</p>
-                  {isAdmin && joinedMembers.length > 0 && !showMemberPanel && (
-                    <button onClick={openPositionPanel} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
-                      + เพิ่มตำแหน่ง
-                    </button>
+                  {isAdmin && joinedMembers.length > 0 && (
+                    <div className="flex items-center gap-4">
+                      {lineupSections.length === 0 && !showMemberPanel && (
+                        <button onClick={() => openPositionPanel("")} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
+                          + เพิ่มตำแหน่ง
+                        </button>
+                      )}
+                      <button
+                        onClick={addLineupSection}
+                        title="แบ่งรายชื่อเป็นชุด / วง เช่น ชุดที่ 1 วงปี่พาทย์"
+                        className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
+                      >
+                        {lineupSections.length === 0 ? "แบ่งเป็นชุด" : "+ เพิ่มชุด"}
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                {/* position assignment panel */}
-                {isAdmin && showMemberPanel && (
-                  <div className="mb-3 border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
-                    <div className="flex border-b border-hairline-soft">
-                      {[1, 2].map((s) => (
-                        <div
-                          key={s}
-                          className={`flex-1 py-2.5 text-center text-xs font-semibold transition-colors ${
-                            memberStep === s ? "bg-primary text-on-primary" : "bg-surface-soft text-muted-soft"
-                          }`}
-                        >
-                          {s === 1 ? "1 · เลือกตำแหน่ง" : "2 · เลือกสมาชิก"}
-                        </div>
-                      ))}
-                    </div>
-
-                    {memberStep === 1 && (
-                      <div className="p-4">
-                        <input
-                          type="text"
-                          value={positionSearch}
-                          onChange={(e) => setPositionSearch(e.target.value)}
-                          placeholder="ค้นหาตำแหน่ง..."
-                          className="w-full mb-3 px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
-                        />
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                          {POSITIONS.filter((pos) =>
-                            pos.toLowerCase().includes(positionSearch.toLowerCase())
-                          ).map((pos) => (
-                            <label key={pos} className="flex items-center gap-2 cursor-pointer group">
-                              <input
-                                type="checkbox"
-                                checked={selectedPositions.includes(pos)}
-                                onChange={() => togglePosition(pos)}
-                                className="accent-[color:var(--color-primary)] w-4 h-4 shrink-0"
-                              />
-                              <span className="text-sm text-ink group-hover:text-primary transition-colors">{pos}</span>
-                            </label>
-                          ))}
-                        </div>
-                        {selectedPositions.includes("อื่นๆ") && (
-                          <input
-                            type="text"
-                            value={customPosition}
-                            onChange={(e) => setCustomPosition(e.target.value)}
-                            placeholder="ระบุตำแหน่งอื่นๆ..."
-                            className="mt-3 w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
-                          />
-                        )}
-                        <div className="flex gap-2 mt-4">
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            disabled={selectedPositions.length === 0 || (selectedPositions.includes("อื่นๆ") && !customPosition.trim())}
-                            onClick={() => setMemberStep(2)}
-                          >
-                            ถัดไป →
-                          </Button>
-                          <Button size="sm" variant="secondary" onClick={() => setShowMemberPanel(false)}>
-                            ยกเลิก
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {memberStep === 2 && (
-                      <div className="p-4 flex flex-col gap-3">
-                        <p className="text-xs text-muted">แตะชื่อสมาชิกเพื่อเลือก (เฉพาะสมาชิกในงาน)</p>
-                        <input
-                          type="text"
-                          value={memberSearch}
-                          onChange={(e) => setMemberSearch(e.target.value)}
-                          placeholder="ค้นหาสมาชิก..."
-                          className="w-full px-3 py-1.5 text-sm border border-hairline rounded-[var(--radius-md)] bg-canvas text-ink placeholder:text-muted-soft outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15"
-                        />
-                        <div className="border border-hairline-soft rounded-[var(--radius-md)] overflow-hidden">
-                          <div className="grid grid-cols-[160px_1fr] bg-surface-soft border-b border-hairline-soft">
-                            <div className="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง</div>
-                            <div className="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide border-l border-hairline-soft">สมาชิก</div>
-                          </div>
-                          {resolvedPositions().map((pos, idx) => {
-                            const assignKey = selectedPositions.includes("อื่นๆ") && pos === customPosition.trim() ? "อื่นๆ" : pos;
-                            const assigned = positionAssignments[assignKey] ?? [];
-                            const filtered = joinedMembers.filter((m) =>
-                              m.nickname.toLowerCase().includes(memberSearch.toLowerCase()) ||
-                              m.generation.toLowerCase().includes(memberSearch.toLowerCase())
-                            );
-                            return (
-                              <div key={pos} className={`grid grid-cols-[160px_1fr] ${idx > 0 ? "border-t border-hairline-soft" : ""}`}>
-                                <div className="px-3 py-3 flex items-start">
-                                  <span className="text-sm font-medium text-ink">{pos}</span>
-                                </div>
-                                <div className="px-3 py-2.5 border-l border-hairline-soft flex flex-wrap gap-1.5 items-center">
-                                  {filtered.length === 0 ? (
-                                    <span className="text-xs text-muted-soft">ไม่พบสมาชิก</span>
-                                  ) : filtered.map((m) => {
-                                    const alreadyIn = positionEntries.some((p) => p.userId === m.userId && p.position === pos);
-                                    const takenByOther = !alreadyIn && Object.entries(positionAssignments).some(
-                                      ([p, ids]) => p !== assignKey && ids.includes(m.userId)
-                                    );
-                                    const selected = assigned.includes(m.userId);
-                                    const disabled = alreadyIn || takenByOther;
-                                    return (
-                                      <button
-                                        key={m.userId}
-                                        type="button"
-                                        disabled={disabled}
-                                        onClick={() => toggleMemberForPosition(assignKey, m.userId)}
-                                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                                          alreadyIn
-                                            ? "bg-surface-cream-strong border-hairline text-muted-soft cursor-default"
-                                            : takenByOther
-                                            ? "bg-surface-soft border-hairline text-muted-soft cursor-not-allowed opacity-50"
-                                            : selected
-                                            ? "bg-primary text-on-primary border-primary"
-                                            : "bg-canvas border-hairline text-ink hover:border-primary hover:text-primary"
-                                        }`}
-                                      >
-                                        {m.nickname}
-                                        <span className="opacity-60 ml-0.5">{m.generation}</span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div className="flex gap-2 mt-1">
-                          <Button size="sm" variant="primary" onClick={() => savePositionAssignments(joinedMembers, positionEntries)} disabled={saveMembersLoading}>
-                            {saveMembersLoading ? "กำลังบันทึก..." : "บันทึก"}
-                          </Button>
-                          <Button size="sm" variant="secondary" onClick={() => setMemberStep(1)}>← ย้อนกลับ</Button>
-                          <Button size="sm" variant="secondary" onClick={() => setShowMemberPanel(false)}>ยกเลิก</Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {positionEntries.length === 0 ? (
-                  <p className="text-sm text-muted-soft">ยังไม่มีการกำหนดตำแหน่ง</p>
+                {lineupSections.length === 0 ? (
+                  <>
+                    {panelSectionId === "" && positionPanel}
+                    {renderPositionTable(positionEntries)}
+                  </>
                 ) : (
-                  <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
-                    <div className="grid grid-cols-[160px_1fr] bg-surface-soft border-b border-hairline-soft">
-                      <div className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง</div>
-                      <div className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wide border-l border-hairline-soft">สมาชิก</div>
-                    </div>
-                    {Object.entries(positionGroups).map(([pos, members], idx) => (
-                      <div key={pos} className={`grid grid-cols-[160px_1fr] ${idx > 0 ? "border-t border-hairline-soft" : ""}`}>
-                        <div className="px-4 py-3 flex items-start">
-                          <span className="text-sm font-medium text-ink">{pos}</span>
-                        </div>
-                        <div className="px-4 py-2.5 border-l border-hairline-soft flex flex-wrap gap-1.5 items-center">
-                          {members.map((p) => (
-                            <span
-                              key={`${p.userId}-${p.position}`}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/5 border border-primary/20 text-ink"
-                            >
-                              {p.nickname}
-                              <span className="text-muted-soft">{p.generation}</span>
-                              {isAdmin && (
-                                <button
-                                  onClick={() => removePositionEntry(p.userId, p.position)}
-                                  className="text-muted hover:text-error transition-colors leading-none ml-0.5"
-                                  aria-label="ลบตำแหน่ง"
-                                >
-                                  ×
+                  <div className="flex flex-col gap-5">
+                    {lineupSections.map((sec) => (
+                      <div key={sec.id} className="pb-reveal">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          {renamingSectionId === sec.id ? (
+                            <input
+                              autoFocus
+                              value={sectionNameDraft}
+                              maxLength={60}
+                              onChange={(e) => setSectionNameDraft(e.target.value)}
+                              onBlur={() => renameLineupSection(sec.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") renameLineupSection(sec.id);
+                                if (e.key === "Escape") setRenamingSectionId(null);
+                              }}
+                              aria-label="ชื่อชุด"
+                              className="text-sm font-semibold text-ink px-2 py-1 border border-hairline rounded-[var(--radius-md)] bg-canvas outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/15 min-w-0 flex-1 max-w-xs"
+                            />
+                          ) : (
+                            <p className="text-sm font-semibold text-ink truncate">{sec.name}</p>
+                          )}
+                          {isAdmin && renamingSectionId !== sec.id && (
+                            <div className="flex items-center gap-3 shrink-0 text-xs">
+                              {!(showMemberPanel && panelSectionId === sec.id) && joinedMembers.length > 0 && (
+                                <button onClick={() => openPositionPanel(sec.id)} className="font-medium text-body-strong hover:text-primary transition-colors">
+                                  + เพิ่มตำแหน่ง
                                 </button>
                               )}
-                            </span>
-                          ))}
+                              <button
+                                onClick={() => { setRenamingSectionId(sec.id); setSectionNameDraft(sec.name); }}
+                                className="text-muted hover:text-ink transition-colors"
+                              >
+                                เปลี่ยนชื่อ
+                              </button>
+                              <button onClick={() => deleteLineupSection(sec)} className="text-muted hover:text-error transition-colors">
+                                ลบชุด
+                              </button>
+                            </div>
+                          )}
                         </div>
+                        {panelSectionId === sec.id && positionPanel}
+                        {renderPositionTable(positionEntries.filter((p) => p.sectionId === sec.id))}
                       </div>
                     ))}
                   </div>
@@ -1480,10 +1786,18 @@ export default function PerformanceClient({
         const posEntries = participants.filter((p) => p.position !== "");
         if (posEntries.length === 0) return null;
 
-        // group by position → player count
-        const posGroups: Record<string, number> = {};
+        // position → player count. Sections are played one after another, so
+        // their instruments are shared: take the largest section, not the sum.
+        const perSection: Record<string, Record<string, number>> = {};
         for (const p of posEntries) {
-          posGroups[p.position] = (posGroups[p.position] ?? 0) + 1;
+          const sec = (perSection[p.sectionId] ??= {});
+          sec[p.position] = (sec[p.position] ?? 0) + 1;
+        }
+        const posGroups: Record<string, number> = {};
+        for (const sec of Object.values(perSection)) {
+          for (const [pos, n] of Object.entries(sec)) {
+            posGroups[pos] = Math.max(posGroups[pos] ?? 0, n);
+          }
         }
 
         // Each member has one position="" entry, so these are the people.
@@ -1581,6 +1895,20 @@ export default function PerformanceClient({
           </section>
         );
       })()}
+        </>
+      ) : (
+        <section className="pb-reveal rounded-[var(--radius-lg)] border border-dashed border-hairline bg-surface-card px-6 py-8 text-center flex flex-col items-center gap-3">
+          <p className="text-base font-semibold text-ink">เข้าร่วมงานเพื่อดูรายละเอียดทั้งหมด</p>
+          <p className="text-sm text-muted max-w-md leading-relaxed">
+            รายชื่อสมาชิกและตำแหน่ง ตารางซ้อม ผังการแสดง และรายการอุปกรณ์ จะแสดงเมื่อคุณกดเข้าร่วมงานนี้
+          </p>
+          {!hasEnded && (
+            <Button variant="primary" size="sm" onClick={toggleJoin} disabled={joinLoading} className="mt-1">
+              {joinLoading ? "กำลังเข้าร่วม..." : "เข้าร่วมงานนี้"}
+            </Button>
+          )}
+        </section>
+      )}
 
     </div>
   );

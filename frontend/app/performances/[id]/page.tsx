@@ -21,7 +21,7 @@ export default async function PerformanceDetailPage({ params }: Params) {
     notFound();
   }
 
-  const [performance, participants, myMember, stageLayout, practiceSchedules, polls, sections] = await Promise.all([
+  const [performance, participants, myMember, stageLayout, practiceSchedules, polls, sections, lineupSections] = await Promise.all([
     prisma.performance.findUnique({
       where: { id },
       include: {
@@ -89,6 +89,11 @@ export default async function PerformanceDetailPage({ params }: Params) {
       where: { performanceId: id },
       orderBy: { sectionOrder: "asc" },
     }),
+    prisma.lineupSection.findMany({
+      where: { performanceId: id },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { id: true, name: true },
+    }),
   ]);
 
   if (!performance) notFound();
@@ -104,6 +109,11 @@ export default async function PerformanceDetailPage({ params }: Params) {
   const isHead =
     session?.user.role === "HEAD" &&
     performance.heads.some((h) => h.userId === session.user.id);
+
+  // Until someone joins, they only get the top of the page (info, costume,
+  // notes, songs). The lineup, practice, polls and stage plot aren't even
+  // sent — hiding them client-side would still leak them in the payload.
+  const canSeeFull = isAdmin || isHead || !!myMember;
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10">
@@ -122,6 +132,10 @@ export default async function PerformanceDetailPage({ params }: Params) {
       </nav>
 
       <PerformanceClient
+        // Remount when access changes (join / leave + router.refresh) so the
+        // client state is rebuilt from the newly visible data.
+        key={canSeeFull ? "full" : "limited"}
+        canSeeFull={canSeeFull}
         hasJoined={!!myMember}
         performance={{
           id: perf.id,
@@ -152,18 +166,20 @@ export default async function PerformanceDetailPage({ params }: Params) {
             sectionOrder: s.sectionOrder,
           })),
         }}
-        participants={participants.map((m) => ({
+        participants={(canSeeFull ? participants : []).map((m) => ({
           memberId: m.id,
           userId: m.user.id,
           nickname: m.user.nickname,
           generation: m.user.generation,
           primaryInstrumentNameThai: m.user.primaryInstrument?.nameThai ?? null,
           position: m.position,
+          sectionId: m.sectionId,
         }))}
+        lineupSections={canSeeFull ? lineupSections : []}
         isAdmin={isAdmin}
         isHead={isHead}
         stageLayout={
-          stageLayout
+          canSeeFull && stageLayout
             ? {
                 id: stageLayout.id,
                 name: stageLayout.name,
@@ -184,7 +200,7 @@ export default async function PerformanceDetailPage({ params }: Params) {
               }
             : null
         }
-        practiceSchedules={practiceSchedules.map((s) => ({
+        practiceSchedules={(canSeeFull ? practiceSchedules : []).map((s) => ({
           id: s.id,
           title: s.title,
           days: s.days.map((d) => ({
@@ -199,7 +215,7 @@ export default async function PerformanceDetailPage({ params }: Params) {
             })),
           })),
         }))}
-        polls={polls.map((p) => ({
+        polls={(canSeeFull ? polls : []).map((p) => ({
           id: p.id,
           name: p.name,
           status: p.status,

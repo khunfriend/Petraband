@@ -46,6 +46,24 @@ Migration `20260924140000_accessory_types`: ตาราง `AccessoryType` (see
 
 `GET /api/admin/users/pending-count` (ADMIN เท่านั้น, อื่น 403) · TopNav (`usePendingCount`) ดึงเฉพาะเมื่อ role = ADMIN — ตอนเปลี่ยนหน้า / กลับมาที่แท็บ / ทุก 60 วิ / ทันทีหลังอนุมัติ-ปฏิเสธ (event `PENDING_USERS_CHANGED` ใน `lib/pendingUsers.ts`) · 0 = ไม่แสดง · เกิน 99 = "99+"
 
+### ⏸️ ตัวเลือกตำแหน่งในงานแสดงเลือกง่ายขึ้น — ทดสอบบน dev ผ่าน · ยังไม่ commit
+
+`lib/positions.ts` → `POSITION_GROUPS` (ตี / สี-ดีด / เป่า / กลอง / ประกอบจังหวะ / อื่นๆ; ชุด 29 ตำแหน่งเท่าเดิม) · ขั้น 1 ของ "+ เพิ่มตำแหน่ง" เป็นชิปแยกกลุ่ม + ตัวเลขคนที่อยู่ในตำแหน่งนั้นแล้ว + ค้นหาแล้ว Enter เลือกได้เมื่อเหลือตัวเดียว + แถบ "เลือกแล้ว" / ล้าง / ถัดไป (n)
+
+### ⏸️ แบ่งรายชื่อในงานแสดงเป็นชุด/วง (ไม่บังคับ) — ทดสอบบน dev ผ่าน · ยังไม่ commit · **migration ยังไม่ลง production**
+
+Migration `20260924160000_lineup_sections`: ตาราง `LineupSection` + `PerformanceMember.sectionId` (`""` = ไม่แบ่งชุด, เป็น string ไม่ใช่ FK เพื่อให้อยู่ใน unique key ได้) · unique เปลี่ยนเป็น (userId, performanceId, sectionId, position) — คนเดียวอยู่หลายชุดได้ · `ON CONFLICT` ใน `members` และ `join` แก้ตามแล้ว
+API `/api/performances/[id]/lineup-sections` (POST) + `/lineup-sections/[sectionId]` (PATCH ชื่อ, DELETE) — ADMIN · ชุดแรกรับตำแหน่งเดิมทั้งหมด · ลบชุดสุดท้าย = ตำแหน่งกลับเป็นไม่แบ่งชุด · ลบชุดอื่น = ลบตำแหน่งในชุดนั้น (คนยังอยู่ในงาน) · เมื่อแบ่งแล้ว POST ตำแหน่งต้องมี sectionId ที่ถูก (400)
+⚠️ `/sections` เป็นของ**ช่วงเพลง** (`PerformanceSection`) อยู่แล้ว — รอบแรกเขียนทับไปโดยไม่รู้ตัว กู้คืนจาก git แล้ว ก่อนสร้างไฟล์ route ใหม่ให้เช็คว่า path ว่างจริง
+รายการอุปกรณ์ที่ต้องใช้: เครื่องดนตรีนับ **ค่ามากสุดของแต่ละชุด** ไม่ใช่ผลรวม (ชุดเล่นต่อกัน ใช้เครื่องซ้ำ)
+
+### ✅ 25 ก.ย. — แอนิเมชัน + ตัวเลือกที่เด้ง + ซ่อนส่วนล่างจนกว่าจะเข้าร่วม
+
+- แอนิเมชันทั้งเว็บ (`globals.css`: `pb-pop-in/out`, `pb-menu-in`, `pb-reveal`, `pb-stagger`, `pb-badge-pop`) · Modal ค้างไว้จนแอนิเมชันปิดจบ (state ปรับระหว่าง render ไม่ใช่ effect) · ConfirmDialog เก็บ options ไว้ตอนปิด ข้อความจะได้ไม่หาย · ปุ่มยุบตอนกด · เส้นใต้เมนูเด้งตอนชี้ (inline style + state)
+- ตัวเลือกเพลง/สมาชิกในหน้างานแสดง: ชี้แล้วขยาย เลือกแล้วใหญ่ค้าง (`PopChip`, inline style + Web Animations) · ตัวเลือกเพลงไม่ปิดเองหลังเพิ่มแล้ว
+- หน้างานแสดง: คนที่ยังไม่เข้าร่วม (ไม่ใช่ admin/head ของงาน) เห็นแค่ข้อมูลงาน/เครื่องแต่งกาย/หมายเหตุ/เพลง — ข้อมูลส่วนล่าง**ไม่ถูกส่ง**จาก server (`canSeeFull` ใน page.tsx, `key` remount หลังเข้าร่วม)
+- ⚠️ ยังเปิดอยู่: `GET /api/performances/[id]/members` ให้ทุกคนที่ล็อกอินดึงรายชื่อได้
+
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 
 ### 1. ยังไม่มี: move row/col, drag-drop ข้อมูล, fill handle, ลบ format, ปุ่ม A+/A−
@@ -98,6 +116,10 @@ Migration `20260924140000_accessory_types`: ตาราง `AccessoryType` (see
 - **โค้ด Supabase ที่ค้างอยู่** — `app/auth/callback/route.ts`, model `PendingRegistration`, field `supabaseUserId` ไม่ถูกเรียกใช้แล้วตั้งแต่ `a67337a` รอลบตอนย้ายไป Google
 
 ## 🪤 กับดักที่เจอมาแล้ว
+
+- **`.next/dev` cache พัง (โตถึง 3.2GB)** → route ไดนามิกบางตัวตอบ 404 (รวม `/api/auth/[...nextauth]` → Safari ขึ้น `ClientFetchError: The string did not match the expected pattern`) และ CSS ใหม่ไม่เข้า · แก้: หยุด server → `rm -rf .next/dev` → `npm run dev`
+- **browser pane ที่ซ่อนอยู่** (`visibilityState: hidden`) หยุด requestAnimationFrame → React 19 ไม่เปิดเนื้อหาที่ stream มา หน้าดูเหมือนไม่ hydrate — ไม่ใช่บั๊กเว็บ
+- **อย่าสลับ/signout cookie ใน browser pane ตอนทดสอบ** เจ้าของใช้ตัวเดียวกัน โดน logout — ทดสอบด้วย curl + token แทน
 
 - **repo ซ้อน 2 ตัว** — อ่าน CLAUDE.md ก่อนใช้ git ทุกครั้ง
 - ไฟล์ PRD ใน repo นอกเป็นคนละเวอร์ชันกับ repo ใน อย่าเอามาเทียบกัน

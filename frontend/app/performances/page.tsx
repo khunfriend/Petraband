@@ -6,6 +6,7 @@ import { Plus, ChevronRight, Music, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { bangkokTodayStr } from "@/lib/today";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 function formatDate(date: Date | string) {
@@ -139,7 +140,7 @@ export default async function PerformancesPage() {
   const performances = await getPerformances();
 
   // Compare dates in Bangkok time (server runs UTC on Vercel)
-  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  const todayStr = bangkokTodayStr();
 
   const upcoming: Performance[] = [];
   const past: Performance[] = [];

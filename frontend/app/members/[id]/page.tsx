@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { bangkokTodayStr } from "@/lib/today";
 import { Button } from "@/components/ui/Button";
 
 export default async function MemberDetailPage({
@@ -55,7 +56,7 @@ export default async function MemberDetailPage({
   if (!user) notFound();
 
   // Bangkok "today" for past-performance filtering
-  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  const todayStr = bangkokTodayStr();
 
   const [memberships, assignments] = canSeeFull
     ? await Promise.all([

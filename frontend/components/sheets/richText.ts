@@ -1,4 +1,4 @@
-import type { CellRun, CellStyle } from "./types";
+import type { CellRun } from "./types";
 
 // Merge adjacent runs with identical styling to keep JSON compact.
 export function normalizeRuns(runs: CellRun[]): CellRun[] {
@@ -28,7 +28,7 @@ export function runsToPlainText(runs: CellRun[] | null | undefined): string {
 }
 
 // Build HTML string for a contentEditable / read-only render. Escapes text.
-export function runsToHtml(runs: CellRun[] | null | undefined, defaults?: CellStyle): string {
+export function runsToHtml(runs: CellRun[] | null | undefined): string {
   if (!runs || runs.length === 0) return "";
   return runs
     .map((r) => {

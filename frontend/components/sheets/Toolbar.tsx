@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { CellRef, CellStyle } from "./types";
 
@@ -69,9 +69,13 @@ export function Toolbar({
   // Local state so typing multi-digit sizes doesn't fire onChange per keystroke
   // (which would re-apply style + steal focus back to the editor after digit 1).
   const [sizeInput, setSizeInput] = useState<string>(String(currentStyle.fontSize ?? 14));
-  useEffect(() => {
+  // Follow the selected cell's size when it changes (adjusted during render,
+  // not in an effect, so it doesn't cost an extra render pass).
+  const [shownFontSize, setShownFontSize] = useState(currentStyle.fontSize);
+  if (currentStyle.fontSize !== shownFontSize) {
+    setShownFontSize(currentStyle.fontSize);
     setSizeInput(String(currentStyle.fontSize ?? 14));
-  }, [currentStyle.fontSize]);
+  }
   // Every valid value is already applied live by handleSizeChange, so leaving
   // the box only has to put the cell's size back on display. Re-applying here
   // would run after focus has gone elsewhere and drag it back into the cell.

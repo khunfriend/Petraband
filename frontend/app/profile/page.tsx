@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
+import { bangkokTodayStr } from "@/lib/today";
 import ProfileForm from "./ProfileForm";
 
 export default async function ProfilePage() {
@@ -54,7 +55,7 @@ export default async function ProfilePage() {
   });
 
   // Bangkok "today" for past-only filter
-  const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  const todayStr = bangkokTodayStr();
 
   // Group by performance, aggregate positions
   const perfMap = new Map<string, {

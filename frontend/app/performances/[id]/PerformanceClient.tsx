@@ -1675,6 +1675,13 @@ export default function PerformanceClient({
                 + โพลตารางว่าง
               </Link>
             )}
+            {/* A performance can have several schedules; this stays available
+                after the first one exists. */}
+            {canEdit && practiceSchedules.length > 0 && (
+              <Link href={`/performances/${performance.id}/practice/create`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
+                + สร้างตารางซ้อม
+              </Link>
+            )}
             <Link href={`/performances/${performance.id}/practice`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
               {canEdit ? "จัดการตารางซ้อม →" : "ดูตารางซ้อม →"}
             </Link>

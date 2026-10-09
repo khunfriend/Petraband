@@ -3,7 +3,6 @@ import { IBM_Plex_Sans_Thai } from "next/font/google";
 import { TopNav } from "@/components/TopNav";
 import { RouteFade } from "@/components/RouteFade";
 import { Ripple } from "@/components/Ripple";
-import { ClickBurst } from "@/components/ClickBurst";
 import { SessionProvider } from "@/components/SessionProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
@@ -35,7 +34,6 @@ export default async function RootLayout({
           <ToastProvider>
             <ConfirmProvider>
               <Ripple />
-              <ClickBurst />
               <TopNav />
               <RouteFade>{children}</RouteFade>
             </ConfirmProvider>

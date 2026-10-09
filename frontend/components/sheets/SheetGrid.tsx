@@ -11,6 +11,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import type { CellData, CellRef, CellRun, CellStyle, FullSheet, MergedCellData } from "./types";
+import { DEFAULT_FONT, cssFont } from "./types";
 import {
   addFakeSelection,
   applyStyleToRange,
@@ -27,7 +28,7 @@ const DEFAULT_ROW_HEIGHT = 28;
 const DEFAULT_CELL_STYLE: Required<Omit<CellStyle, "highlightColor">> & {
   highlightColor: string | null;
 } = {
-  fontFamily: "Sarabun",
+  fontFamily: DEFAULT_FONT,
   fontSize: 14,
   isBold: false,
   isItalic: false,
@@ -1321,7 +1322,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                   editingCell?.row === r && editingCell?.col === c;
                 const style = cellData?.style ?? {};
                 const inlineStyle: React.CSSProperties = {
-                  fontFamily: style.fontFamily ?? "Sarabun",
+                  fontFamily: cssFont(style.fontFamily),
                   fontSize: (style.fontSize ?? 14) + "px",
                   fontWeight: style.isBold ? "bold" : "normal",
                   fontStyle: style.isItalic ? "italic" : "normal",

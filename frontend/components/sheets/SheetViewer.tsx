@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FullSheet, MergedCellData } from "./types";
+import { cssFont } from "./types";
 import { runsToHtml } from "./richText";
 
 interface Props {
@@ -95,7 +96,7 @@ export function SheetViewer({ sheetId }: Props) {
                     style={{
                       border: "1px solid #e5e7eb",
                       padding: "2px 6px",
-                      fontFamily: s?.fontFamily ?? "Sarabun, sans-serif",
+                      fontFamily: cssFont(s?.fontFamily),
                       fontSize: s?.fontSize ?? 14,
                       fontWeight: s?.isBold ? "bold" : "normal",
                       fontStyle: s?.isItalic ? "italic" : "normal",

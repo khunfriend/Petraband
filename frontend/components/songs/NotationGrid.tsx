@@ -130,7 +130,7 @@ export function NotationGrid({ sheetData, editable = false, onChange }: Notation
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full table-fixed border-collapse text-sm font-thai">
+      <table className="w-full table-fixed border-collapse text-sm">
         <colgroup>
           {Array.from({ length: effectiveCols }).map((_, i) => (
             <col key={i} style={{ width: `${100 / effectiveCols}%` }} />

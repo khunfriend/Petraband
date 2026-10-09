@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { CellRef, CellStyle } from "./types";
+import { DEFAULT_FONT } from "./types";
 
 interface Props {
   selection: CellRef[];
@@ -19,7 +20,7 @@ interface Props {
   onRedo: () => void;
 }
 
-const FONT_FAMILIES = ["Sarabun", "Roboto", "monospace"];
+const FONT_FAMILIES = [DEFAULT_FONT, "monospace"];
 
 export function Toolbar({
   selection,
@@ -188,7 +189,7 @@ export function Toolbar({
       <label className="flex items-center gap-1 text-xs text-muted">
         <span>ฟอนต์</span>
         <select
-          value={currentStyle.fontFamily ?? "Sarabun"}
+          value={currentStyle.fontFamily === "monospace" ? "monospace" : DEFAULT_FONT}
           onChange={(e) => onStyleChange({ fontFamily: e.target.value })}
           disabled={!hasSelection}
           className="h-8 border border-hairline rounded-md px-2 text-xs bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50 disabled:opacity-40"

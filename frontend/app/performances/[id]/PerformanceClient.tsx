@@ -352,10 +352,7 @@ function PopChip({
 function SectionHeader({ label, children }: { label: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <h2 className="flex items-center gap-2.5 font-display text-lg font-semibold text-ink">
-        <span aria-hidden className="h-4 w-[3px] rounded-full bg-gold" />
-        {label}
-      </h2>
+      <h2 className="text-base font-semibold text-ink">{label}</h2>
       {children}
     </div>
   );
@@ -1435,8 +1432,8 @@ export default function PerformanceClient({
                         />
                         <div className="border border-hairline-soft rounded-[var(--radius-md)] overflow-hidden">
                           <div className="grid grid-cols-[160px_1fr] bg-surface-soft border-b border-hairline-soft">
-                            <div className="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง</div>
-                            <div className="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wide border-l border-hairline-soft">สมาชิก</div>
+                            <div className="px-3 py-2 text-xs font-semibold text-muted">ตำแหน่ง</div>
+                            <div className="px-3 py-2 text-xs font-semibold text-muted border-l border-hairline-soft">สมาชิก</div>
                           </div>
                           {resolvedPositions().map((pos, idx) => {
                             const assignKey = selectedPositions.includes("อื่นๆ") && pos === customPosition.trim() ? "อื่นๆ" : pos;
@@ -1506,8 +1503,8 @@ export default function PerformanceClient({
                 ) : (
                   <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
                     <div className="grid grid-cols-[160px_1fr] bg-surface-soft border-b border-hairline-soft">
-                      <div className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง</div>
-                      <div className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wide border-l border-hairline-soft">สมาชิก</div>
+                      <div className="px-4 py-2 text-xs font-semibold text-muted">ตำแหน่ง</div>
+                      <div className="px-4 py-2 text-xs font-semibold text-muted border-l border-hairline-soft">สมาชิก</div>
                     </div>
                     {[...Object.entries(groupByPosition(entries)), ...open.map((o) => [o.position, [] as Participant[]] as const)].map(([pos, members], idx) => (
                       <div key={pos} className={`grid grid-cols-[160px_1fr] ${idx > 0 ? "border-t border-hairline-soft" : ""}`}>
@@ -1571,7 +1568,7 @@ export default function PerformanceClient({
               {/* ─── สมาชิกในงานทั้งหมด ─── */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">สมาชิกในงานทั้งหมด</p>
+                  <p className="text-xs font-semibold text-muted">สมาชิกในงานทั้งหมด</p>
                   {isAdmin && !showAddMember && (
                     <button onClick={openAddMember} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
                       + เพิ่มสมาชิก
@@ -1658,7 +1655,7 @@ export default function PerformanceClient({
               {/* ─── ตำแหน่ง | สมาชิก ─── */}
               <div>
                 <div className="flex items-center justify-between mb-2 gap-3">
-                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง · สมาชิก</p>
+                  <p className="text-xs font-semibold text-muted">ตำแหน่ง · สมาชิก</p>
                   {isAdmin && joinedMembers.length > 0 && (
                     <div className="flex items-center gap-4">
                       {lineupSections.length === 0 && !showMemberPanel && (
@@ -1885,7 +1882,7 @@ export default function PerformanceClient({
               {/* เครื่องดนตรี */}
               <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-hairline-soft bg-surface-soft">
-                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">เครื่องดนตรี</p>
+                  <p className="text-xs font-semibold text-muted">เครื่องดนตรี</p>
                 </div>
                 <table className="w-full text-sm">
                   <thead>
@@ -1908,7 +1905,7 @@ export default function PerformanceClient({
               {/* อุปกรณ์เสริม */}
               <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-hairline-soft bg-surface-soft flex items-center justify-between">
-                  <p className="text-xs font-semibold text-muted uppercase tracking-wide">อุปกรณ์เสริม</p>
+                  <p className="text-xs font-semibold text-muted">อุปกรณ์เสริม</p>
                   {canEdit && !editingNotes && (
                     <button
                       onClick={() => { setNotesForm(performance.equipmentNotes ?? {}); setEditingNotes(true); }}

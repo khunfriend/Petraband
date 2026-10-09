@@ -137,7 +137,7 @@ export function Metronome({ initialBpm, initialSig }: Props = {}) {
   return (
     <div className="flex flex-col gap-3 border border-hairline-soft rounded-[var(--radius-md)] bg-surface-soft px-4 py-3">
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-xs font-bold tracking-[1.5px] uppercase text-muted">Metronome</span>
+        <span className="text-xs font-bold text-muted">Metronome</span>
 
         {/* Time signature buttons */}
         <div className="flex gap-1" role="tablist" aria-label="จังหวะ">

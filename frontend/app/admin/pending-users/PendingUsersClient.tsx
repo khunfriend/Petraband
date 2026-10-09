@@ -69,7 +69,7 @@ export default function PendingUsersClient({ users }: { users: PendingUser[] }) 
       )}
       <table className="w-full text-sm">
         <thead className="bg-surface-soft border-b border-hairline-soft">
-          <tr className="text-left text-xs font-semibold text-muted uppercase tracking-wide">
+          <tr className="text-left text-xs font-semibold text-muted">
             <th className="px-4 py-3">ชื่อเล่น</th>
             <th className="px-4 py-3">อีเมล</th>
             <th className="px-4 py-3">รุ่น</th>

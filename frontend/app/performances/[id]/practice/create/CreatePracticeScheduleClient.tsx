@@ -83,7 +83,7 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
 
       <div>
         <div className="flex items-baseline gap-3 mb-3">
-          <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted">เลือกวันซ้อม</h2>
+          <h2 className="text-sm font-bold text-muted">เลือกวันซ้อม</h2>
           {lastPerformanceDate && (
             <p className="text-xs text-muted-soft">ถึงวันแสดง ({formatDateThai(lastPerformanceDate)})</p>
           )}
@@ -98,7 +98,7 @@ export default function CreatePracticeScheduleClient({ performanceId, performanc
       </div>
 
       <div>
-        <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">เวลา</h2>
+        <h2 className="text-sm font-bold text-muted mb-3">เวลา</h2>
         <div className="flex items-center gap-2">
           <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={timeField} />
           <span className="text-muted">ถึง</span>

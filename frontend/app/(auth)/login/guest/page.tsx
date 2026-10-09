@@ -5,7 +5,6 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Eyebrow } from "@/components/ui/Eyebrow";
 import { loginAction } from "../actions";
 
 // Password sign-in is only for admin-created temporary accounts (PRD FR-1.5).
@@ -30,7 +29,6 @@ export default function GuestLoginPage() {
 
   return (
     <div>
-      <Eyebrow>Guest sign in</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">ผู้ร่วมแสดงเฉพาะกิจ</h1>
       <p className="mt-2 text-sm text-body leading-[1.7]">
         ใช้ชื่อผู้ใช้และรหัสผ่านจากผู้ดูแล

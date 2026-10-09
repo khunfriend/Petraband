@@ -149,7 +149,7 @@ export default async function MemberDetailPage({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+          <p className="text-[11px] font-bold text-muted">
             {user.role === "ADMIN"
               ? "Admin"
               : user.role === "HEAD"
@@ -198,7 +198,7 @@ export default async function MemberDetailPage({
 
       {/* Info */}
       <section>
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+        <p className="text-[11px] font-bold text-muted mb-3">
           Info
         </p>
         <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 md:p-6">
@@ -237,7 +237,7 @@ export default async function MemberDetailPage({
       {/* Performance history */}
       {canSeeFull && (
         <section>
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+          <p className="text-[11px] font-bold text-muted mb-3">
             Performance history
           </p>
           <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">

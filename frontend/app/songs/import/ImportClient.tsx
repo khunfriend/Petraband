@@ -175,7 +175,7 @@ export default function ImportClient() {
                   {["รหัส", "ชื่อเพลง", "ประเภท", "เวลา", "สถานะ"].map((h) => (
                     <th
                       key={h}
-                      className="text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted"
+                      className="text-left px-4 py-2.5 text-[11px] font-bold text-muted"
                     >
                       {h}
                     </th>

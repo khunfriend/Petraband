@@ -113,7 +113,7 @@ function DateBadge({ date, coral }: { date: Date; coral?: boolean }) {
           : "bg-surface-cream-strong border-hairline text-ink"
       }`}
     >
-      <span className="text-[10px] font-bold uppercase tracking-[0.08em] leading-none">
+      <span className="text-[10px] font-bold leading-none">
         {month}
       </span>
       <span className="text-lg font-bold leading-none mt-1">{day}</span>
@@ -170,7 +170,6 @@ export default async function PerformancesPage() {
   return (
     <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-10">
       <PageHeader
-        eyebrow="Performances"
         title="งานแสดงของวง"
         actions={
           isAdmin && (
@@ -186,7 +185,7 @@ export default async function PerformancesPage() {
 
       {/* Upcoming */}
       <section>
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+        <p className="text-[11px] font-bold text-muted mb-3">
           Upcoming
         </p>
         {upcoming.length === 0 ? (
@@ -221,7 +220,7 @@ export default async function PerformancesPage() {
       {/* History */}
       {past.length > 0 && (
         <section>
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+          <p className="text-[11px] font-bold text-muted mb-3">
             History
           </p>
           <div className="pb-stagger grid grid-cols-1 md:grid-cols-2 gap-3">

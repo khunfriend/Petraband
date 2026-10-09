@@ -117,7 +117,6 @@ export default function SongListClient({
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        eyebrow="Songs"
         title="คลังเพลงของวง"
         actions={
           isAdmin && (

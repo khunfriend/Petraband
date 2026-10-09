@@ -325,7 +325,7 @@ export default function StageLibraryTab({ isAdmin }: { isAdmin: boolean }) {
 
       {groups.map((g) => (
         <section key={g.title} className="pb-stagger flex flex-col gap-2">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+          <p className="text-[11px] font-bold text-muted">
             {g.title} · {g.list.length}
           </p>
           {g.list.length === 0 && (

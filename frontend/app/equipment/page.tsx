@@ -32,7 +32,6 @@ export default async function EquipmentPage({
   return (
     <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-8">
       <PageHeader
-        eyebrow="Equipment"
         title="คลังอุปกรณ์"
       />
 

@@ -19,7 +19,7 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 const variantClasses: Record<BadgeVariant, string> = {
   pill: "bg-surface-cream-strong text-ink text-[13px] font-medium",
   navy: "bg-primary text-on-primary text-[12px] font-medium",
-  coral: "bg-coral text-on-primary text-[11px] font-bold tracking-[1.5px] uppercase",
+  coral: "bg-coral text-on-primary text-[11px] font-bold",
   slate: "bg-slate-100 text-slate-700 text-[12px] font-medium",
   success:
     "text-[color:var(--color-success-fg)] bg-[color:var(--color-success-bg)] text-[12px] font-medium",

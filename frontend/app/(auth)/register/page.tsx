@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Eyebrow } from "@/components/ui/Eyebrow";
 import { registerWithGoogleAction } from "./actions";
 
 function SubmitButton() {
@@ -27,7 +26,6 @@ export default function RegisterPage() {
 
   return (
     <div>
-      <Eyebrow>Register</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">สร้างบัญชีใหม่</h1>
       <p className="mt-2 text-sm text-body leading-[1.7]">
         สมัครด้วย Google แล้วรอผู้ดูแลอนุมัติ

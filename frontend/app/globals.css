@@ -262,25 +262,15 @@ body {
    Site-wide touches that ride on existing class names, so every page picks
    them up without per-page edits. */
 
-/* A faint navy glow at the top of the page, like night over paper. */
-body {
-  background:
-    radial-gradient(1100px 420px at 50% -160px, rgb(23 44 82 / 0.07), transparent 70%),
-    var(--color-canvas);
-  background-attachment: fixed;
-}
-
 /* Page titles and big section headings use the serif display face. */
 h1 {
   font-family: var(--font-display);
   letter-spacing: -0.01em;
 }
 
-/* Large cards float slightly off the paper (small cells keep a flat look). */
+/* Large cards sit on the paper with just a hairline shadow. */
 .bg-surface-card.rounded-\[var\(--radius-lg\)\] {
-  box-shadow:
-    0 1px 2px rgb(17 27 48 / 0.04),
-    0 12px 32px -18px rgb(17 27 48 / 0.18);
+  box-shadow: 0 1px 0 rgb(17 27 48 / 0.04);
 }
 
 /* Text selection in brand colours. */

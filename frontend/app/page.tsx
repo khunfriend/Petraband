@@ -1,9 +1,8 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, Users, Sparkles, ArrowRight } from "lucide-react";
+import { CalendarDays, Users, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import Image from "next/image";
 import DashboardCalendar from "./dashboard/DashboardCalendar";
 import type { CalendarPerformanceDate, CalendarPracticeDay } from "./dashboard/types";
 
@@ -114,30 +113,10 @@ export default async function HomePage() {
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col gap-8">
       {/* Hero — the night sky from the logo */}
-      <section className="pb-reveal relative overflow-hidden rounded-[var(--radius-xl)] bg-surface-dark text-on-dark px-6 py-8 md:px-10 md:py-10 shadow-[0_24px_48px_-28px_rgb(13_27_51/0.9)]">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(600px 260px at 85% 10%, rgb(201 162 75 / 0.18), transparent 70%), radial-gradient(500px 300px at 0% 100%, rgb(217 79 127 / 0.14), transparent 70%)",
-          }}
-        />
-        <Image
-          src="/petraband-logo.png"
-          alt=""
-          width={320}
-          height={320}
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -bottom-20 w-64 md:w-80 opacity-[0.12] rotate-[-8deg]"
-        />
-        <div className="relative flex flex-col gap-8">
-          <div className="flex flex-col gap-3">
-            <p className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.2em] uppercase text-gold">
-              <span aria-hidden className="h-px w-6 bg-gold" />
-              PETRAband
-            </p>
-            <h1 className="font-display text-3xl md:text-5xl font-semibold leading-[1.15] text-white">
+      <section className="pb-reveal rounded-[var(--radius-lg)] bg-surface-dark text-on-dark px-6 py-7 md:px-8 md:py-8">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl md:text-3xl font-semibold leading-tight text-white">
               สวัสดี, {session.user.name}
             </h1>
             <p className="text-sm text-on-dark-soft">{todayLabel}</p>
@@ -181,14 +160,12 @@ function StatCard({
   unit: string;
 }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-white/10 bg-white/[0.06] backdrop-blur-sm p-4 md:p-5 flex items-center gap-4">
-      <div className="w-10 h-10 rounded-full bg-white/10 text-gold flex items-center justify-center shrink-0">
-        {icon}
-      </div>
+    <div className="rounded-[var(--radius-md)] bg-white/[0.06] px-4 py-3 flex items-center gap-3">
+      <div className="text-on-dark-soft shrink-0">{icon}</div>
       <div className="min-w-0 flex-1">
         <p className="text-xs text-on-dark-soft">{label}</p>
         <p className="mt-1 flex items-baseline gap-1.5">
-          <span className="font-display text-3xl font-semibold text-white leading-none">{value}</span>
+          <span className="text-2xl font-semibold text-white leading-none">{value}</span>
           <span className="text-xs text-on-dark-soft">{unit}</span>
         </p>
       </div>
@@ -210,9 +187,9 @@ function NextEventCard({
 }) {
   if (!performance || daysUntil === null) {
     return (
-      <div className="rounded-[var(--radius-lg)] border border-white/10 bg-white/[0.06] p-4 md:p-5 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-full bg-white/10 text-on-dark-soft flex items-center justify-center shrink-0">
-          <Sparkles size={18} strokeWidth={1.75} />
+      <div className="rounded-[var(--radius-md)] bg-white/[0.06] px-4 py-3 flex items-center gap-3">
+        <div className="text-on-dark-soft shrink-0">
+          <CalendarDays size={18} strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-on-dark-soft">งานถัดไป</p>
@@ -226,16 +203,16 @@ function NextEventCard({
   return (
     <Link
       href={`/performances/${performance.performance.id}`}
-      className="group rounded-[var(--radius-lg)] bg-coral/90 hover:bg-coral p-4 md:p-5 flex items-center gap-4 transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)] shadow-[0_12px_28px_-16px_rgb(217_79_127/0.9)]"
+      className="group rounded-[var(--radius-md)] bg-coral hover:bg-coral/90 px-4 py-3 flex items-center gap-3 transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)]"
     >
-      <div className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0">
-        <Sparkles size={18} strokeWidth={1.75} />
+      <div className="text-white shrink-0">
+        <CalendarDays size={18} strokeWidth={1.75} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs text-white/85">
           งานถัดไป · {daysUntil <= 0 ? "วันนี้" : `อีก ${daysUntil} วัน`}
         </p>
-        <p className="mt-1 font-display text-lg font-semibold text-white truncate">
+        <p className="mt-0.5 text-base font-semibold text-white truncate">
           {performance.performance.name}
         </p>
       </div>

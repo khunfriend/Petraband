@@ -78,12 +78,12 @@ export default function CreatePollClient({ performanceId, performanceName, perfo
   return (
     <div className="flex flex-col gap-8 max-w-2xl">
       <div>
-        <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">ชื่อโพล</h2>
+        <h2 className="text-sm font-bold text-muted mb-3">ชื่อโพล</h2>
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อโพล" />
       </div>
 
       <div>
-        <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">
+        <h2 className="text-sm font-bold text-muted mb-3">
           หมดเขตกดว่าง <span className="text-muted-soft text-xs font-normal normal-case tracking-normal">(ไม่บังคับ)</span>
         </h2>
         <input
@@ -96,7 +96,7 @@ export default function CreatePollClient({ performanceId, performanceName, perfo
 
       <div>
         <div className="flex items-baseline gap-3 mb-3">
-          <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted">เลือกวันที่เป็นไปได้</h2>
+          <h2 className="text-sm font-bold text-muted">เลือกวันที่เป็นไปได้</h2>
           {maxPerformanceDate && (
             <p className="text-xs text-muted-soft">
               เลือกได้ถึงวันแสดง ({new Date(maxPerformanceDate + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })})
@@ -113,7 +113,7 @@ export default function CreatePollClient({ performanceId, performanceName, perfo
       </div>
 
       <div>
-        <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">ช่วงเวลา</h2>
+        <h2 className="text-sm font-bold text-muted mb-3">ช่วงเวลา</h2>
         <div className="flex items-center gap-2 text-sm text-ink">
           <select
             value={fromTime}

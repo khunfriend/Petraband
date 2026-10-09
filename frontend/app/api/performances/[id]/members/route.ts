@@ -52,6 +52,10 @@ export async function POST(req: NextRequest, { params }: Params) {
       VALUES (gen_random_uuid()::text, ${e.userId}, ${id}, ${sectionId}, ${e.position ?? ""}, now())
       ON CONFLICT ("userId", "performanceId", "sectionId", "position") DO NOTHING
     `;
+    // Someone now plays this position, so it is no longer open.
+    if (e.position) {
+      await prisma.openPosition.deleteMany({ where: { performanceId: id, sectionId, position: e.position } });
+    }
   }
 
   return NextResponse.json({ ok: true });

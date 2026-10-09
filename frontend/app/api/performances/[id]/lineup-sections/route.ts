@@ -37,6 +37,10 @@ export async function POST(req: NextRequest, { params }: Params) {
         where: { performanceId: id, sectionId: "", position: { not: "" } },
         data: { sectionId: created.id },
       });
+      await tx.openPosition.updateMany({
+        where: { performanceId: id, sectionId: "" },
+        data: { sectionId: created.id },
+      });
     }
     return created;
   });

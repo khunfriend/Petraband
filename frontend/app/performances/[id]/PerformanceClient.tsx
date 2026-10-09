@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Download } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
@@ -87,6 +87,9 @@ type Participant = {
 };
 
 type LineupSection = { id: string; name: string };
+
+/** A lineup position with nobody chosen to play it yet. */
+type OpenPosition = { position: string; sectionId: string };
 
 type AssignedHead = { id: string; nickname: string; generation: string };
 
@@ -376,6 +379,7 @@ export default function PerformanceClient({
   practiceSchedules,
   polls,
   lineupSections: initialLineupSections,
+  openPositions: initialOpenPositions,
   canSeeFull,
 }: {
   performance: Performance;
@@ -387,6 +391,7 @@ export default function PerformanceClient({
   practiceSchedules: PracticeScheduleEntry[];
   polls: PollEntry[];
   lineupSections: LineupSection[];
+  openPositions: OpenPosition[];
   /** false = not joined (and not admin / head): only the top sections show. */
   canSeeFull: boolean;
 }) {
@@ -396,6 +401,7 @@ export default function PerformanceClient({
   const [performance, setPerformance] = useState(initial);
   const [participants, setParticipants] = useState(initialParticipants);
   const [lineupSections, setLineupSections] = useState(initialLineupSections);
+  const [openPositions, setOpenPositions] = useState(initialOpenPositions);
   const [hasJoined, setHasJoined] = useState(initialHasJoined);
   const [joinLoading, setJoinLoading] = useState(false);
   const [allMembers, setAllMembers] = useState<AssignedHead[]>([]);
@@ -833,14 +839,43 @@ export default function PerformanceClient({
         if (!exists) pairs.push({ userId, position: pos, sectionId: panelSectionId });
       }
     }
-    if (pairs.length === 0) { setShowMemberPanel(false); setSaveMembersLoading(false); return; }
+    // Positions picked with nobody assigned are kept open, to be filled later.
+    const openNew = resolvedPositions()
+      .filter((pos) => {
+        const assignKey = selectedPositions.includes("อื่นๆ") && pos === customPosition.trim() ? "อื่นๆ" : pos;
+        return (positionAssignments[assignKey] ?? []).length === 0;
+      })
+      .filter((pos) => !currentPositionEntries.some((p) => p.position === pos))
+      .filter((pos) => !openPositions.some((o) => o.position === pos && o.sectionId === panelSectionId))
+      .map((position) => ({ position, sectionId: panelSectionId }));
+    if (pairs.length === 0 && openNew.length === 0) { setShowMemberPanel(false); setSaveMembersLoading(false); return; }
     try {
+      if (openNew.length > 0) {
+        const res = await fetch(`/api/performances/${performance.id}/open-positions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(openNew),
+        });
+        if (!res.ok) {
+          toast.error("บันทึกตำแหน่งว่างไม่สำเร็จ");
+          return;
+        }
+        setOpenPositions((await res.json()).openPositions);
+      }
+      if (pairs.length === 0) {
+        setShowMemberPanel(false);
+        return;
+      }
       const res = await fetch(`/api/performances/${performance.id}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(pairs),
       });
       if (!res.ok) return;
+      // The server closes any open position that now has a player.
+      setOpenPositions((prev) =>
+        prev.filter((o) => !pairs.some((p) => p.position === o.position && p.sectionId === o.sectionId))
+      );
       const newEntries: Participant[] = pairs.map((pair) => {
         const u = joinedMembers.find((m) => m.userId === pair.userId)!;
         return {
@@ -858,6 +893,26 @@ export default function PerformanceClient({
     } finally {
       setSaveMembersLoading(false);
     }
+  }
+
+  // Opens the picker straight at "choose members" for one open position.
+  function fillOpenPosition(position: string, sectionId: string) {
+    openPositionPanel(sectionId);
+    setSelectedPositions([position]);
+    setMemberStep(2);
+  }
+
+  async function removeOpenPosition(position: string, sectionId: string) {
+    const res = await fetch(`/api/performances/${performance.id}/open-positions`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ position, sectionId }),
+    });
+    if (!res.ok) {
+      toast.error("ลบไม่สำเร็จ");
+      return;
+    }
+    setOpenPositions((prev) => prev.filter((o) => !(o.position === position && o.sectionId === sectionId)));
   }
 
   async function removePositionEntry(userId: string, position: string, sectionId: string) {
@@ -993,15 +1048,6 @@ export default function PerformanceClient({
               </Button>
             );
           })()}
-          {canEdit && (
-            <a
-              href={`/api/performances/${performance.id}/export`}
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] border border-hairline bg-canvas text-sm font-medium text-ink hover:border-primary hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
-            >
-              <Download size={14} strokeWidth={1.75} />
-              Export
-            </a>
-          )}
           {isAdmin && (
             <Button
               size="sm"
@@ -1448,8 +1494,11 @@ export default function PerformanceClient({
                     )}
                   </div>
           ) : null;
-          const renderPositionTable = (entries: Participant[]) => (
-            entries.length === 0 ? (
+          const renderPositionTable = (entries: Participant[], sectionId: string) => {
+            const open = openPositions.filter(
+              (o) => o.sectionId === sectionId && !entries.some((p) => p.position === o.position)
+            );
+            return entries.length === 0 && open.length === 0 ? (
                   <p className="text-sm text-muted-soft">ยังไม่มีการกำหนดตำแหน่ง</p>
                 ) : (
                   <div className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
@@ -1457,12 +1506,36 @@ export default function PerformanceClient({
                       <div className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wide">ตำแหน่ง</div>
                       <div className="px-4 py-2 text-xs font-semibold text-muted uppercase tracking-wide border-l border-hairline-soft">สมาชิก</div>
                     </div>
-                    {Object.entries(groupByPosition(entries)).map(([pos, members], idx) => (
+                    {[...Object.entries(groupByPosition(entries)), ...open.map((o) => [o.position, [] as Participant[]] as const)].map(([pos, members], idx) => (
                       <div key={pos} className={`grid grid-cols-[160px_1fr] ${idx > 0 ? "border-t border-hairline-soft" : ""}`}>
                         <div className="px-4 py-3 flex items-start">
                           <span className="text-sm font-medium text-ink">{pos}</span>
                         </div>
                         <div className="px-4 py-2.5 border-l border-hairline-soft flex flex-wrap gap-1.5 items-center">
+                          {members.length === 0 && (
+                            <>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-dashed border-hairline text-muted-soft">
+                                ว่าง
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => removeOpenPosition(pos, sectionId)}
+                                    className="text-muted hover:text-error transition-colors leading-none ml-0.5"
+                                    aria-label="ลบตำแหน่ง"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </span>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => fillOpenPosition(pos, sectionId)}
+                                  className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
+                                >
+                                  + ใส่คน
+                                </button>
+                              )}
+                            </>
+                          )}
                           {members.map((p) => (
                             <span
                               key={`${p.userId}-${p.sectionId}-${p.position}`}
@@ -1485,8 +1558,8 @@ export default function PerformanceClient({
                       </div>
                     ))}
                   </div>
-                )
-          );
+                );
+          };
 
           return (
             <>
@@ -1604,7 +1677,7 @@ export default function PerformanceClient({
                 {lineupSections.length === 0 ? (
                   <>
                     {panelSectionId === "" && positionPanel}
-                    {renderPositionTable(positionEntries)}
+                    {renderPositionTable(positionEntries, "")}
                   </>
                 ) : (
                   <div className="flex flex-col gap-5">
@@ -1648,7 +1721,7 @@ export default function PerformanceClient({
                           )}
                         </div>
                         {panelSectionId === sec.id && positionPanel}
-                        {renderPositionTable(positionEntries.filter((p) => p.sectionId === sec.id))}
+                        {renderPositionTable(positionEntries.filter((p) => p.sectionId === sec.id), sec.id)}
                       </div>
                     ))}
                   </div>
@@ -1771,7 +1844,7 @@ export default function PerformanceClient({
       {/* ── รายการอุปกรณ์ที่ต้องใช้ ── */}
       {(() => {
         const posEntries = participants.filter((p) => p.position !== "");
-        if (posEntries.length === 0) return null;
+        if (posEntries.length === 0 && openPositions.length === 0) return null;
 
         // position → player count. Sections are played one after another, so
         // their instruments are shared: take the largest section, not the sum.
@@ -1779,6 +1852,11 @@ export default function PerformanceClient({
         for (const p of posEntries) {
           const sec = (perSection[p.sectionId] ??= {});
           sec[p.position] = (sec[p.position] ?? 0) + 1;
+        }
+        // An open position still needs its instrument, for one player.
+        for (const o of openPositions) {
+          const sec = (perSection[o.sectionId] ??= {});
+          sec[o.position] = Math.max(sec[o.position] ?? 0, 1);
         }
         const posGroups: Record<string, number> = {};
         for (const sec of Object.values(perSection)) {

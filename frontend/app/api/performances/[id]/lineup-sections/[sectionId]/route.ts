@@ -40,8 +40,10 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
         where: { performanceId: id, sectionId },
         data: { sectionId: "" },
       });
+      await tx.openPosition.updateMany({ where: { performanceId: id, sectionId }, data: { sectionId: "" } });
     } else {
       await tx.performanceMember.deleteMany({ where: { performanceId: id, sectionId } });
+      await tx.openPosition.deleteMany({ where: { performanceId: id, sectionId } });
     }
     await tx.lineupSection.delete({ where: { id: sectionId } });
     return { movedBack: isLast };

@@ -19,7 +19,7 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
   return (
-    <html lang="th" className="h-full">
+    <html lang="th" className="h-full" data-scroll-behavior="smooth">
       <body className="min-h-full flex flex-col bg-canvas text-ink antialiased">
         <SessionProvider session={session}>
           <ToastProvider>

@@ -147,25 +147,26 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
                   setSelectedDate(cell.iso === selectedDate ? null : cell.iso)
                 }
                 className={[
-                  "min-h-[76px] p-1.5 text-left border-b border-r border-hairline-soft transition-colors duration-[var(--duration-pb-base)] relative",
-                  // Show days (not rehearsals) get a light navy tint.
+                  "min-h-[84px] p-1.5 flex flex-col items-stretch justify-start text-left border-b border-r border-hairline-soft transition-colors duration-[var(--duration-pb-base)] relative",
+                  // This month reads light; days outside it recede. Show days
+                  // (not rehearsals) get a light navy tint.
                   perfs.length > 0
                     ? "bg-[#e3eaf3] hover:bg-[#d6e1ee]"
                     : cell.current
-                      ? "bg-canvas hover:bg-surface-cream-strong"
-                      : "bg-surface-soft/60",
+                      ? "bg-surface-card hover:bg-surface-cream-strong/60"
+                      : "bg-canvas",
                   isSelected
                     ? "ring-[1.5px] ring-inset ring-primary z-10"
                     : "",
                   hasSunday ? "border-l-0" : "",
                 ].join(" ")}
               >
-                {/* Date number — today = coral underline (the ONE coral point) */}
+                {/* Date number — today sits in a navy circle */}
                 <span
                   className={[
-                    "inline-flex flex-col items-center leading-none text-xs font-semibold mb-1 pb-0.5",
+                    "self-start inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold mb-1",
                     isToday
-                      ? "text-ink border-b-2 border-coral"
+                      ? "bg-primary text-on-primary"
                       : cell.current
                       ? "text-ink"
                       : "text-muted-soft",
@@ -174,8 +175,8 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
                   {cell.day}
                 </span>
 
-                {/* Event chips — navy filled = performance, navy outline = practice */}
-                <div className="flex flex-col gap-0.5">
+                {/* Event chips — navy filled = performance, dot = practice */}
+                <div className="flex flex-col gap-0.5 min-w-0">
                   {perfs.slice(0, 2).map((p) => (
                     <div
                       key={p.id}
@@ -184,19 +185,23 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
                       {p.performance.name}
                     </div>
                   ))}
-                  {pracs.slice(0, 2).map((p) => (
-                    <div
-                      key={p.id}
-                      className="truncate text-[10px] font-medium px-1 py-0.5 rounded-[var(--radius-xs)] border border-primary/50 text-primary leading-tight"
-                    >
-                      {p.scheduleTitle}
-                    </div>
-                  ))}
-                  {perfs.length + pracs.length > 4 && (
-                    <p className="text-[10px] text-muted-soft px-1">
-                      +{perfs.length + pracs.length - 4} อื่นๆ
-                    </p>
-                  )}
+                  {/* One line per schedule, however many slots it has that day. */}
+                  {(() => {
+                    const titles = [...new Set(pracs.map((p) => p.scheduleTitle))];
+                    const shown = titles.slice(0, Math.max(1, 3 - Math.min(perfs.length, 2)));
+                    const hidden = titles.length - shown.length + Math.max(0, perfs.length - 2);
+                    return (
+                      <>
+                        {shown.map((t) => (
+                          <div key={t} className="flex items-center gap-1 px-1 min-w-0 text-[10px] font-medium text-body-strong leading-tight">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                            <span className="truncate">{t}</span>
+                          </div>
+                        ))}
+                        {hidden > 0 && <p className="text-[10px] text-muted-soft px-1">+{hidden} อื่นๆ</p>}
+                      </>
+                    );
+                  })()}
                 </div>
               </button>
             );
@@ -210,11 +215,11 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
             <span className="text-xs text-muted">งานแสดง</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-[3px] border border-primary/50 shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
             <span className="text-xs text-muted">ตารางซ้อม</span>
           </div>
           <div className="flex items-center gap-1.5 ml-auto">
-            <span className="inline-flex items-center leading-none text-xs font-bold text-ink pb-0.5 border-b-2 border-coral">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-on-primary text-[10px] font-bold">
               {new Date().getDate()}
             </span>
             <span className="text-xs text-muted">วันนี้</span>

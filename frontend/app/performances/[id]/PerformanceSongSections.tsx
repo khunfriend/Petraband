@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -69,6 +69,8 @@ export function PerformanceSongSections({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameText, setRenameText] = useState("");
   const [activeDragSong, setActiveDragSong] = useState<SongEntry | null>(null);
+
+  const dndId = useId();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -213,6 +215,9 @@ export function PerformanceSongSections({
 
   return (
     <DndContext
+      // A stable id keeps dnd-kit's aria ids the same on server and client
+      // (its default counter differs between them → hydration mismatch).
+      id={dndId}
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}

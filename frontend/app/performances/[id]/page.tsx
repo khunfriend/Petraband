@@ -21,7 +21,7 @@ export default async function PerformanceDetailPage({ params }: Params) {
     notFound();
   }
 
-  const [performance, participants, myMember, stageLayout, practiceSchedules, polls, sections, lineupSections] = await Promise.all([
+  const [performance, participants, myMember, stageLayout, practiceSchedules, polls, sections, lineupSections, openPositions] = await Promise.all([
     prisma.performance.findUnique({
       where: { id },
       include: {
@@ -93,6 +93,11 @@ export default async function PerformanceDetailPage({ params }: Params) {
       where: { performanceId: id },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: { id: true, name: true },
+    }),
+    prisma.openPosition.findMany({
+      where: { performanceId: id },
+      orderBy: { createdAt: "asc" },
+      select: { position: true, sectionId: true },
     }),
   ]);
 
@@ -176,6 +181,7 @@ export default async function PerformanceDetailPage({ params }: Params) {
           sectionId: m.sectionId,
         }))}
         lineupSections={canSeeFull ? lineupSections : []}
+        openPositions={canSeeFull ? openPositions : []}
         isAdmin={isAdmin}
         isHead={isHead}
         stageLayout={

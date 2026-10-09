@@ -43,48 +43,48 @@ enum PollStatus {
 // ─── User & Auth ───────────────────────────────────────────
 
 model User {
-  id                  String   @id @default(cuid())
-  email               String   @unique
+  id                  String        @id @default(cuid())
+  email               String        @unique
   passwordHash        String
   nickname            String
   firstName           String?
   lastName            String?
   avatarUrl           String?
   contact             String?
-  generation          String   @default("")   // e.g. "#20", "#สมทบ"
-  isTemporary           Boolean  @default(false)
-  linkedPerformanceId   String?
-  status                AccountStatus @default(ACTIVE)
-  tokenVersion          Int      @default(0)  // bumped on password reset to invalidate sessions
-  role                  Role     @default(MEMBER)
-  primaryInstrumentId   String?
-  supabaseUserId        String?  @unique
-  emailVerifiedAt       DateTime?
-  rejectionReason       String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  generation          String        @default("") // e.g. "#20", "#สมทบ"
+  isTemporary         Boolean       @default(false)
+  linkedPerformanceId String?
+  status              AccountStatus @default(ACTIVE)
+  tokenVersion        Int           @default(0) // bumped on password reset to invalidate sessions
+  role                Role          @default(MEMBER)
+  primaryInstrumentId String?
+  supabaseUserId      String?       @unique
+  emailVerifiedAt     DateTime?
+  rejectionReason     String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  primaryInstrument    Instrument?              @relation("PrimaryInstrument", fields: [primaryInstrumentId], references: [id])
+  primaryInstrument    Instrument?               @relation("PrimaryInstrument", fields: [primaryInstrumentId], references: [id])
   secondaryInstruments UserSecondaryInstrument[]
-  linkedPerformance    Performance?             @relation("TempUsers", fields: [linkedPerformanceId], references: [id], onDelete: SetNull)
+  linkedPerformance    Performance?              @relation("TempUsers", fields: [linkedPerformanceId], references: [id], onDelete: SetNull)
 
-  rsvps                  Rsvp[]
-  songAssignments        SongAssignment[]
-  rehearsalAttendances   RehearsalAttendance[]
-  auditLogs              AuditLog[]
-  stageLayoutVersions    StageLayoutVersion[]
-  songVersions           SongVersion[]
-  stageTemplates         StageTemplate[]
-  performanceHeads       PerformanceHead[]
-  practiceSchedules      PracticeSchedule[]      @relation("ScheduleCreator")
-  practiceGroupMembers   PracticeGroupMember[]
-  practiceAvailabilities PracticeAvailability[]
-  performanceMembers     PerformanceMember[]
-  passwordResetTokens    PasswordResetToken[]
-  availabilityPolls      AvailabilityPoll[]         @relation("PollCreator")
+  rsvps                     Rsvp[]
+  songAssignments           SongAssignment[]
+  rehearsalAttendances      RehearsalAttendance[]
+  auditLogs                 AuditLog[]
+  stageLayoutVersions       StageLayoutVersion[]
+  songVersions              SongVersion[]
+  stageTemplates            StageTemplate[]
+  performanceHeads          PerformanceHead[]
+  practiceSchedules         PracticeSchedule[]         @relation("ScheduleCreator")
+  practiceGroupMembers      PracticeGroupMember[]
+  practiceAvailabilities    PracticeAvailability[]
+  performanceMembers        PerformanceMember[]
+  passwordResetTokens       PasswordResetToken[]
+  availabilityPolls         AvailabilityPoll[]         @relation("PollCreator")
   availabilityPollResponses AvailabilityPollResponse[]
-  performanceSheetPrefs  UserPerformanceSheetPref[]
-  songSheetOverrides     UserSongSheetOverride[]
+  performanceSheetPrefs     UserPerformanceSheetPref[]
+  songSheetOverrides        UserSongSheetOverride[]
 }
 
 model PendingRegistration {
@@ -137,25 +137,25 @@ model Instrument {
   // never offered as someone's instrument
   isPlayable       Boolean @default(true)
 
-  primaryUsers         User[]                    @relation("PrimaryInstrument")
-  secondaryUsers       UserSecondaryInstrument[]
-  songAssignments      SongAssignment[]
-  stageItems           StageItem[]
+  primaryUsers    User[]                    @relation("PrimaryInstrument")
+  secondaryUsers  UserSecondaryInstrument[]
+  songAssignments SongAssignment[]
+  stageItems      StageItem[]
 }
 
 // ─── Songs ─────────────────────────────────────────────────
 
 model Song {
-  id              String   @id @default(cuid())
-  songCode        String   @unique
-  title           String
-  category        String   @default("ดนตรีไทย")
-  duration        Int?     // seconds, null = N/A
-  sheetData       Json?    // rows/cols grid format from songs_full_export.json
-  defaultBpm      Int?     // metronome default BPM
-  defaultTimeSig  String?  // metronome default time signature: "4/4", "3/4", "6/8", "12/8", "7/8"
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  songCode       String   @unique
+  title          String
+  category       String   @default("ดนตรีไทย")
+  duration       Int? // seconds, null = N/A
+  sheetData      Json? // rows/cols grid format from songs_full_export.json
+  defaultBpm     Int? // metronome default BPM
+  defaultTimeSig String? // metronome default time signature: "4/4", "3/4", "6/8", "12/8", "7/8"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   performanceSongs PerformanceSong[]
   versions         SongVersion[]
@@ -163,15 +163,15 @@ model Song {
 }
 
 model SongVersion {
-  id          String   @id @default(cuid())
-  songId      String
-  sheetData   Json?
-  duration    Int?
-  message     String   @default("แก้ไขโน้ต")
-  createdById String?
+  id            String   @id @default(cuid())
+  songId        String
+  sheetData     Json?
+  duration      Int?
+  message       String   @default("แก้ไขโน้ต")
+  createdById   String?
   // Snapshot of the editor's name: the history outlives the account (NFR-2).
-  createdByName String @default("")
-  createdAt   DateTime @default(now())
+  createdByName String   @default("")
+  createdAt     DateTime @default(now())
 
   song      Song  @relation(fields: [songId], references: [id], onDelete: Cascade)
   createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
@@ -200,7 +200,8 @@ model Performance {
   practiceSchedules PracticeSchedule[]
   members           PerformanceMember[]
   lineupSections    LineupSection[]
-  temporaryUsers    User[]              @relation("TempUsers")
+  openPositions     OpenPosition[]
+  temporaryUsers    User[]                     @relation("TempUsers")
   availabilityPolls AvailabilityPoll[]
   userSheetPrefs    UserPerformanceSheetPref[]
 }
@@ -222,8 +223,8 @@ model PerformanceDate {
   id            String   @id @default(cuid())
   performanceId String
   date          DateTime @db.Date
-  startTime     String?  // "HH:MM"
-  endTime       String?  // "HH:MM"
+  startTime     String? // "HH:MM"
+  endTime       String? // "HH:MM"
 
   performance Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
   rsvps       Rsvp[]
@@ -237,10 +238,10 @@ model PerformanceSong {
   sectionId      String?
   orderInSection Int     @default(0)
 
-  performance Performance         @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  song        Song                @relation(fields: [songId], references: [id])
-  section     PerformanceSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  assignments SongAssignment[]
+  performance    Performance             @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  song           Song                    @relation(fields: [songId], references: [id])
+  section        PerformanceSection?     @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  assignments    SongAssignment[]
   sheetOverrides UserSongSheetOverride[]
 
   @@unique([performanceId, songId])
@@ -392,17 +393,17 @@ model RehearsalAttendance {
 // ─── Equipment ─────────────────────────────────────────────
 
 model Equipment {
-  id        String             @id @default(cuid())
-  name      String
-  type      String?
-  quantity        Int      @default(1)
-  brokenQuantity  Int      @default(0)
-  lengthCm        Float?
-  widthCm         Float?
-  heightCm        Float?
-  note            String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  type           String?
+  quantity       Int      @default(1)
+  brokenQuantity Int      @default(0)
+  lengthCm       Float?
+  widthCm        Float?
+  heightCm       Float?
+  note           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 // ─── Performance Head Assignment ──────────────────────────
@@ -450,6 +451,20 @@ model LineupSection {
   @@index([performanceId])
 }
 
+// A position picked for the lineup before anyone is chosen to play it.
+// Filling it creates a PerformanceMember row and removes this one.
+model OpenPosition {
+  id            String   @id @default(cuid())
+  performanceId String
+  sectionId     String   @default("") // "" = lineup not split into sections
+  position      String
+  createdAt     DateTime @default(now())
+
+  performance Performance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+
+  @@unique([performanceId, sectionId, position])
+}
+
 // ─── Practice Schedule ─────────────────────────────────────
 
 model PracticeSchedule {
@@ -467,9 +482,9 @@ model PracticeSchedule {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  performance  Performance          @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  createdBy    User?                @relation("ScheduleCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  sourcePoll   AvailabilityPoll?    @relation(fields: [sourcePollId], references: [id], onDelete: SetNull)
+  performance  Performance           @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  createdBy    User?                 @relation("ScheduleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  sourcePoll   AvailabilityPoll?     @relation(fields: [sourcePollId], references: [id], onDelete: SetNull)
   days         PracticeDay[]
   memberGroups PracticeMemberGroup[]
 }
@@ -495,7 +510,7 @@ model PracticeSlot {
   isSpecial Boolean @default(false)
   slotOrder Int     @default(0)
 
-  day            PracticeDay           @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  day            PracticeDay            @relation(fields: [dayId], references: [id], onDelete: Cascade)
   availabilities PracticeAvailability[]
 }
 
@@ -505,7 +520,7 @@ model PracticeMemberGroup {
   name         String
   displayOrder Int    @default(0)
 
-  schedule PracticeSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  schedule PracticeSchedule      @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   members  PracticeGroupMember[]
 }
 
@@ -521,19 +536,19 @@ model PracticeGroupMember {
 }
 
 model AvailabilityPoll {
-  id             String     @id @default(cuid())
-  performanceId  String
-  name           String     @default("โพลตารางว่าง")
-  deadline       DateTime?
-  timezone       String     @default("Asia/Bangkok")
-  status         PollStatus @default(OPEN)
-  createdById    String?
-  createdByName  String     @default("")
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  performanceId String
+  name          String     @default("โพลตารางว่าง")
+  deadline      DateTime?
+  timezone      String     @default("Asia/Bangkok")
+  status        PollStatus @default(OPEN)
+  createdById   String?
+  createdByName String     @default("")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  performance Performance                @relation(fields: [performanceId], references: [id], onDelete: Cascade)
-  createdBy   User?                      @relation("PollCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  performance Performance            @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  createdBy   User?                  @relation("PollCreator", fields: [createdById], references: [id], onDelete: SetNull)
   slots       AvailabilityPollSlot[]
   schedules   PracticeSchedule[]
 
@@ -587,10 +602,10 @@ model AuditLog {
   id         String   @id @default(cuid())
   userId     String?
   userName   String   @default("")
-  action     String   // e.g. "UPDATE_STAGE_LAYOUT", "CREATE_REHEARSAL"
-  targetType String   // e.g. "StageLayout", "Rehearsal"
+  action     String // e.g. "UPDATE_STAGE_LAYOUT", "CREATE_REHEARSAL"
+  targetType String // e.g. "StageLayout", "Rehearsal"
   targetId   String
-  payload    Json?    // diff or snapshot
+  payload    Json? // diff or snapshot
   createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -646,12 +661,12 @@ model Sheet {
 }
 
 model Cell {
-  id         String  @id @default(cuid())
-  sheetId    String
-  rowIndex   Int
-  colIndex   Int
-  cellValue  String?
-  richValue  Json?
+  id        String  @id @default(cuid())
+  sheetId   String
+  rowIndex  Int
+  colIndex  Int
+  cellValue String?
+  richValue Json?
 
   sheet Sheet      @relation(fields: [sheetId], references: [id], onDelete: Cascade)
   style CellStyle?

@@ -277,6 +277,7 @@ h1 {
 ::selection {
   background: var(--color-gold-soft);
   color: var(--color-ink);
+}
 
 /* ─── Selection flair ─────────────────────────────────────
    Press feedback and "just picked" pops that work on every page. */

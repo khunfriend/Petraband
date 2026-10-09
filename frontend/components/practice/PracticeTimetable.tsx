@@ -507,7 +507,7 @@ export function PracticeTimetable({
           });
 
           return (
-            <tbody key={s.id} className="border-t-2 border-ink/70">
+            <tbody key={s.id}>
               {/* Phone width: the phase column is hidden, so it gets its own row. */}
               <tr className="sm:hidden">
                 <td colSpan={4} className={`${cell} relative bg-coral-100/60 ${deleteButton ? "pt-7" : ""}`}>

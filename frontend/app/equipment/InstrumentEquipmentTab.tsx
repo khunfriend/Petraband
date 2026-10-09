@@ -114,7 +114,7 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
 
       {/* ── Accessory types ── */}
       <section className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">อุปกรณ์เสริม</p>
+        <p className="text-[11px] font-bold text-muted">อุปกรณ์เสริม</p>
         <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -203,7 +203,7 @@ export default function InstrumentEquipmentTab({ isAdmin }: { isAdmin: boolean }
 
       {/* ── Per-instrument counts ── */}
       <section className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">ใช้เพิ่มตามเครื่องดนตรี</p>
+        <p className="text-[11px] font-bold text-muted">ใช้เพิ่มตามเครื่องดนตรี</p>
         <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

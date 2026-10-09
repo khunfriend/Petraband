@@ -75,7 +75,7 @@ export default function AllSongsPanel() {
         <div className="mt-4 border border-hairline rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
           {/* Header + search */}
           <div className="px-5 py-4 border-b border-hairline-soft">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+            <p className="text-[11px] font-bold text-muted mb-3">
               เพลงรวมทุกงานแสดง
             </p>
             <div className="relative">

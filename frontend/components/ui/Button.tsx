@@ -15,7 +15,7 @@ const variantClasses: Record<Variant, string> = {
   coral:
     "bg-coral text-on-primary hover:opacity-90 active:opacity-80 disabled:bg-primary-disabled disabled:text-muted",
   secondary:
-    "bg-canvas text-ink border border-hairline hover:bg-surface-cream-strong active:bg-surface-cream-strong disabled:opacity-50",
+    "bg-surface-card text-ink border border-hairline hover:border-primary/40 hover:bg-surface-soft active:bg-surface-cream-strong disabled:opacity-50",
   "secondary-dark":
     "bg-surface-dark-elevated text-on-dark hover:bg-primary-active active:bg-primary-active disabled:opacity-50",
   text: "bg-transparent text-ink hover:bg-surface-cream-strong active:bg-surface-cream-strong disabled:opacity-50",

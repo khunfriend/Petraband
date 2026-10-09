@@ -102,7 +102,7 @@ export default async function ProfilePage() {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+          <p className="text-[11px] font-bold text-muted">
             Profile · {user.role === "ADMIN" ? "Admin" : user.role === "HEAD" ? "Head" : "Member"}
           </p>
           <h1 className="mt-1 text-2xl md:text-3xl font-bold text-ink leading-tight truncate">
@@ -130,7 +130,7 @@ export default async function ProfilePage() {
 
       {/* Form section */}
       <section>
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+        <p className="text-[11px] font-bold text-muted mb-3">
           Edit
         </p>
         <ProfileForm
@@ -155,7 +155,7 @@ export default async function ProfilePage() {
 
       {/* Performance history */}
       <section>
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-3">
+        <p className="text-[11px] font-bold text-muted mb-3">
           Performance history
         </p>
         <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">

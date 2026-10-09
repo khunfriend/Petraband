@@ -1,9 +1,8 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, Users, Sparkles, ArrowRight } from "lucide-react";
+import { CalendarDays, Users, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { PageHeader } from "@/components/ui";
 import DashboardCalendar from "./dashboard/DashboardCalendar";
 import type { CalendarPerformanceDate, CalendarPracticeDay } from "./dashboard/types";
 
@@ -103,31 +102,37 @@ export default async function HomePage() {
       )
     : null;
 
-  return (
-    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-8">
-      <PageHeader
-        eyebrow="PETRAband"
-        title={`สวัสดี, ${session.user.name}`}
-      />
+  const todayLabel = now.toLocaleDateString("th-TH", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Bangkok",
+  });
 
-      {/* Quick stats — 3 cards, hairline border, no shadow */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+  return (
+    <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col gap-8">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl md:text-3xl font-semibold leading-tight text-ink">
+          สวัสดี, {session.user.name}
+        </h1>
+        <p className="text-sm text-muted">{todayLabel}</p>
+      </header>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 -mt-2">
         <StatCard
-          icon={<CalendarDays size={20} strokeWidth={1.75} />}
+          icon={<CalendarDays size={18} strokeWidth={1.75} />}
           label="งานเดือนนี้"
           value={performancesThisMonth}
           unit="งาน"
         />
         <StatCard
-          icon={<Users size={20} strokeWidth={1.75} />}
+          icon={<Users size={18} strokeWidth={1.75} />}
           label="ซ้อมสัปดาห์นี้"
           value={practicesThisWeek}
           unit="ครั้ง"
         />
-        <NextEventCard
-          performance={nextPerformance}
-          daysUntil={daysUntilNext}
-        />
+        <NextEventCard performance={nextPerformance} daysUntil={daysUntilNext} />
       </div>
 
       <DashboardCalendar
@@ -150,16 +155,12 @@ function StatCard({
   unit: string;
 }) {
   return (
-    <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 flex items-center gap-4">
-      <div className="w-10 h-10 rounded-[var(--radius-md)] bg-surface-cream-strong text-primary flex items-center justify-center shrink-0">
-        {icon}
-      </div>
+    <div className="rounded-[var(--radius-md)] bg-surface-card border border-hairline px-4 py-3 flex items-center gap-3">
+      <div className="text-muted shrink-0">{icon}</div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-          {label}
-        </p>
+        <p className="text-xs text-muted">{label}</p>
         <p className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-2xl font-bold text-ink leading-none">{value}</span>
+          <span className="text-2xl font-semibold text-ink leading-none">{value}</span>
           <span className="text-xs text-muted">{unit}</span>
         </p>
       </div>
@@ -181,14 +182,12 @@ function NextEventCard({
 }) {
   if (!performance || daysUntil === null) {
     return (
-      <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-[var(--radius-md)] bg-surface-cream-strong text-muted flex items-center justify-center shrink-0">
-          <Sparkles size={20} strokeWidth={1.75} />
+      <div className="rounded-[var(--radius-md)] bg-surface-card border border-hairline px-4 py-3 flex items-center gap-3">
+        <div className="text-muted shrink-0">
+          <CalendarDays size={18} strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-            งานถัดไป
-          </p>
+          <p className="text-xs text-muted">งานถัดไป</p>
           <p className="mt-1 text-sm text-muted-soft">ยังไม่มีงานในตาราง</p>
         </div>
       </div>
@@ -199,23 +198,23 @@ function NextEventCard({
   return (
     <Link
       href={`/performances/${performance.performance.id}`}
-      className="group bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 flex items-center gap-4 transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)] hover:border-primary"
+      className="group rounded-[var(--radius-md)] bg-surface-card border border-hairline border-l-[3px] border-l-coral px-4 py-3 flex items-center gap-3 transition-colors duration-[var(--duration-pb-base)] hover:border-primary/40 hover:border-l-coral"
     >
-      <div className="w-10 h-10 rounded-[var(--radius-md)] bg-coral/10 text-coral flex items-center justify-center shrink-0">
-        <Sparkles size={20} strokeWidth={1.75} />
+      <div className="text-coral shrink-0">
+        <CalendarDays size={18} strokeWidth={1.75} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-coral">
-          งานถัดไป · in {daysUntil} {daysUntil === 1 ? "day" : "days"}
+        <p className="text-xs text-coral">
+          งานถัดไป · {daysUntil <= 0 ? "วันนี้" : `อีก ${daysUntil} วัน`}
         </p>
-        <p className="mt-1 text-sm font-semibold text-ink truncate">
+        <p className="mt-0.5 text-base font-semibold text-ink truncate">
           {performance.performance.name}
         </p>
       </div>
       <ArrowRight
         size={18}
         strokeWidth={1.75}
-        className="text-muted-soft shrink-0 transition-transform duration-[var(--duration-pb-base)] group-hover:translate-x-0.5 group-hover:text-primary"
+        className="text-muted-soft shrink-0 transition-transform duration-[var(--duration-pb-base)] group-hover:translate-x-0.5"
       />
     </Link>
   );

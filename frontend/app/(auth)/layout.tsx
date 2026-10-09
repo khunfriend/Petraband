@@ -3,20 +3,22 @@ import Link from "next/link";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="w-full flex-1 min-h-screen bg-bone flex flex-col px-6 py-10 md:px-12 md:py-14">
-      <Link href="/" className="inline-flex items-center gap-2.5 self-start">
-        <Image
-          src="/petraband-logo.png"
-          alt="PETRAband"
-          width={40}
-          height={40}
-          className="rounded-full"
-        />
-        <span className="text-sm font-bold text-ink tracking-tight">PETRAband</span>
-      </Link>
+    <div className="w-full flex-1 min-h-screen grid grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <aside className="bg-surface-dark text-on-dark px-6 py-6 lg:px-12 lg:py-12 flex lg:flex-col lg:justify-center lg:items-center gap-4">
+        <Link href="/" className="inline-flex items-center gap-3 lg:flex-col lg:gap-4">
+          <Image
+            src="/petraband-logo.png"
+            alt="PETRAband"
+            width={160}
+            height={160}
+            className="rounded-full w-10 h-10 lg:w-40 lg:h-40"
+          />
+          <span className="text-lg lg:text-2xl font-semibold text-white">PETRAband</span>
+        </Link>
+      </aside>
 
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-full max-w-[400px] py-10">{children}</div>
+      <div className="flex items-center justify-center px-6 py-12 lg:px-16 bg-bone">
+        <div className="w-full max-w-[400px]">{children}</div>
       </div>
     </div>
   );

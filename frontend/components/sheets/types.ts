@@ -1,3 +1,12 @@
+/** The site font; older sheets may still name Sarabun or Roboto. */
+export const DEFAULT_FONT = "IBM Plex Sans Thai";
+const LEGACY_FONTS = new Set(["Sarabun", "Roboto", DEFAULT_FONT]);
+
+/** CSS font-family for a cell: legacy/default names map to the loaded site font. */
+export function cssFont(font?: string | null): string {
+  return !font || LEGACY_FONTS.has(font) ? "var(--font-plex), system-ui, sans-serif" : font;
+}
+
 export interface CellStyle {
   fontFamily?: string;
   fontSize?: number;

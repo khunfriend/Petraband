@@ -26,7 +26,7 @@ export function PageHeader({
     >
       <div className="flex flex-col gap-2 min-w-0">
         {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-        <h1 className="text-2xl md:text-3xl font-bold text-ink leading-tight">
+        <h1 className="text-2xl md:text-3xl font-semibold text-ink leading-tight">
           {title}
         </h1>
         {description && (

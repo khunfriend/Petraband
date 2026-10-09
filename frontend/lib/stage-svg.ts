@@ -35,7 +35,7 @@ export function renderStageSvg(layout: Layout): string {
       return `
         <g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${it.rotation})">
           <circle r="${r}" fill="#FFF3E9" stroke="#FF6B6B" stroke-width="2" />
-          <text text-anchor="middle" dominant-baseline="central" font-family="Sarabun, Arial, sans-serif" font-size="10" fill="#333">${text}</text>
+          <text text-anchor="middle" dominant-baseline="central" font-family="'IBM Plex Sans Thai', Arial, sans-serif" font-size="10" fill="#333">${text}</text>
         </g>`;
     })
     .join("");
@@ -55,7 +55,7 @@ export function renderStageSvg(layout: Layout): string {
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS_W} ${canvasH.toFixed(0)}" width="${CANVAS_W}" height="${canvasH.toFixed(0)}">
   <rect x="${PADDING}" y="${PADDING}" width="${CANVAS_W - PADDING * 2}" height="${canvasH - PADDING * 2}" fill="#FAFAFA" stroke="#CCC" stroke-width="1.5"/>
   ${gridLines.join("\n  ")}
-  <text x="${CANVAS_W / 2}" y="${PADDING - 6}" text-anchor="middle" font-family="Sarabun, Arial, sans-serif" font-size="11" fill="#666">ด้านหน้าเวที (${layout.widthUnits} × ${layout.heightUnits} ${layout.unitLabel})</text>
+  <text x="${CANVAS_W / 2}" y="${PADDING - 6}" text-anchor="middle" font-family="'IBM Plex Sans Thai', Arial, sans-serif" font-size="11" fill="#666">ด้านหน้าเวที (${layout.widthUnits} × ${layout.heightUnits} ${layout.unitLabel})</text>
   ${items}
 </svg>`;
 }

@@ -6,7 +6,6 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AlertBox } from "@/components/ui/AlertBox";
-import { Eyebrow } from "@/components/ui/Eyebrow";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -30,7 +29,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <div>
-      <Eyebrow>Recover</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">
         ตั้งรหัสผ่านใหม่
       </h1>

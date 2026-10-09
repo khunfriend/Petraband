@@ -653,14 +653,14 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
         {/* ── Palette ── */}
         {isAdmin && (
           <div className="w-44 shrink-0 border-r border-hairline-soft bg-surface-soft overflow-y-auto print:hidden">
-            <p className="text-[11px] font-semibold text-muted uppercase tracking-[1.5px] px-3 pt-3 pb-2">
+            <p className="text-[11px] font-semibold text-muted px-3 pt-3 pb-2">
               เครื่องดนตรี
             </p>
             <div className="flex flex-col gap-1 px-2 pb-4">
               {instruments.filter((i) => i.isPlayable !== false).map(paletteButton)}
             </div>
 
-            <p className="text-[11px] font-semibold text-muted uppercase tracking-[1.5px] px-3 pt-2 pb-2 border-t border-hairline-soft">
+            <p className="text-[11px] font-semibold text-muted px-3 pt-2 pb-2 border-t border-hairline-soft">
               อุปกรณ์
             </p>
             {instruments.some((i) => i.isPlayable === false) && (
@@ -851,7 +851,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                             onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <p className="text-[11px] font-semibold text-muted uppercase tracking-[1.5px] px-1 pb-1">
+                            <p className="text-[11px] font-semibold text-muted px-1 pb-1">
                               สมาชิกที่เข้าร่วม
                             </p>
                             {participants.length === 0 ? (

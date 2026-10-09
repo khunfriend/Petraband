@@ -56,7 +56,7 @@ export function NotebookSection({
   return (
     <div className={showDivider ? "mt-10 pt-8 border-t border-hairline-soft" : ""}>
       {showHeading && (
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted mb-4">
+        <p className="text-[11px] font-bold text-muted mb-4">
           โน้ตเพลง · Sheets
         </p>
       )}

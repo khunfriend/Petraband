@@ -6,10 +6,7 @@ type Props = {
   className?: string;
 };
 
+/** Small muted label above a heading. */
 export function Eyebrow({ children, as: Tag = "p", className = "" }: Props) {
-  return (
-    <Tag className={`text-xs font-bold tracking-[1.5px] uppercase text-muted ${className}`}>
-      {children}
-    </Tag>
-  );
+  return <Tag className={`text-xs font-medium text-muted ${className}`}>{children}</Tag>;
 }

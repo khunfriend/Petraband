@@ -2,7 +2,6 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eyebrow } from "@/components/ui/Eyebrow";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 
 // Messages the Google sign-in flow redirects back with.
@@ -28,7 +27,6 @@ export default function LoginPage() {
 
   return (
     <div>
-      <Eyebrow>Sign in</Eyebrow>
       <h1 className="mt-3 text-3xl font-bold text-ink leading-tight">
         ยินดีต้อนรับกลับ
       </h1>

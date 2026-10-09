@@ -129,7 +129,6 @@ export default function CreatePerformancePage() {
       </nav>
 
       <PageHeader
-        eyebrow="Create"
         title="สร้างงานแสดงใหม่"
         description="เพิ่มเพลงและสมาชิกได้ภายหลัง"
       />
@@ -184,7 +183,7 @@ export default function CreatePerformancePage() {
                 className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-4"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+                  <span className="text-[11px] font-bold text-muted">
                     วันที่ {i + 1}
                   </span>
                   {dates.length > 1 && (

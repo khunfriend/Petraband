@@ -109,7 +109,7 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
           >
             <ChevronLeft size={18} strokeWidth={1.75} />
           </button>
-          <p className="text-sm font-bold text-ink">{monthName(year, month)}</p>
+          <p className="text-base font-semibold text-ink">{monthName(year, month)}</p>
           <button
             onClick={nextMonth}
             aria-label="เดือนถัดไป"
@@ -124,7 +124,7 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
           {DAY_LABELS.map((d) => (
             <div
               key={d}
-              className="py-2 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-muted"
+              className="py-2 text-center text-[11px] font-bold text-muted"
             >
               {d}
             </div>
@@ -231,7 +231,7 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
       {selectedDate && (
         <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] overflow-hidden">
           <div className="px-5 py-3 border-b border-hairline-soft">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+            <p className="text-[11px] font-bold text-muted">
               {new Date(selectedDate + "T00:00:00").toLocaleDateString("th-TH", {
                 weekday: "long",
                 year: "numeric",
@@ -274,7 +274,7 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
                       </p>
                     )}
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-on-primary bg-primary px-2 py-0.5 rounded-[var(--radius-pill)] shrink-0">
+                  <span className="text-[10px] font-bold text-on-primary bg-primary px-2 py-0.5 rounded-[var(--radius-pill)] shrink-0">
                     แสดง
                   </span>
                 </Link>
@@ -316,7 +316,7 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary border border-primary/50 px-2 py-0.5 rounded-[var(--radius-pill)] shrink-0 inline-flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-primary border border-primary/50 px-2 py-0.5 rounded-[var(--radius-pill)] shrink-0 inline-flex items-center gap-1">
                     <Users size={10} strokeWidth={1.75} />
                     ซ้อม
                   </span>

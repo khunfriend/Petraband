@@ -74,6 +74,8 @@ export interface FullSheet {
   mergedCells: MergedCellData[];
   columnWidths: Array<{ colIndex: number; widthPx: number }>;
   rowHeights: Array<{ rowIndex: number; heightPx: number }>;
+  /** Margin text before / after a row; absent rows have none. */
+  rowNotes?: Array<{ rowIndex: number; leftText: string; rightText: string }>;
 }
 
 export interface CellRef {

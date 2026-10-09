@@ -11,7 +11,7 @@ const bodySchema = z.object({
   at: z.number().int().min(0),
 });
 
-// Cell and RowHeight/ColumnWidth are keyed on their coordinate, so a plain
+// Cell, RowHeight/RowNote and ColumnWidth are keyed on their coordinate, so a plain
 // `index = index + 1` collides with the neighbour mid-statement. Everything is
 // parked above this offset first and brought back in a second pass.
 const PARK = 1_000_000;
@@ -47,8 +47,11 @@ export async function POST(req: NextRequest, { params }: Params) {
         await tx.$executeRaw`UPDATE "Cell" SET "rowIndex" = "rowIndex" - ${PARK + 1} WHERE "sheetId" = ${sheetId} AND "rowIndex" >= ${PARK}`;
 
         await tx.$executeRaw`DELETE FROM "RowHeight" WHERE "sheetId" = ${sheetId} AND "rowIndex" = ${at}`;
+        await tx.$executeRaw`DELETE FROM "RowNote" WHERE "sheetId" = ${sheetId} AND "rowIndex" = ${at}`;
         await tx.$executeRaw`UPDATE "RowHeight" SET "rowIndex" = "rowIndex" + ${PARK} WHERE "sheetId" = ${sheetId} AND "rowIndex" > ${at}`;
+        await tx.$executeRaw`UPDATE "RowNote" SET "rowIndex" = "rowIndex" + ${PARK} WHERE "sheetId" = ${sheetId} AND "rowIndex" > ${at}`;
         await tx.$executeRaw`UPDATE "RowHeight" SET "rowIndex" = "rowIndex" - ${PARK + 1} WHERE "sheetId" = ${sheetId} AND "rowIndex" >= ${PARK}`;
+        await tx.$executeRaw`UPDATE "RowNote" SET "rowIndex" = "rowIndex" - ${PARK + 1} WHERE "sheetId" = ${sheetId} AND "rowIndex" >= ${PARK}`;
 
         // A merge sitting entirely on this row goes; one spanning it shrinks.
         await tx.$executeRaw`DELETE FROM "MergedCell" WHERE "sheetId" = ${sheetId} AND "startRow" = ${at} AND "endRow" = ${at}`;
@@ -61,7 +64,9 @@ export async function POST(req: NextRequest, { params }: Params) {
         await tx.$executeRaw`UPDATE "Cell" SET "rowIndex" = "rowIndex" - ${PARK - 1} WHERE "sheetId" = ${sheetId} AND "rowIndex" >= ${PARK}`;
 
         await tx.$executeRaw`UPDATE "RowHeight" SET "rowIndex" = "rowIndex" + ${PARK} WHERE "sheetId" = ${sheetId} AND "rowIndex" >= ${at}`;
+        await tx.$executeRaw`UPDATE "RowNote" SET "rowIndex" = "rowIndex" + ${PARK} WHERE "sheetId" = ${sheetId} AND "rowIndex" >= ${at}`;
         await tx.$executeRaw`UPDATE "RowHeight" SET "rowIndex" = "rowIndex" - ${PARK - 1} WHERE "sheetId" = ${sheetId} AND "rowIndex" >= ${PARK}`;
+        await tx.$executeRaw`UPDATE "RowNote" SET "rowIndex" = "rowIndex" - ${PARK - 1} WHERE "sheetId" = ${sheetId} AND "rowIndex" >= ${PARK}`;
 
         await tx.$executeRaw`UPDATE "MergedCell" SET "endRow" = "endRow" + 1 WHERE "sheetId" = ${sheetId} AND "startRow" < ${at} AND "endRow" >= ${at}`;
         await tx.$executeRaw`UPDATE "MergedCell" SET "startRow" = "startRow" + 1, "endRow" = "endRow" + 1 WHERE "sheetId" = ${sheetId} AND "startRow" >= ${at}`;

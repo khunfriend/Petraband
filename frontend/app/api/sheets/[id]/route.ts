@@ -17,6 +17,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       mergedCells: true,
       columnWidths: { orderBy: { colIndex: "asc" } },
       rowHeights: { orderBy: { rowIndex: "asc" } },
+      rowNotes: { orderBy: { rowIndex: "asc" }, select: { rowIndex: true, leftText: true, rightText: true } },
     },
   });
 

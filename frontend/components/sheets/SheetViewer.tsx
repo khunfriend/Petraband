@@ -60,6 +60,13 @@ export function SheetViewer({ sheetId }: Props) {
     if (m.endCol > maxCol) maxCol = m.endCol;
   }
 
+  const notes = new Map((sheet.rowNotes ?? []).map((n) => [n.rowIndex, n]));
+  for (const n of notes.values()) if (n.rowIndex > maxRow) maxRow = n.rowIndex;
+  const hasLeft = [...notes.values()].some((n) => n.leftText);
+  const hasRight = [...notes.values()].some((n) => n.rightText);
+  // Margin text sits outside the grid, unboxed and quiet, like a printed sheet.
+  const marginCell: React.CSSProperties = { border: "none", padding: "2px 8px", color: "#6b7280", fontSize: 13, whiteSpace: "nowrap" };
+
   const displayRows = Math.max(maxRow + 1, 1);
   const displayCols = Math.max(maxCol + 1, 1);
 
@@ -73,13 +80,16 @@ export function SheetViewer({ sheetId }: Props) {
         }}
       >
         <colgroup>
+          {hasLeft && <col style={{ width: 40 }} />}
           {Array.from({ length: displayCols }, (_, c) => (
             <col key={c} style={{ width: colWidths.get(c) ?? 80 }} />
           ))}
+          {hasRight && <col style={{ width: 56 }} />}
         </colgroup>
         <tbody>
           {Array.from({ length: displayRows }, (_, r) => (
             <tr key={r} style={{ height: rowHeights.get(r) ?? 28 }}>
+              {hasLeft && <td style={{ ...marginCell, textAlign: "right" }}>{notes.get(r)?.leftText}</td>}
               {Array.from({ length: displayCols }, (_, c) => {
                 const key = `${r},${c}`;
                 if (covered.has(key)) return null;
@@ -116,6 +126,7 @@ export function SheetViewer({ sheetId }: Props) {
                   </td>
                 );
               })}
+              {hasRight && <td style={{ ...marginCell, textAlign: "left" }}>{notes.get(r)?.rightText}</td>}
             </tr>
           ))}
         </tbody>

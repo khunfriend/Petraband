@@ -87,12 +87,56 @@ function shiftCells(
   return out;
 }
 
-function shiftSizes(
-  sizes: Map<number, number>,
+type RowNoteText = { left: string; right: string };
+
+/**
+ * Text box in the margin before/after a row (line number, repeat mark…).
+ * Keeps its own draft and saves on blur / Enter; keys never reach the grid.
+ */
+function NoteInput({
+  value,
+  align,
+  onCommit,
+}: {
+  value: string;
+  align: "left" | "right";
+  onCommit: (text: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [seen, setSeen] = useState(value);
+  if (value !== seen) {
+    setSeen(value);
+    setDraft(value);
+  }
+  return (
+    <input
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => draft.trim() !== value && onCommit(draft)}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") {
+          setDraft(value);
+          e.currentTarget.blur();
+        }
+      }}
+      onPaste={(e) => e.stopPropagation()}
+      onCopy={(e) => e.stopPropagation()}
+      onCut={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      maxLength={100}
+      className={`w-full h-full bg-transparent px-1.5 text-sm text-muted outline-none focus:bg-surface-soft focus:text-ink ${align === "right" ? "text-left" : "text-right"}`}
+    />
+  );
+}
+
+function shiftSizes<T>(
+  sizes: Map<number, T>,
   kind: "insert" | "delete",
   at: number
-): Map<number, number> {
-  const out = new Map<number, number>();
+): Map<number, T> {
+  const out = new Map<number, T>();
   for (const [i, px] of sizes) {
     if (kind === "delete") {
       if (i === at) continue;
@@ -201,6 +245,31 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
     for (const r of initialData.rowHeights) m.set(r.rowIndex, r.heightPx);
     return m;
   });
+  const [rowNotes, setRowNotes] = useState<Map<number, RowNoteText>>(() => {
+    const m = new Map<number, RowNoteText>();
+    for (const n of initialData.rowNotes ?? []) m.set(n.rowIndex, { left: n.leftText, right: n.rightText });
+    return m;
+  });
+
+  const saveRowNote = useCallback(
+    (row: number, side: "left" | "right", text: string) => {
+      const value = text.trim();
+      setRowNotes((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(row) ?? { left: "", right: "" };
+        const updated = { ...cur, [side]: value };
+        if (!updated.left && !updated.right) next.delete(row);
+        else next.set(row, updated);
+        return next;
+      });
+      fetch(`/api/sheets/${sheetId}/row-notes`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rowIndex: row, side, text: value }),
+      }).catch(() => {});
+    },
+    [sheetId]
+  );
 
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
   const [anchor, setAnchor] = useState<CellRef | null>(null);
@@ -658,6 +727,8 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       // they belong to. The structure endpoint already moves cells, sizes,
       // merges and the counts; a re-inserted row comes back empty, which the
       // cell diff then refills.
+      // The server moves margin notes with the rows; mirror that here.
+      if (structure?.axis === "row") setRowNotes((prev) => shiftSizes(prev, structure.kind, structure.at));
       void (structure ? applyStructure(structure) : Promise.resolve(null)).then((shifted) => {
         saveCellDiff(from.cells, to.cells);
         saveStyleDiff(from.cells, to.cells);
@@ -1178,6 +1249,7 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       setMerges(nextMerges);
       setColWidths(nextColWidths);
       setRowHeights(nextRowHeights);
+      if (op.axis === "row") setRowNotes((prev) => shiftSizes(prev, op.kind, op.at));
       setRowCount(nextRowCount);
       setColCount(nextColCount);
       onRowCountChange?.(nextRowCount);
@@ -1263,13 +1335,18 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
       >
         <colgroup>
           <col style={{ width: 40 }} />
+          <col style={{ width: 56 }} />
           {columnIndices.map((c) => (
             <col key={c} style={{ width: getColWidth(c) }} />
           ))}
+          <col style={{ width: 72 }} />
         </colgroup>
         <thead>
           <tr style={{ height: 24 }}>
             <th className="bg-surface-soft border border-hairline text-xs text-muted sticky top-0 left-0 z-20" />
+            <th className="bg-surface-soft border-y border-hairline text-[11px] text-muted-soft font-normal sticky top-0 z-10" title="ข้อความหน้าแถว เช่น เลขบรรทัด">
+              หน้า
+            </th>
             {columnIndices.map((c) => (
               <th
                 key={c}
@@ -1290,6 +1367,9 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                 />
               </th>
             ))}
+            <th className="bg-surface-soft border-y border-hairline text-[11px] text-muted-soft font-normal sticky top-0 z-10" title="ข้อความท้ายแถว เช่น ⟳3">
+              ท้าย
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -1312,6 +1392,9 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                   className="absolute bottom-0 left-0 w-full h-1 cursor-row-resize hover:bg-coral"
                 />
               </th>
+              <td className="p-0 border-b border-hairline-soft">
+                <NoteInput value={rowNotes.get(r)?.left ?? ""} align="left" onCommit={(t) => saveRowNote(r, "left", t)} />
+              </td>
               {columnIndices.map((c) => {
                 const k = cellKey(r, c);
                 if (hiddenCells.has(k)) return null;
@@ -1436,6 +1519,9 @@ export const SheetGrid = forwardRef<SheetGridHandle, Props>(function SheetGrid(
                   </td>
                 );
               })}
+              <td className="p-0 border-b border-hairline-soft">
+                <NoteInput value={rowNotes.get(r)?.right ?? ""} align="right" onCommit={(t) => saveRowNote(r, "right", t)} />
+              </td>
             </tr>
           ))}
         </tbody>

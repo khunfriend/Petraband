@@ -658,6 +658,7 @@ model Sheet {
   mergedCells  MergedCell[]
   columnWidths ColumnWidth[]
   rowHeights   RowHeight[]
+  rowNotes     RowNote[]
 }
 
 model Cell {
@@ -716,6 +717,19 @@ model ColumnWidth {
   sheet Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
 
   @@id([sheetId, colIndex])
+}
+
+// Text outside the grid for one row: a margin note before the first column
+// (e.g. line number) and after the last (e.g. "⟳3" repeat mark).
+model RowNote {
+  sheetId   String
+  rowIndex  Int
+  leftText  String @default("")
+  rightText String @default("")
+
+  sheet Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+
+  @@id([sheetId, rowIndex])
 }
 
 model RowHeight {

@@ -71,7 +71,9 @@ API `/api/performances/[id]/lineup-sections` (POST) + `/lineup-sections/[section
 - จัดการทุกอย่างที่ `/performances/[id]/practice` หน้าเดียว (หนึ่งกล่องต่อหนึ่งตาราง) · หน้า `practice/[scheduleId]` เหลือแค่ redirect ไป `#schedule-<id>` · หน้าสร้างเหลือ ชื่อ/สถานที่/วัน/เวลาเดียว · ลบการเช็คชื่อ (`PracticeGrid`) ออก — API availability/response-status ยังอยู่แต่ไม่มีใครเรียก
 - ช่วงวันซ้อมที่เลือกได้ = ถึง**วันแสดงวันสุดท้าย** ทั้งหน้าสร้างและเพิ่มวัน (เดิมหน้าสร้างใช้วันแรก)
 - โพลตารางว่าง: สร้างด้วยวัน + ช่วงชั่วโมง แบ่งช่อง 30 นาที (`lib/pollGrid.ts`) · โหวตด้วยการลาก (`components/practice/PaintGrid.tsx`) บันทึกทั้ง stroke ทีเดียว · สร้างตารางจากโพลรวมช่องติดกันเป็นช่วงเดียว
-- migration ใหม่ 2 ตัว (**ยังไม่ลง production**): `20261009120000_practice_schedule_location`, `20261009150000_practice_slot_location`
+- migration ใหม่ 3 ตัว (**ยังไม่ลง production**): `20261009120000_practice_schedule_location`, `20261009150000_practice_slot_location`, `20261009180000_open_positions`
+- ตำแหน่งว่าง (`OpenPosition`): เลือกตำแหน่งไว้ก่อนแล้วค่อยใส่คน · ใส่คนแล้ว members API ลบแถวว่างให้เอง · นับเครื่องดนตรี 1 ชิ้นในรายการอุปกรณ์
+- ลบปุ่ม/route Export ของหน้างานแสดงแล้ว
 
 ## ⏭️ ถัดไปคือ (เรียงตามลำดับที่ควรทำ)
 

@@ -154,7 +154,7 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
                     ? "bg-[#e3eaf3] hover:bg-[#d6e1ee]"
                     : cell.current
                       ? "bg-surface-card hover:bg-surface-cream-strong/60"
-                      : "bg-canvas",
+                      : "bg-surface-cream-strong/50",
                   isSelected
                     ? "ring-[1.5px] ring-inset ring-primary z-10"
                     : "",

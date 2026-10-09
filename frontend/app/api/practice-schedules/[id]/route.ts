@@ -53,14 +53,21 @@ export async function PUT(req: Request, { params }: Params) {
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const parsed = z.object({ title: z.string().min(1) }).safeParse(body);
+  const parsed = z
+    .object({
+      title: z.string().trim().min(1).max(100),
+      location: z.string().trim().max(100).optional(),
+      locationNote: z.string().trim().max(100).optional(),
+      dateMode: z.enum(["ALL", "ANY"]).optional(),
+    })
+    .safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
   const updated = await prisma.practiceSchedule.update({
     where: { id },
-    data: { title: parsed.data.title },
+    data: parsed.data,
   });
 
   return NextResponse.json({ schedule: updated });

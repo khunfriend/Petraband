@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "PracticeSchedule" ADD COLUMN "location" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "locationNote" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "dateMode" TEXT NOT NULL DEFAULT 'ALL';

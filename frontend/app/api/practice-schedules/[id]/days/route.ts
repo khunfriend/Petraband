@@ -3,18 +3,14 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canEditPerformance } from "@/lib/permissions";
 import { z } from "zod";
+import { practiceSlotInput } from "@/lib/practiceSchema";
 
 type Params = { params: Promise<{ id: string }> };
 
-const slotSchema = z.object({
-  startTime: z.string().min(1),
-  endTime: z.string().min(1),
-  label: z.string().default(""),
-  isSpecial: z.boolean().default(false),
-});
+const slotSchema = practiceSlotInput;
 
 const bodySchema = z.object({
-  date: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   slots: z.array(slotSchema).default([]),
 });
 
@@ -53,6 +49,7 @@ export async function POST(req: Request, { params }: Params) {
           startTime: s.startTime,
           endTime: s.endTime,
           label: s.label,
+          location: s.location,
           isSpecial: s.isSpecial,
           slotOrder,
         })),

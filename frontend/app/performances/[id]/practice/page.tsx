@@ -2,6 +2,9 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { canEditPerformance } from "@/lib/permissions";
+import ManagePracticeClient from "./ManagePracticeClient";
+import { bangkokTodayStr } from "@/lib/today";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -11,7 +14,12 @@ export default async function PracticeListPage({ params }: Params) {
 
   const performance = await prisma.performance.findUnique({
     where: { id },
-    select: { id: true, name: true, heads: { select: { userId: true } } },
+    select: {
+      id: true,
+      name: true,
+      heads: { select: { userId: true } },
+      dates: { select: { date: true }, orderBy: { date: "asc" } },
+    },
   });
 
   if (!performance) notFound();
@@ -21,11 +29,13 @@ export default async function PracticeListPage({ params }: Params) {
     session?.user.role === "HEAD" &&
     performance.heads.some((h) => h.userId === session?.user.id);
   const canEdit = isAdmin || isHead;
+  // Past performances are frozen; the API refuses edits, so don't offer them.
+  const canEditNow = !!session && canEdit && (await canEditPerformance(session.user.id, session.user.role, id));
 
   const schedules = await prisma.practiceSchedule.findMany({
     where: { performanceId: id },
     include: {
-      days: { select: { id: true, date: true, slots: { select: { id: true } } }, orderBy: { date: "asc" } },
+      days: { include: { slots: { orderBy: { slotOrder: "asc" } } }, orderBy: { date: "asc" } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -50,7 +60,9 @@ export default async function PracticeListPage({ params }: Params) {
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-ink">ตารางซ้อมทั้งหมด</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-ink">ตารางซ้อมทั้งหมด</h1>
+        </div>
         {canEdit && (
           <Link
             href={`/performances/${id}/practice/create`}
@@ -61,28 +73,33 @@ export default async function PracticeListPage({ params }: Params) {
         )}
       </div>
 
-      <div className="flex flex-col gap-3">
-        {schedules.map((s) => {
-          const slotCount = s.days.reduce((acc, d) => acc + d.slots.length, 0);
-          return (
-            <Link
-              key={s.id}
-              href={`/performances/${id}/practice/${s.id}`}
-              className="block px-5 py-4 border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card hover:border-primary transition-colors duration-[var(--duration-pb-base)]"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-base font-semibold text-ink mb-1">{s.title}</p>
-                  <p className="text-xs text-muted-soft">
-                    {s.days.length} วัน · {slotCount} ช่วงเวลา
-                  </p>
-                </div>
-                <span className="text-xs text-body-strong shrink-0">ดูรายละเอียด →</span>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      <ManagePracticeClient
+        canEdit={canEditNow}
+        canDelete={isAdmin}
+        dateRange={{
+          min: bangkokTodayStr(),
+          max: performance.dates.at(-1)?.date.toISOString().slice(0, 10),
+        }}
+        schedules={schedules.map((s) => ({
+          id: s.id,
+          title: s.title,
+          location: s.location,
+          locationNote: s.locationNote,
+          dateMode: s.dateMode,
+          days: s.days.map((d) => ({
+            id: d.id,
+            date: d.date.toISOString(),
+            slots: d.slots.map((sl) => ({
+              id: sl.id,
+              startTime: sl.startTime,
+              endTime: sl.endTime,
+              label: sl.label,
+              location: sl.location,
+              isSpecial: sl.isSpecial,
+            })),
+          })),
+        }))}
+      />
     </div>
   );
 }

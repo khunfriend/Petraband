@@ -31,8 +31,10 @@ export default async function PollPage({ params }: Params) {
   });
   if (!poll) notFound();
 
+  // One row per (user, position); anyone with a row may vote, so count people.
   const members = await prisma.performanceMember.findMany({
-    where: { performanceId: poll.performanceId, position: "" },
+    where: { performanceId: poll.performanceId },
+    distinct: ["userId"],
     include: { user: { select: { id: true, nickname: true, generation: true } } },
   });
 

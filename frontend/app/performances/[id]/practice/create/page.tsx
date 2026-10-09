@@ -30,24 +30,6 @@ export default async function CreatePracticeSchedulePage({ params }: Params) {
 
   if (!isAdmin && !isHead) redirect(`/performances/${id}/practice`);
 
-  const members = await prisma.user.findMany({
-    where: {
-      rsvps: {
-        some: {
-          status: "AVAILABLE",
-          performanceDate: { performanceId: id },
-        },
-      },
-    },
-    select: {
-      id: true,
-      nickname: true,
-      generation: true,
-      primaryInstrument: { select: { name: true, nameThai: true } },
-    },
-    orderBy: { nickname: "asc" },
-  });
-
   return (
     <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
       <div className="flex items-center gap-2 text-sm text-muted mb-6">
@@ -67,7 +49,6 @@ export default async function CreatePracticeSchedulePage({ params }: Params) {
       <CreatePracticeScheduleClient
         performanceId={id}
         performanceName={performance.name}
-        members={members}
         performanceDates={performance.dates.map((d) => d.date.toISOString().slice(0, 10))}
       />
     </div>

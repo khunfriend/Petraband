@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { canEditPerformance } from "@/lib/permissions";
 import { z } from "zod";
+import { practiceSlotInput } from "@/lib/practiceSchema";
 
-const slotSchema = z.object({
-  startTime: z.string().min(1),
-  endTime: z.string().min(1),
-  label: z.string().default(""),
-  isSpecial: z.boolean().default(false),
-});
+const slotSchema = practiceSlotInput;
 
 const daySchema = z.object({
-  date: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   slots: z.array(slotSchema),
 });
 
@@ -22,9 +19,12 @@ const groupSchema = z.object({
 
 const createSchema = z.object({
   performanceId: z.string().min(1),
-  title: z.string().min(1).default("ตารางซ้อม"),
-  days: z.array(daySchema),
-  groups: z.array(groupSchema),
+  title: z.string().trim().min(1).max(100).default("ตารางซ้อม"),
+  location: z.string().trim().max(100).default(""),
+  locationNote: z.string().trim().max(100).default(""),
+  dateMode: z.enum(["ALL", "ANY"]).default("ALL"),
+  days: z.array(daySchema).min(1),
+  groups: z.array(groupSchema).default([]),
 });
 
 export async function GET(req: Request) {
@@ -68,7 +68,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { performanceId, title, days, groups } = parsed.data;
+  const { performanceId, title, location, locationNote, dateMode, days, groups } = parsed.data;
+
+  // A HEAD may only add schedules to performances they lead, and past ones are frozen.
+  if (!(await canEditPerformance(session.user.id, session.user.role, performanceId))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
   const pastDay = days.find((d) => d.date < todayStr);
@@ -83,6 +88,9 @@ export async function POST(req: Request) {
     data: {
       performanceId,
       title,
+      location,
+      locationNote,
+      dateMode,
       createdById: session.user.id,
       createdByName: session.user.name ?? "",
       days: {
@@ -94,6 +102,7 @@ export async function POST(req: Request) {
               startTime: s.startTime,
               endTime: s.endTime,
               label: s.label,
+              location: s.location,
               isSpecial: s.isSpecial,
               slotOrder,
             })),

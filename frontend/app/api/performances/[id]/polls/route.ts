@@ -7,14 +7,15 @@ type Params = { params: Promise<{ id: string }> };
 
 const slotSchema = z.object({
   date: z.string().min(1),
-  startTime: z.string().min(1),
-  endTime: z.string().min(1),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/),
 });
 
 const createSchema = z.object({
   name: z.string().min(1).max(100).default("โพลตารางว่าง"),
   deadline: z.string().nullable().optional(),
-  slots: z.array(slotSchema).min(1),
+  // 30-minute cells: 60 days × 48 cells is plenty.
+  slots: z.array(slotSchema).min(1).max(3000),
 });
 
 export async function GET(_req: NextRequest, { params }: Params) {

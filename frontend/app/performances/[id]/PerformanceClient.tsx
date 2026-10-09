@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Download, Star } from "lucide-react";
+import { Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
 import { PerformanceSongSections } from "./PerformanceSongSections";
+import { PracticeTimetable } from "@/components/practice/PracticeTimetable";
 import { POSITIONS, POSITION_GROUPS } from "@/lib/positions";
 import { cn } from "@/lib/utils";
 import { accessoryTotals, type AccessoryType, type InstrumentAccessories } from "@/lib/accessories";
@@ -89,9 +90,16 @@ type LineupSection = { id: string; name: string };
 
 type AssignedHead = { id: string; nickname: string; generation: string };
 
-type PracticeSlot = { id: string; startTime: string; endTime: string; label: string; isSpecial: boolean };
+type PracticeSlot = { id: string; startTime: string; endTime: string; label: string; location: string; isSpecial: boolean };
 type PracticeDay = { id: string; date: string; slots: PracticeSlot[] };
-type PracticeScheduleEntry = { id: string; title: string; days: PracticeDay[] };
+type PracticeScheduleEntry = {
+  id: string;
+  title: string;
+  location: string;
+  locationNote: string;
+  dateMode: string;
+  days: PracticeDay[];
+};
 
 type SongSearchResult = {
   id: string;
@@ -1698,52 +1706,10 @@ export default function PerformanceClient({
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {practiceSchedules.map((sched) => (
-              <div key={sched.id} className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-hairline-soft">
-                  <p className="text-sm font-semibold text-ink">{sched.title}</p>
-                  <Link
-                    href={`/performances/${performance.id}/practice/${sched.id}`}
-                    className="text-xs text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]"
-                  >
-                    ดูรายละเอียด →
-                  </Link>
-                </div>
-                {sched.days.length === 0 ? (
-                  <p className="px-4 py-3 text-sm text-muted-soft">ยังไม่มีวันซ้อม</p>
-                ) : (
-                  <div className="divide-y divide-hairline-soft">
-                    {sched.days.map((day) => (
-                      <div key={day.id} className="px-4 py-3 flex items-start gap-4">
-                        <span className="text-sm font-medium text-ink shrink-0 w-28">
-                          {new Date(day.date).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" })}
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {day.slots.map((slot) => (
-                            <span
-                              key={slot.id}
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--radius-pill)] text-xs font-medium border ${
-                                slot.isSpecial
-                                  ? "bg-primary/5 border-primary/40 text-primary"
-                                  : "bg-surface-cream-strong border-hairline text-ink"
-                              }`}
-                            >
-                              {slot.isSpecial && (
-                                <Star size={10} strokeWidth={1.75} />
-                              )}
-                              {slot.startTime}–{slot.endTime}
-                              {slot.label ? ` · ${slot.label}` : ""}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          <PracticeTimetable
+            schedules={practiceSchedules}
+            hrefFor={(sid) => `/performances/${performance.id}/practice#schedule-${sid}`}
+          />
         )}
       </section>
 

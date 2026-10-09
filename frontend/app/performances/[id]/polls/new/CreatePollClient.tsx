@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { DateRowPicker } from "@/components/ui/DateRowPicker";
-import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
-
-type Slot = { startTime: string; endTime: string };
-type DayEntry = { date: string; slots: Slot[] };
+import { cellsForRange } from "@/lib/pollGrid";
 
 type Props = {
   performanceId: string;
@@ -16,15 +13,8 @@ type Props = {
   performanceDates: string[];
 };
 
-const PRESET_SLOTS: { label: string; startTime: string; endTime: string }[] = [
-  { label: "10:00–12:00", startTime: "10:00", endTime: "12:00" },
-  { label: "14:00–17:00", startTime: "14:00", endTime: "17:00" },
-  { label: "17:00–20:00", startTime: "17:00", endTime: "20:00" },
-];
-
-function emptySlot(): Slot {
-  return { startTime: "", endTime: "" };
-}
+// Whole hours only, like when2meet's "no earlier than / no later than".
+const HOUR_OPTIONS = Array.from({ length: 25 }, (_, h) => `${String(h).padStart(2, "0")}:00`);
 
 function formatDateThai(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("th-TH", {
@@ -40,74 +30,31 @@ export default function CreatePollClient({ performanceId, performanceName, perfo
   const [todayStr] = useState(() => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
   const [name, setName] = useState(`โพลตารางว่าง ${performanceName}`);
   const [deadline, setDeadline] = useState("");
-  const [days, setDays] = useState<DayEntry[]>([]);
+  const [dates, setDates] = useState<string[]>([]);
+  const [fromTime, setFromTime] = useState("10:00");
+  const [toTime, setToTime] = useState("21:00");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   // Allow selecting any day up to and including the last performance day
   const maxPerformanceDate =
     performanceDates.length > 0 ? performanceDates[performanceDates.length - 1] : null;
-  const selectedDateSet = useMemo(() => new Set(days.map((d) => d.date)), [days]);
+  const selectedDateSet = useMemo(() => new Set(dates), [dates]);
+  const cellsPerDay = cellsForRange(fromTime, toTime).length;
 
   function toggleDate(iso: string) {
-    if (selectedDateSet.has(iso)) {
-      setDays((prev) => prev.filter((d) => d.date !== iso));
-    } else {
-      const defaultSlots = PRESET_SLOTS.map((p) => ({ startTime: p.startTime, endTime: p.endTime }));
-      setDays((prev) =>
-        [...prev, { date: iso, slots: defaultSlots }].sort((a, b) => a.date.localeCompare(b.date))
-      );
-    }
-  }
-  function removeDay(date: string) {
-    setDays((prev) => prev.filter((d) => d.date !== date));
-  }
-  function togglePreset(dayIndex: number, preset: (typeof PRESET_SLOTS)[number]) {
-    setDays((prev) =>
-      prev.map((d, i) => {
-        if (i !== dayIndex) return d;
-        const exists = d.slots.some((s) => s.startTime === preset.startTime && s.endTime === preset.endTime);
-        if (exists) {
-          return { ...d, slots: d.slots.filter((s) => !(s.startTime === preset.startTime && s.endTime === preset.endTime)) };
-        }
-        const newSlot: Slot = { startTime: preset.startTime, endTime: preset.endTime };
-        const sorted = [...d.slots, newSlot].sort((a, b) => a.startTime.localeCompare(b.startTime));
-        return { ...d, slots: sorted };
-      })
-    );
-  }
-  function addCustomSlot(dayIndex: number) {
-    setDays((prev) => prev.map((d, i) => (i === dayIndex ? { ...d, slots: [...d.slots, emptySlot()] } : d)));
-  }
-  function removeSlot(dayIndex: number, slotIndex: number) {
-    setDays((prev) =>
-      prev.map((d, i) => (i === dayIndex ? { ...d, slots: d.slots.filter((_, j) => j !== slotIndex) } : d))
-    );
-  }
-  function updateSlot(dayIndex: number, slotIndex: number, field: keyof Slot, value: string) {
-    setDays((prev) =>
-      prev.map((d, i) =>
-        i === dayIndex
-          ? { ...d, slots: d.slots.map((s, j) => (j === slotIndex ? { ...s, [field]: value } : s)) }
-          : d
-      )
-    );
+    setDates((prev) => (prev.includes(iso) ? prev.filter((d) => d !== iso) : [...prev, iso].sort()));
   }
 
   async function handleSubmit() {
     setError("");
     if (!name.trim()) { setError("กรุณาใส่ชื่อโพล"); return; }
-    if (days.length === 0) { setError("กรุณาเลือกอย่างน้อย 1 วัน"); return; }
-    const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
-    const flatSlots: { date: string; startTime: string; endTime: string }[] = [];
-    for (const day of days) {
-      if (day.date < todayStr) { setError(`ห้ามสร้างโพลย้อนหลัง (${formatDateThai(day.date)})`); return; }
-      if (day.slots.length === 0) { setError(`กรุณาเพิ่มช่วงเวลาสำหรับ ${formatDateThai(day.date)}`); return; }
-      for (const s of day.slots) {
-        if (!s.startTime || !s.endTime) { setError("กรุณากรอกเวลาให้ครบทุกช่วง"); return; }
-        flatSlots.push({ date: day.date, startTime: s.startTime, endTime: s.endTime });
-      }
-    }
+    if (dates.length === 0) { setError("กรุณาเลือกอย่างน้อย 1 วัน"); return; }
+    if (cellsPerDay === 0) { setError("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม"); return; }
+    const past = dates.find((d) => d < todayStr);
+    if (past) { setError(`ห้ามสร้างโพลย้อนหลัง (${formatDateThai(past)})`); return; }
+    const cells = cellsForRange(fromTime, toTime);
+    const flatSlots = dates.flatMap((date) => cells.map((c) => ({ date, ...c })));
 
     setSubmitting(true);
     try {
@@ -165,93 +112,31 @@ export default function CreatePollClient({ performanceId, performanceName, perfo
         />
       </div>
 
-      {days.length > 0 && (
-        <div>
-          <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">ช่วงเวลาต่อวัน</h2>
-          <div className="flex flex-col gap-4">
-            {days.map((day, dayIndex) => (
-              <div
-                key={day.date}
-                className="border border-hairline-soft rounded-[var(--radius-lg)] bg-surface-card overflow-hidden"
-              >
-                <div className="flex items-center justify-between px-4 py-3 border-b border-hairline-soft bg-primary/5">
-                  <p className="text-sm font-semibold text-ink">{formatDateThai(day.date)}</p>
-                  <button
-                    type="button"
-                    onClick={() => removeDay(day.date)}
-                    className="text-muted hover:text-error transition-colors text-lg leading-none"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="p-4 flex flex-col gap-4">
-                  <div>
-                    <p className="text-xs text-muted mb-2">เลือกช่วงเวลา</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {PRESET_SLOTS.map((preset) => {
-                        const active = day.slots.some(
-                          (s) => s.startTime === preset.startTime && s.endTime === preset.endTime
-                        );
-                        return (
-                          <button
-                            key={preset.label}
-                            type="button"
-                            onClick={() => togglePreset(dayIndex, preset)}
-                            className={`px-4 py-2 text-sm font-semibold rounded-[var(--radius-md)] border transition-colors ${
-                              active
-                                ? "bg-primary text-white border-primary"
-                                : "bg-canvas text-ink border-hairline hover:bg-surface-cream-strong hover:border-primary/40"
-                            }`}
-                          >
-                            {preset.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {day.slots.some((s) => !PRESET_SLOTS.some((p) => p.startTime === s.startTime && p.endTime === s.endTime)) && (
-                    <div className="flex flex-col gap-2">
-                      <p className="text-xs text-muted">ช่วงเวลากำหนดเอง</p>
-                      {day.slots.map((slot, slotIndex) => {
-                        const isPreset = PRESET_SLOTS.some((p) => p.startTime === slot.startTime && p.endTime === slot.endTime);
-                        if (isPreset) return null;
-                        return (
-                          <div key={slotIndex} className="flex flex-col gap-2 p-3 rounded-[var(--radius-md)] border border-hairline-soft bg-surface-soft">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-muted uppercase tracking-wider">ช่วงเวลา</span>
-                              <button
-                                type="button"
-                                onClick={() => removeSlot(dayIndex, slotIndex)}
-                                className="text-muted hover:text-error transition-colors text-base leading-none"
-                              >
-                                ×
-                              </button>
-                            </div>
-                            <TimeRangePicker
-                              startTime={slot.startTime}
-                              endTime={slot.endTime}
-                              onChange={(s, e) => {
-                                updateSlot(dayIndex, slotIndex, "startTime", s);
-                                updateSlot(dayIndex, slotIndex, "endTime", e);
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <Button variant="secondary" size="sm" onClick={() => addCustomSlot(dayIndex)} className="self-start">
-                    + เพิ่มช่วงเวลาอื่น
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+      <div>
+        <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted mb-3">ช่วงเวลา</h2>
+        <div className="flex items-center gap-2 text-sm text-ink">
+          <select
+            value={fromTime}
+            onChange={(e) => setFromTime(e.target.value)}
+            className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3 tabular-nums focus:outline-none focus:border-primary"
+          >
+            {HOUR_OPTIONS.slice(0, -1).map((h) => <option key={h} value={h}>{h}</option>)}
+          </select>
+          <span className="text-muted">ถึง</span>
+          <select
+            value={toTime}
+            onChange={(e) => setToTime(e.target.value)}
+            className="h-10 rounded-[var(--radius-md)] border border-hairline bg-surface-soft px-3 tabular-nums focus:outline-none focus:border-primary"
+          >
+            {HOUR_OPTIONS.slice(1).map((h) => <option key={h} value={h}>{h}</option>)}
+          </select>
         </div>
-      )}
+        <p className="mt-2 text-xs text-muted-soft">
+          {cellsPerDay > 0
+            ? `สมาชิกลากเลือกช่วงที่ว่างได้ทีละ 30 นาที${dates.length > 0 ? ` · ${dates.length} วัน` : ""}`
+            : "เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม"}
+        </p>
+      </div>
 
       {error && <p className="text-sm text-error">{error}</p>}
 

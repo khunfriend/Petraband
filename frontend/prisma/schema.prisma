@@ -456,6 +456,10 @@ model PracticeSchedule {
   id            String   @id @default(cuid())
   performanceId String
   title         String   @default("ตารางซ้อม")
+  location      String   @default("")
+  locationNote  String   @default("") // e.g. "รอจองห้อง"
+  // ALL = practice on every listed day; ANY = pick one of them ("หรือ").
+  dateMode      String   @default("ALL")
   sourcePollId  String?
   // SetNull, never Cascade: deleting the creator must not delete a schedule the whole band uses.
   createdById   String?
@@ -486,6 +490,8 @@ model PracticeSlot {
   startTime String
   endTime   String
   label     String  @default("")
+  // "" = same place as the schedule's location.
+  location  String  @default("")
   isSpecial Boolean @default(false)
   slotOrder Int     @default(0)
 

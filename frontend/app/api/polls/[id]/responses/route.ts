@@ -5,10 +5,15 @@ import { prisma } from "@/lib/prisma";
 
 type Params = { params: Promise<{ id: string }> };
 
-const schema = z.object({
+const change = z.object({
   pollSlotId: z.string().min(1),
   isAvailable: z.boolean(),
 });
+// One cell, or a whole drag stroke at once.
+const schema = z.union([
+  change.transform((c) => [c]),
+  z.object({ changes: z.array(change).min(1).max(3000) }).transform((b) => b.changes),
+]);
 
 export async function POST(req: NextRequest, { params }: Params) {
   const session = await auth();
@@ -41,21 +46,23 @@ export async function POST(req: NextRequest, { params }: Params) {
     );
   }
 
-  const slot = await prisma.availabilityPollSlot.findFirst({
-    where: { id: parsed.data.pollSlotId, pollId },
-    select: { id: true },
+  // Last write wins when a stroke touches the same cell twice.
+  const wanted = new Map(parsed.data.map((c) => [c.pollSlotId, c.isAvailable]));
+  const found = await prisma.availabilityPollSlot.count({
+    where: { id: { in: [...wanted.keys()] }, pollId },
   });
-  if (!slot) return NextResponse.json({ error: "ไม่พบช่วงเวลา" }, { status: 404 });
+  if (found !== wanted.size) return NextResponse.json({ error: "ไม่พบช่วงเวลา" }, { status: 404 });
 
-  await prisma.availabilityPollResponse.upsert({
-    where: { pollSlotId_userId: { pollSlotId: slot.id, userId: session.user.id } },
-    create: {
-      pollSlotId: slot.id,
-      userId: session.user.id,
-      isAvailable: parsed.data.isAvailable,
-    },
-    update: { isAvailable: parsed.data.isAvailable },
-  });
+  const userId = session.user.id;
+  await prisma.$transaction(
+    [...wanted].map(([pollSlotId, isAvailable]) =>
+      prisma.availabilityPollResponse.upsert({
+        where: { pollSlotId_userId: { pollSlotId, userId } },
+        create: { pollSlotId, userId, isAvailable },
+        update: { isAvailable },
+      }),
+    ),
+  );
 
   return NextResponse.json({ ok: true });
 }

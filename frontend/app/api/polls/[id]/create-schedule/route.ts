@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { mergeContiguous } from "@/lib/pollGrid";
 
 type Params = { params: Promise<{ id: string }> };
 
 const schema = z.object({
   title: z.string().min(1).max(100).default("ตารางซ้อม"),
-  slotIds: z.array(z.string()).min(1),
+  slotIds: z.array(z.string()).min(1).max(3000),
 });
 
 export async function POST(req: NextRequest, { params }: Params) {
@@ -49,6 +50,18 @@ export async function POST(req: NextRequest, { params }: Params) {
     byDate.get(key)!.push(s);
   }
   const dates = Array.from(byDate.keys()).sort();
+  // Back-to-back poll cells become one practice slot; a member counts as
+  // available for it only if they marked every cell inside.
+  const mergedByDate = new Map(
+    dates.map((d) => [
+      d,
+      mergeContiguous(byDate.get(d)!).map((m) => {
+        const [first, ...rest] = m.parts.map((p) => new Set(p.responses.map((r) => r.userId)));
+        const userIds = [...first].filter((u) => rest.every((set) => set.has(u)));
+        return { startTime: m.startTime, endTime: m.endTime, userIds };
+      }),
+    ]),
+  );
 
   const schedule = await prisma.$transaction(async (tx) => {
     const created = await tx.practiceSchedule.create({
@@ -63,13 +76,11 @@ export async function POST(req: NextRequest, { params }: Params) {
             date: new Date(dateStr),
             dayOrder,
             slots: {
-              create: byDate.get(dateStr)!
-                .sort((a, b) => a.slotOrder - b.slotOrder)
-                .map((s, slotOrder) => ({
-                  startTime: s.startTime,
-                  endTime: s.endTime,
-                  slotOrder,
-                })),
+              create: mergedByDate.get(dateStr)!.map((s, slotOrder) => ({
+                startTime: s.startTime,
+                endTime: s.endTime,
+                slotOrder,
+              })),
             },
           })),
         },
@@ -79,24 +90,14 @@ export async function POST(req: NextRequest, { params }: Params) {
       },
     });
 
-    // Seed PracticeAvailability from poll: users who marked available for
-    // the corresponding poll slot become available on the practice slot.
-    // Match by (date, startTime, endTime) — safer than by index because
-    // Prisma's returned slot order isn't guaranteed.
+    // Seed PracticeAvailability from the poll. Match by (date, start, end) —
+    // safer than by index because Prisma's returned slot order isn't guaranteed.
     const seedRows: { slotId: string; userId: string }[] = [];
-    const pollSlotByKey = new Map<string, typeof poll.slots[number]>();
-    for (const s of poll.slots) {
-      const key = `${s.date.toISOString().slice(0, 10)}|${s.startTime}|${s.endTime}`;
-      pollSlotByKey.set(key, s);
-    }
     for (const day of created.days) {
-      const dateKey = day.date.toISOString().slice(0, 10);
+      const merged = mergedByDate.get(day.date.toISOString().slice(0, 10)) ?? [];
       for (const practiceSlot of day.slots) {
-        const pollSlot = pollSlotByKey.get(`${dateKey}|${practiceSlot.startTime}|${practiceSlot.endTime}`);
-        if (!pollSlot) continue;
-        for (const r of pollSlot.responses) {
-          seedRows.push({ slotId: practiceSlot.id, userId: r.userId });
-        }
+        const m = merged.find((x) => x.startTime === practiceSlot.startTime && x.endTime === practiceSlot.endTime);
+        for (const userId of m?.userIds ?? []) seedRows.push({ slotId: practiceSlot.id, userId });
       }
     }
     if (seedRows.length > 0) {

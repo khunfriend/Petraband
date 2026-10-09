@@ -275,7 +275,7 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
               {selectedPrac.map((p) => (
                 <Link
                   key={p.id}
-                  href={`/performances/${p.performanceId}/practice/${p.scheduleId}`}
+                  href={`/performances/${p.performanceId}/practice#schedule-${p.scheduleId}`}
                   className="flex items-start gap-3 px-5 py-3 hover:bg-surface-cream-strong transition-colors duration-[var(--duration-pb-base)] group"
                 >
                   <span className="mt-1 w-2 h-2 rounded-full border border-primary shrink-0" />

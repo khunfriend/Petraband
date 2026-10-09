@@ -203,6 +203,9 @@ export default async function PerformanceDetailPage({ params }: Params) {
         practiceSchedules={(canSeeFull ? practiceSchedules : []).map((s) => ({
           id: s.id,
           title: s.title,
+          location: s.location,
+          locationNote: s.locationNote,
+          dateMode: s.dateMode,
           days: s.days.map((d) => ({
             id: d.id,
             date: d.date.toISOString(),
@@ -211,6 +214,7 @@ export default async function PerformanceDetailPage({ params }: Params) {
               startTime: sl.startTime,
               endTime: sl.endTime,
               label: sl.label,
+              location: sl.location,
               isSpecial: sl.isSpecial,
             })),
           })),

@@ -21,9 +21,11 @@ interface Props {
     defaultTimeSig: string | null;
   };
   isAdmin: boolean;
+  /** Categories already used in the song library. */
+  categories: string[];
 }
 
-const CATEGORIES = ["ดนตรีไทย", "เพลงไทยเดิม", "เพลงสากล", "เพลงพื้นบ้าน", "อื่นๆ"];
+const NEW_CATEGORY = "__new__";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "N/A";
@@ -54,7 +56,7 @@ function mmSsToSeconds(value: string): number | null {
   return null;
 }
 
-export default function SongDetailClient({ song, isAdmin }: Props) {
+export default function SongDetailClient({ song, isAdmin, categories }: Props) {
   const toast = useToast();
   const [editMode, setEditMode] = useState(false);
   const [sheetData, setSheetData] = useState<SheetData>(
@@ -62,6 +64,9 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
   );
   const [titleInput, setTitleInput] = useState(song.title);
   const [categoryInput, setCategoryInput] = useState(song.category);
+  const [newCategory, setNewCategory] = useState("");
+  // Always offer the song's own category, even if no other song uses it.
+  const categoryOptions = categories.includes(song.category) ? categories : [song.category, ...categories];
   const [currentDuration, setCurrentDuration] = useState<number | null>(song.duration);
   const [durationInput, setDurationInput] = useState(secondsToMmSs(song.duration));
   const [durationError, setDurationError] = useState("");
@@ -124,6 +129,10 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
       return;
     }
     if (!titleInput.trim()) return;
+    if (categoryInput === NEW_CATEGORY && !newCategory.trim()) {
+      toast.error("ใส่ชื่อประเภทใหม่");
+      return;
+    }
     const parsedBpm = bpmInput.trim() ? parseInt(bpmInput, 10) : null;
     const validBpm = parsedBpm === null ? null : Math.max(30, Math.min(240, parsedBpm));
     const validSig = sigInput || null;
@@ -134,7 +143,7 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: titleInput.trim(),
-        category: categoryInput,
+        category: categoryInput === NEW_CATEGORY ? newCategory.trim() : categoryInput,
         sheetData,
         duration,
         defaultBpm: validBpm,
@@ -158,6 +167,7 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
     setSheetData((song.sheetData as SheetData) ?? { rows: [] });
     setTitleInput(song.title);
     setCategoryInput(song.category);
+    setNewCategory("");
     setDurationInput(secondsToMmSs(song.duration));
     setBpmInput(currentBpm != null ? String(currentBpm) : "");
     setSigInput((currentSig as TimeSig | null) ?? "");
@@ -217,16 +227,27 @@ export default function SongDetailClient({ song, isAdmin }: Props) {
           </div>
           {/* Category */}
           <div className="flex items-center gap-3">
-            <label className="text-xs text-muted w-24 shrink-0">หมวดหมู่</label>
+            <label className="text-xs text-muted w-24 shrink-0">ประเภท</label>
             <select
               value={categoryInput}
               onChange={(e) => setCategoryInput(e.target.value)}
               className="flex-1 text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-1.5 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
             >
-              {CATEGORIES.map((c) => (
+              {categoryOptions.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
+              <option value={NEW_CATEGORY}>+ เพิ่มประเภทใหม่</option>
             </select>
+            {categoryInput === NEW_CATEGORY && (
+              <input
+                autoFocus
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="ชื่อประเภทใหม่"
+                className="flex-1 text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-1.5 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
+              />
+            )}
           </div>
           {/* Duration */}
           <div className="flex items-center gap-3">

@@ -30,6 +30,11 @@ export default async function SongDetailPage({ params }: Params) {
   const publishedSheets = sortSheetsByCanonicalOrder(notebook?.sheets ?? []);
 
   const isAdmin = session?.user.role === "ADMIN";
+  const categories = isAdmin
+    ? (await prisma.song.findMany({ select: { category: true }, distinct: ["category"], orderBy: { category: "asc" } })).map(
+        (c) => c.category,
+      )
+    : [];
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-8">
@@ -69,6 +74,7 @@ export default async function SongDetailPage({ params }: Params) {
             defaultTimeSig: song.defaultTimeSig,
           }}
           isAdmin={isAdmin}
+          categories={categories}
         />
         {publishedSheets.length > 0 && (
           <NotebookSection sheets={publishedSheets} />

@@ -39,6 +39,15 @@ export async function POST(req: NextRequest, { params }: Params) {
     );
 
   const targetSectionId = parsed.data.sectionId ?? null;
+  const songInclude = { song: { select: { id: true, title: true, songCode: true, category: true } } };
+
+  // Adding a song that is already in the set is a no-op, not an error: a slow
+  // first response can make the picker send it twice.
+  const existing = await prisma.performanceSong.findUnique({
+    where: { performanceId_songId: { performanceId: id, songId: parsed.data.songId } },
+    include: songInclude,
+  });
+  if (existing) return NextResponse.json({ performanceSong: existing }, { status: 200 });
 
   const [maxOrder, maxInSection] = await Promise.all([
     prisma.performanceSong.aggregate({
@@ -59,7 +68,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       sectionId: targetSectionId,
       orderInSection: (maxInSection._max.orderInSection ?? -1) + 1,
     },
-    include: { song: { select: { id: true, title: true, songCode: true, category: true } } },
+    include: songInclude,
   });
 
   return NextResponse.json({ performanceSong }, { status: 201 });

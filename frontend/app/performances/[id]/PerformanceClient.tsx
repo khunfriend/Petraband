@@ -581,21 +581,36 @@ export default function PerformanceClient({
 
   // The picker stays open so several songs can be added in a row; each one
   // picked is highlighted in place (see SongPickerPanel).
+  const [addingSongIds, setAddingSongIds] = useState<Set<string>>(new Set());
+
   async function addSong(song: SongSearchResult) {
-    const res = await fetch(`/api/performances/${performance.id}/songs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ songId: song.id }),
-    });
-    if (!res.ok) {
+    if (addingSongIds.has(song.id)) return;
+    setAddingSongIds((prev) => new Set(prev).add(song.id));
+    let ps;
+    try {
+      const res = await fetch(`/api/performances/${performance.id}/songs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songId: song.id }),
+      });
+      if (!res.ok) {
+        toast.error("เพิ่มเพลงไม่สำเร็จ");
+        return;
+      }
+      ps = (await res.json()).performanceSong;
+    } catch {
       toast.error("เพิ่มเพลงไม่สำเร็จ");
       return;
+    } finally {
+      setAddingSongIds((prev) => {
+        const next = new Set(prev);
+        next.delete(song.id);
+        return next;
+      });
     }
-    const data = await res.json();
-    const ps = data.performanceSong;
     setPerformance((prev) => ({
       ...prev,
-      songs: [
+      songs: prev.songs.some((s) => s.songId === ps.song.id) ? prev.songs : [
         ...prev.songs,
         {
           id: ps.id,
@@ -1200,7 +1215,7 @@ export default function PerformanceClient({
               </Button>
             ) : (
               <SongPickerPanel
-                addedSongIds={new Set(performance.songs.map((s) => s.songId))}
+                addedSongIds={new Set([...performance.songs.map((s) => s.songId), ...addingSongIds])}
                 onAdd={addSong}
                 onClose={() => setShowPicker(false)}
               />

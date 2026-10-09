@@ -23,6 +23,8 @@ interface Song {
 interface Props {
   songs: Song[];
   categories: string[];
+  /** Songs per category for the current search, regardless of the selected tab. */
+  categoryCounts: Record<string, number>;
   initialQ: string;
   initialCategory: string;
   isAdmin: boolean;
@@ -38,11 +40,13 @@ function formatDuration(seconds: number | null) {
 export default function SongListClient({
   songs,
   categories,
+  categoryCounts,
   initialQ,
   initialCategory,
   isAdmin,
 }: Props) {
   const router = useRouter();
+  const totalCount = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
   const [q, setQ] = useState(initialQ);
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [showCreate, setShowCreate] = useState(false);
@@ -158,11 +162,11 @@ export default function SongListClient({
             >
               ทั้งหมด
               <span className="ml-1.5 text-[11px] text-muted-soft">
-                {songs.length}
+                {totalCount}
               </span>
             </CategoryTab>
             {categories.map((cat) => {
-              const count = songs.filter((s) => s.category === cat).length;
+              const count = categoryCounts[cat] ?? 0;
               return (
                 <CategoryTab
                   key={cat}
@@ -180,7 +184,7 @@ export default function SongListClient({
         {/* Result count */}
         <p className="text-xs text-muted">
           {filtered.length} เพลง
-          {q || activeCategory ? ` · กรองจาก ${songs.length}` : ""}
+          {q || activeCategory ? ` · กรองจาก ${totalCount}` : ""}
         </p>
 
         {/* Song list */}

@@ -112,33 +112,28 @@ export default async function HomePage() {
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col gap-8">
-      {/* Hero — the night sky from the logo */}
-      <section className="pb-reveal rounded-[var(--radius-lg)] bg-surface-dark text-on-dark px-6 py-7 md:px-8 md:py-8">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl md:text-3xl font-semibold leading-tight text-white">
-              สวัสดี, {session.user.name}
-            </h1>
-            <p className="text-sm text-on-dark-soft">{todayLabel}</p>
-          </div>
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl md:text-3xl font-semibold leading-tight text-ink">
+          สวัสดี, {session.user.name}
+        </h1>
+        <p className="text-sm text-muted">{todayLabel}</p>
+      </header>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <StatCard
-              icon={<CalendarDays size={18} strokeWidth={1.75} />}
-              label="งานเดือนนี้"
-              value={performancesThisMonth}
-              unit="งาน"
-            />
-            <StatCard
-              icon={<Users size={18} strokeWidth={1.75} />}
-              label="ซ้อมสัปดาห์นี้"
-              value={practicesThisWeek}
-              unit="ครั้ง"
-            />
-            <NextEventCard performance={nextPerformance} daysUntil={daysUntilNext} />
-          </div>
-        </div>
-      </section>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 -mt-2">
+        <StatCard
+          icon={<CalendarDays size={18} strokeWidth={1.75} />}
+          label="งานเดือนนี้"
+          value={performancesThisMonth}
+          unit="งาน"
+        />
+        <StatCard
+          icon={<Users size={18} strokeWidth={1.75} />}
+          label="ซ้อมสัปดาห์นี้"
+          value={practicesThisWeek}
+          unit="ครั้ง"
+        />
+        <NextEventCard performance={nextPerformance} daysUntil={daysUntilNext} />
+      </div>
 
       <DashboardCalendar
         performanceDates={perfDates}
@@ -160,13 +155,13 @@ function StatCard({
   unit: string;
 }) {
   return (
-    <div className="rounded-[var(--radius-md)] bg-white/[0.06] px-4 py-3 flex items-center gap-3">
-      <div className="text-on-dark-soft shrink-0">{icon}</div>
+    <div className="rounded-[var(--radius-md)] bg-surface-card border border-hairline px-4 py-3 flex items-center gap-3">
+      <div className="text-muted shrink-0">{icon}</div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-on-dark-soft">{label}</p>
+        <p className="text-xs text-muted">{label}</p>
         <p className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-2xl font-semibold text-white leading-none">{value}</span>
-          <span className="text-xs text-on-dark-soft">{unit}</span>
+          <span className="text-2xl font-semibold text-ink leading-none">{value}</span>
+          <span className="text-xs text-muted">{unit}</span>
         </p>
       </div>
     </div>
@@ -187,13 +182,13 @@ function NextEventCard({
 }) {
   if (!performance || daysUntil === null) {
     return (
-      <div className="rounded-[var(--radius-md)] bg-white/[0.06] px-4 py-3 flex items-center gap-3">
-        <div className="text-on-dark-soft shrink-0">
+      <div className="rounded-[var(--radius-md)] bg-surface-card border border-hairline px-4 py-3 flex items-center gap-3">
+        <div className="text-muted shrink-0">
           <CalendarDays size={18} strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-on-dark-soft">งานถัดไป</p>
-          <p className="mt-1 text-sm text-on-dark-soft/80">ยังไม่มีงานในตาราง</p>
+          <p className="text-xs text-muted">งานถัดไป</p>
+          <p className="mt-1 text-sm text-muted-soft">ยังไม่มีงานในตาราง</p>
         </div>
       </div>
     );
@@ -203,23 +198,23 @@ function NextEventCard({
   return (
     <Link
       href={`/performances/${performance.performance.id}`}
-      className="group rounded-[var(--radius-md)] bg-coral hover:bg-coral/90 px-4 py-3 flex items-center gap-3 transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)]"
+      className="group rounded-[var(--radius-md)] bg-surface-card border border-hairline border-l-[3px] border-l-coral px-4 py-3 flex items-center gap-3 transition-colors duration-[var(--duration-pb-base)] hover:border-primary/40 hover:border-l-coral"
     >
-      <div className="text-white shrink-0">
+      <div className="text-coral shrink-0">
         <CalendarDays size={18} strokeWidth={1.75} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-white/85">
+        <p className="text-xs text-coral">
           งานถัดไป · {daysUntil <= 0 ? "วันนี้" : `อีก ${daysUntil} วัน`}
         </p>
-        <p className="mt-0.5 text-base font-semibold text-white truncate">
+        <p className="mt-0.5 text-base font-semibold text-ink truncate">
           {performance.performance.name}
         </p>
       </div>
       <ArrowRight
         size={18}
         strokeWidth={1.75}
-        className="text-white/80 shrink-0 transition-transform duration-[var(--duration-pb-base)] group-hover:translate-x-0.5"
+        className="text-muted-soft shrink-0 transition-transform duration-[var(--duration-pb-base)] group-hover:translate-x-0.5"
       />
     </Link>
   );

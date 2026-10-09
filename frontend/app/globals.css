@@ -278,7 +278,3 @@ h1 {
   background: var(--color-gold-soft);
   color: var(--color-ink);
 }
-
-/* ─── Pick bounce ─────────────────────────────────────────
-   Like the song picker: components/HoverLift grows whatever is under the
-   mouse; components/SelectBounce adds the bounce on click. */

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans_Thai } from "next/font/google";
 import { TopNav } from "@/components/TopNav";
 import { RouteFade } from "@/components/RouteFade";
-import { HoverLift } from "@/components/HoverLift";
 import { SessionProvider } from "@/components/SessionProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
@@ -33,7 +32,6 @@ export default async function RootLayout({
         <SessionProvider session={session}>
           <ToastProvider>
             <ConfirmProvider>
-              <HoverLift />
               <TopNav />
               <RouteFade>{children}</RouteFade>
             </ConfirmProvider>

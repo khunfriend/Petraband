@@ -228,6 +228,7 @@ function SongPickerPanel({ addedSongIds, onAdd, onClose }: SongPickerPanelProps)
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
+            aria-pressed={activeCategory === cat}
             className={`shrink-0 px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
               activeCategory === cat
                 ? "bg-primary text-white border-primary"

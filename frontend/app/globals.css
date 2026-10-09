@@ -72,41 +72,45 @@
 /* ─── Design Tokens (Tailwind v4 @theme) ─────────────────── */
 @theme {
   /* Font families */
-  --font-sans: "Roboto", "Sarabun", system-ui, sans-serif;
+  --font-sans: var(--font-plex), "Sarabun", system-ui, sans-serif;
+  --font-display: var(--font-serif-thai), "Sarabun", Georgia, serif;
   --font-thai: "Sarabun", "Roboto", system-ui, sans-serif;
 
   /* Brand colors */
-  --color-primary: #1b3a6b;
-  --color-primary-active: #152e55;
-  --color-primary-disabled: #c5d5e5;
+  --color-primary: #172c52;
+  --color-primary-active: #10213f;
+  --color-primary-disabled: #c9d3e3;
 
   /* Ink / text */
-  --color-ink: #0b2540;
-  --color-body: #33455c;
-  --color-body-strong: #1b3a6b;
-  --color-muted: #5c6b80;
-  --color-muted-soft: #8a95a6;
+  --color-ink: #111b30;
+  --color-body: #3b475e;
+  --color-body-strong: #172c52;
+  --color-muted: #67718a;
+  --color-muted-soft: #9aa2b4;
 
   /* Borders */
-  --color-hairline: #d8d0bd;
-  --color-hairline-soft: #e5decc;
+  --color-hairline: #e2d9c8;
+  --color-hairline-soft: #ede6d8;
 
   /* Surfaces */
-  --color-canvas: #f1ecdf;
-  --color-surface-soft: #faf7f0;
-  --color-surface-card: #faf7f0;
-  --color-surface-cream-strong: #e5decc;
-  --color-surface-dark: #1b3a6b;
-  --color-surface-dark-elevated: #234277;
-  --color-surface-dark-soft: #0b2540;
+  --color-canvas: #f5f1e8;
+  --color-surface-soft: #fbf8f2;
+  --color-surface-card: #fffdf8;
+  --color-surface-cream-strong: #efe8da;
+  --color-surface-dark: #142748;
+  --color-surface-dark-elevated: #1e3560;
+  --color-surface-dark-soft: #0d1b33;
 
   /* On-color text */
   --color-on-primary: #ffffff;
-  --color-on-dark: #f1ecdf;
-  --color-on-dark-soft: #c5d5e5;
+  --color-on-dark: #f5f1e8;
+  --color-on-dark-soft: #b4c1d8;
 
   /* Accent */
-  --color-coral: #dd5085;
+  --color-coral: #d94f7f;
+  /* ทอง — accent เล็ก ๆ แบบเครื่องดนตรีไทย */
+  --color-gold: #c9a24b;
+  --color-gold-soft: #ead9ae;
   --color-coral-soft: #f2b6cb;
 
   /* Semantic */
@@ -117,9 +121,9 @@
   /* Border radius (design-only §5) */
   --radius-xs: 4px;
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
   --radius-2xl: 32px;
   --radius-pill: 9999px;
 
@@ -130,7 +134,7 @@
   /* ─── Full color scales (design-only §2) ─────────────── */
   /* Navy */
   --color-navy-600: #244b82;
-  --color-navy-700: #1b3a6b;
+  --color-navy-700: #172c52;
   --color-navy-800: #122e55;
   --color-navy-900: #0b2540;
 
@@ -152,10 +156,10 @@
   --color-coral-700: #b8395e;
 
   /* Parchment / Bone */
-  --color-parchment: #f1ecdf;
+  --color-parchment: #f5f1e8;
   --color-parchment-soft: #f7f3ea;
   --color-parchment-deep: #e6dfcb;
-  --color-bone: #faf7f0;
+  --color-bone: #fffdf8;
   --color-fog: #efe9dc;
 
   /* Slate / Neutral */
@@ -321,4 +325,35 @@ html {
 body {
   min-height: 100vh;
   background-color: var(--color-canvas);
+}
+
+/* ─── Midnight & Ivory polish ──────────────────────────────
+   Site-wide touches that ride on existing class names, so every page picks
+   them up without per-page edits. */
+
+/* A faint navy glow at the top of the page, like night over paper. */
+body {
+  background:
+    radial-gradient(1100px 420px at 50% -160px, rgb(23 44 82 / 0.07), transparent 70%),
+    var(--color-canvas);
+  background-attachment: fixed;
+}
+
+/* Page titles and big section headings use the serif display face. */
+h1 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Large cards float slightly off the paper (small cells keep a flat look). */
+.bg-surface-card.rounded-\[var\(--radius-lg\)\] {
+  box-shadow:
+    0 1px 2px rgb(17 27 48 / 0.04),
+    0 12px 32px -18px rgb(17 27 48 / 0.18);
+}
+
+/* Text selection in brand colours. */
+::selection {
+  background: var(--color-gold-soft);
+  color: var(--color-ink);
 }

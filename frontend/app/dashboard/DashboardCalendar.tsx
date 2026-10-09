@@ -109,7 +109,7 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
           >
             <ChevronLeft size={18} strokeWidth={1.75} />
           </button>
-          <p className="text-sm font-bold text-ink">{monthName(year, month)}</p>
+          <p className="font-display text-lg font-semibold text-ink">{monthName(year, month)}</p>
           <button
             onClick={nextMonth}
             aria-label="เดือนถัดไป"

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, Users, Sparkles, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { PageHeader } from "@/components/ui";
+import Image from "next/image";
 import DashboardCalendar from "./dashboard/DashboardCalendar";
 import type { CalendarPerformanceDate, CalendarPracticeDay } from "./dashboard/types";
 
@@ -103,32 +103,63 @@ export default async function HomePage() {
       )
     : null;
 
-  return (
-    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-8">
-      <PageHeader
-        eyebrow="PETRAband"
-        title={`สวัสดี, ${session.user.name}`}
-      />
+  const todayLabel = now.toLocaleDateString("th-TH", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Bangkok",
+  });
 
-      {/* Quick stats — 3 cards, hairline border, no shadow */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard
-          icon={<CalendarDays size={20} strokeWidth={1.75} />}
-          label="งานเดือนนี้"
-          value={performancesThisMonth}
-          unit="งาน"
+  return (
+    <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col gap-8">
+      {/* Hero — the night sky from the logo */}
+      <section className="pb-reveal relative overflow-hidden rounded-[var(--radius-xl)] bg-surface-dark text-on-dark px-6 py-8 md:px-10 md:py-10 shadow-[0_24px_48px_-28px_rgb(13_27_51/0.9)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(600px 260px at 85% 10%, rgb(201 162 75 / 0.18), transparent 70%), radial-gradient(500px 300px at 0% 100%, rgb(217 79 127 / 0.14), transparent 70%)",
+          }}
         />
-        <StatCard
-          icon={<Users size={20} strokeWidth={1.75} />}
-          label="ซ้อมสัปดาห์นี้"
-          value={practicesThisWeek}
-          unit="ครั้ง"
+        <Image
+          src="/petraband-logo.png"
+          alt=""
+          width={320}
+          height={320}
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -bottom-20 w-64 md:w-80 opacity-[0.12] rotate-[-8deg]"
         />
-        <NextEventCard
-          performance={nextPerformance}
-          daysUntil={daysUntilNext}
-        />
-      </div>
+        <div className="relative flex flex-col gap-8">
+          <div className="flex flex-col gap-3">
+            <p className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.2em] uppercase text-gold">
+              <span aria-hidden className="h-px w-6 bg-gold" />
+              PETRAband
+            </p>
+            <h1 className="font-display text-3xl md:text-5xl font-semibold leading-[1.15] text-white">
+              สวัสดี, {session.user.name}
+            </h1>
+            <p className="text-sm text-on-dark-soft">{todayLabel}</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <StatCard
+              icon={<CalendarDays size={18} strokeWidth={1.75} />}
+              label="งานเดือนนี้"
+              value={performancesThisMonth}
+              unit="งาน"
+            />
+            <StatCard
+              icon={<Users size={18} strokeWidth={1.75} />}
+              label="ซ้อมสัปดาห์นี้"
+              value={practicesThisWeek}
+              unit="ครั้ง"
+            />
+            <NextEventCard performance={nextPerformance} daysUntil={daysUntilNext} />
+          </div>
+        </div>
+      </section>
 
       <DashboardCalendar
         performanceDates={perfDates}
@@ -150,17 +181,15 @@ function StatCard({
   unit: string;
 }) {
   return (
-    <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 flex items-center gap-4">
-      <div className="w-10 h-10 rounded-[var(--radius-md)] bg-surface-cream-strong text-primary flex items-center justify-center shrink-0">
+    <div className="rounded-[var(--radius-lg)] border border-white/10 bg-white/[0.06] backdrop-blur-sm p-4 md:p-5 flex items-center gap-4">
+      <div className="w-10 h-10 rounded-full bg-white/10 text-gold flex items-center justify-center shrink-0">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-          {label}
-        </p>
+        <p className="text-xs text-on-dark-soft">{label}</p>
         <p className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-2xl font-bold text-ink leading-none">{value}</span>
-          <span className="text-xs text-muted">{unit}</span>
+          <span className="font-display text-3xl font-semibold text-white leading-none">{value}</span>
+          <span className="text-xs text-on-dark-soft">{unit}</span>
         </p>
       </div>
     </div>
@@ -181,15 +210,13 @@ function NextEventCard({
 }) {
   if (!performance || daysUntil === null) {
     return (
-      <div className="bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-[var(--radius-md)] bg-surface-cream-strong text-muted flex items-center justify-center shrink-0">
-          <Sparkles size={20} strokeWidth={1.75} />
+      <div className="rounded-[var(--radius-lg)] border border-white/10 bg-white/[0.06] p-4 md:p-5 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-full bg-white/10 text-on-dark-soft flex items-center justify-center shrink-0">
+          <Sparkles size={18} strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-            งานถัดไป
-          </p>
-          <p className="mt-1 text-sm text-muted-soft">ยังไม่มีงานในตาราง</p>
+          <p className="text-xs text-on-dark-soft">งานถัดไป</p>
+          <p className="mt-1 text-sm text-on-dark-soft/80">ยังไม่มีงานในตาราง</p>
         </div>
       </div>
     );
@@ -199,23 +226,23 @@ function NextEventCard({
   return (
     <Link
       href={`/performances/${performance.performance.id}`}
-      className="group bg-surface-card border border-hairline rounded-[var(--radius-lg)] p-5 flex items-center gap-4 transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)] hover:border-primary"
+      className="group rounded-[var(--radius-lg)] bg-coral/90 hover:bg-coral p-4 md:p-5 flex items-center gap-4 transition-colors duration-[var(--duration-pb-base)] ease-[var(--ease-pb)] shadow-[0_12px_28px_-16px_rgb(217_79_127/0.9)]"
     >
-      <div className="w-10 h-10 rounded-[var(--radius-md)] bg-coral/10 text-coral flex items-center justify-center shrink-0">
-        <Sparkles size={20} strokeWidth={1.75} />
+      <div className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0">
+        <Sparkles size={18} strokeWidth={1.75} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-coral">
-          งานถัดไป · in {daysUntil} {daysUntil === 1 ? "day" : "days"}
+        <p className="text-xs text-white/85">
+          งานถัดไป · {daysUntil <= 0 ? "วันนี้" : `อีก ${daysUntil} วัน`}
         </p>
-        <p className="mt-1 text-sm font-semibold text-ink truncate">
+        <p className="mt-1 font-display text-lg font-semibold text-white truncate">
           {performance.performance.name}
         </p>
       </div>
       <ArrowRight
         size={18}
         strokeWidth={1.75}
-        className="text-muted-soft shrink-0 transition-transform duration-[var(--duration-pb-base)] group-hover:translate-x-0.5 group-hover:text-primary"
+        className="text-white/80 shrink-0 transition-transform duration-[var(--duration-pb-base)] group-hover:translate-x-0.5"
       />
     </Link>
   );

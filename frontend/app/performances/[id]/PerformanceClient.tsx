@@ -352,7 +352,10 @@ function PopChip({
 function SectionHeader({ label, children }: { label: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <h2 className="text-sm font-bold tracking-[1.5px] uppercase text-muted">{label}</h2>
+      <h2 className="flex items-center gap-2.5 font-display text-lg font-semibold text-ink">
+        <span aria-hidden className="h-4 w-[3px] rounded-full bg-gold" />
+        {label}
+      </h2>
       {children}
     </div>
   );

@@ -11,11 +11,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-primary text-on-primary hover:bg-primary-active active:bg-primary-active disabled:bg-primary-disabled disabled:text-muted",
+    "bg-primary text-on-primary shadow-[inset_0_1px_0_rgb(255_255_255/0.12),0_6px_16px_-8px_rgb(23_44_82/0.6)] hover:bg-primary-active active:bg-primary-active disabled:bg-primary-disabled disabled:text-muted disabled:shadow-none",
   coral:
     "bg-coral text-on-primary hover:opacity-90 active:opacity-80 disabled:bg-primary-disabled disabled:text-muted",
   secondary:
-    "bg-canvas text-ink border border-hairline hover:bg-surface-cream-strong active:bg-surface-cream-strong disabled:opacity-50",
+    "bg-surface-card text-ink border border-hairline hover:border-primary/40 hover:bg-surface-soft active:bg-surface-cream-strong disabled:opacity-50",
   "secondary-dark":
     "bg-surface-dark-elevated text-on-dark hover:bg-primary-active active:bg-primary-active disabled:opacity-50",
   text: "bg-transparent text-ink hover:bg-surface-cream-strong active:bg-surface-cream-strong disabled:opacity-50",

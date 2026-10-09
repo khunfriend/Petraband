@@ -76,38 +76,38 @@
   --font-thai: "Sarabun", "Roboto", system-ui, sans-serif;
 
   /* Brand colors */
-  --color-primary: #1b3a6b;
-  --color-primary-active: #152e55;
+  --color-primary: #1d3c6b;
+  --color-primary-active: #162f56;
   --color-primary-disabled: #c5d5e5;
 
   /* Ink / text */
-  --color-ink: #0b2540;
+  --color-ink: #0f2444;
   --color-body: #33455c;
-  --color-body-strong: #1b3a6b;
+  --color-body-strong: #1d3c6b;
   --color-muted: #5c6b80;
   --color-muted-soft: #8a95a6;
 
   /* Borders */
-  --color-hairline: #d8d0bd;
-  --color-hairline-soft: #e5decc;
+  --color-hairline: #dcd4c7;
+  --color-hairline-soft: #e8e1d6;
 
   /* Surfaces */
-  --color-canvas: #f1ecdf;
-  --color-surface-soft: #faf7f0;
-  --color-surface-card: #faf7f0;
-  --color-surface-cream-strong: #e5decc;
-  --color-surface-dark: #1b3a6b;
+  --color-canvas: #f4f0ea;
+  --color-surface-soft: #fbf9f6;
+  --color-surface-card: #fbf9f6;
+  --color-surface-cream-strong: #e9e3d9;
+  --color-surface-dark: #1d3c6b;
   --color-surface-dark-elevated: #234277;
   --color-surface-dark-soft: #0b2540;
 
   /* On-color text */
   --color-on-primary: #ffffff;
-  --color-on-dark: #f1ecdf;
+  --color-on-dark: #f6f3ef;
   --color-on-dark-soft: #c5d5e5;
 
   /* Accent */
-  --color-coral: #dd5085;
-  --color-coral-soft: #f2b6cb;
+  --color-coral: #d4628c;
+  --color-coral-soft: #ecbccd;
 
   /* Semantic */
   --color-success: #4a9d6e;
@@ -130,33 +130,35 @@
   /* ─── Full color scales (design-only §2) ─────────────── */
   /* Navy */
   --color-navy-600: #244b82;
-  --color-navy-700: #1b3a6b;
+  --color-navy-700: #1d3c6b;
   --color-navy-800: #122e55;
   --color-navy-900: #0b2540;
 
   /* Blue (คลื่น/ท้องฟ้า) */
-  --color-blue-50: #e6eef6;
-  --color-blue-100: #c5d5e5;
-  --color-blue-200: #a6c7e0;
-  --color-blue-300: #6ba8d6;
+  --color-blue-50: #e8f0f7;
+  --color-blue-100: #cbdeea;
+  --color-blue-200: #a9cbe3;
+  --color-blue-300: #59a8d8;
   --color-blue-400: #4a8bc4;
-  --color-blue-500: #3a6fa8;
+  --color-blue-500: #3e6ea6;
+  /* ฟ้าเมฆ (logo cloud) */
+  --color-cloud: #cbdeea;
 
   /* Coral (ริบบิ้น) */
-  --color-coral-100: #fce6ee;
-  --color-coral-200: #f8ccdb;
-  --color-coral-300: #f1a0be;
-  --color-coral-400: #e8709e;
-  --color-coral-500: #dd5085;
-  --color-coral-600: #d04c77;
-  --color-coral-700: #b8395e;
+  --color-coral-100: #f9e7ee;
+  --color-coral-200: #f2cddb;
+  --color-coral-300: #e7a6be;
+  --color-coral-400: #dc80a2;
+  --color-coral-500: #d4628c;
+  --color-coral-600: #c0537b;
+  --color-coral-700: #9e4064;
 
   /* Parchment / Bone */
-  --color-parchment: #f1ecdf;
-  --color-parchment-soft: #f7f3ea;
-  --color-parchment-deep: #e6dfcb;
-  --color-bone: #faf7f0;
-  --color-fog: #efe9dc;
+  --color-parchment: #f4f0ea;
+  --color-parchment-soft: #f8f5f1;
+  --color-parchment-deep: #e9e3d9;
+  --color-bone: #fbf9f6;
+  --color-fog: #efeae2;
 
   /* Slate / Neutral */
   --color-slate-50: #f4f6f9;
@@ -174,8 +176,8 @@
   --color-warning-bg: #fbf0d6;
   --color-danger-fg: #c0392b;
   --color-danger-bg: #fbe3df;
-  --color-info-fg: #3a6fa8;
-  --color-info-bg: #e6eef6;
+  --color-info-fg: #3e6ea6;
+  --color-info-bg: #e8f0f7;
 
   /* ─── Motion (design-only §7) ─────────────────────────── */
   --ease-pb: cubic-bezier(0.22, 0.61, 0.36, 1);

@@ -148,9 +148,9 @@ export default function DashboardCalendar({ performanceDates, practiceDays }: Pr
                 }
                 className={[
                   "min-h-[76px] p-1.5 text-left border-b border-r border-hairline-soft transition-colors duration-[var(--duration-pb-base)] relative",
-                  // Show days (not rehearsals) take the site's pink, as in the practice timetable.
+                  // Show days (not rehearsals) get a light navy tint.
                   perfs.length > 0
-                    ? "bg-coral-100/60 hover:bg-coral-100"
+                    ? "bg-[#e3eaf3] hover:bg-[#d6e1ee]"
                     : cell.current
                       ? "bg-canvas hover:bg-surface-cream-strong"
                       : "bg-surface-soft/60",

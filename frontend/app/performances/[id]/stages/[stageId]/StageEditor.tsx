@@ -777,7 +777,7 @@ export default function StageEditor({ stageId, initialStage, instruments, partic
                       className="w-full h-full rounded flex flex-col items-center justify-center overflow-hidden"
                       style={{
                         background: isCustom ? "transparent" : colors.bg,
-                        border: `${selected ? "2px" : "1px"} ${isCustom ? "dashed" : "solid"} ${selected ? "#dd5085" : (isCustom ? "#5c6b80" : colors.border)}`,
+                        border: `${selected ? "2px" : "1px"} ${isCustom ? "dashed" : "solid"} ${selected ? "#d4628c" : (isCustom ? "#5c6b80" : colors.border)}`,
                         boxShadow: selected ? "0 0 0 3px rgba(221,80,133,0.25)" : undefined,
                       }}
                     >

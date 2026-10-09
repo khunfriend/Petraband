@@ -72,7 +72,8 @@
 /* ─── Design Tokens (Tailwind v4 @theme) ─────────────────── */
 @theme {
   /* Font families */
-  --font-sans: var(--font-plex), "Sarabun", system-ui, sans-serif;
+  /* Noto Serif Thai everywhere; Plex stays as a fallback. */
+  --font-sans: var(--font-serif-thai), var(--font-plex), "Sarabun", Georgia, serif;
   --font-display: var(--font-serif-thai), "Sarabun", Georgia, serif;
   --font-thai: "Sarabun", "Roboto", system-ui, sans-serif;
 

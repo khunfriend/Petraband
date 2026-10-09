@@ -16,7 +16,7 @@ const plex = IBM_Plex_Sans_Thai({
 });
 const serif = Noto_Serif_Thai({
   subsets: ["thai", "latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-serif-thai",
   display: "swap",
 });

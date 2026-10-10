@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { ensureSongSlug, resolveSongParam } from "@/lib/songSlug";
 import { Badge } from "@/components/ui/Badge";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -10,9 +11,26 @@ import { sortSheetsByCanonicalOrder } from "@/lib/sheetOrder";
 
 type Params = { params: Promise<{ id: string }> };
 
+function decodeParam(raw: string) {
+  try {
+    return decodeURIComponent(raw).normalize("NFC");
+  } catch {
+    return raw;
+  }
+}
+
 export default async function SongDetailPage({ params }: Params) {
-  const { id } = await params;
+  const { id: param } = await params;
   const session = await auth();
+
+  // Id (old links), current slug or an old slug — always show the current slug.
+  const found = await resolveSongParam(param);
+  if (!found) notFound();
+  const id = found.id;
+  const slug = found.slug ?? (await ensureSongSlug(id));
+  if (slug && decodeParam(param) !== slug) {
+    redirect(`/songs/${encodeURIComponent(slug)}`);
+  }
 
   const song = await prisma.song.findUnique({ where: { id } });
   if (!song) notFound();
@@ -66,6 +84,7 @@ export default async function SongDetailPage({ params }: Params) {
         <SongDetailClient
           song={{
             id: song.id,
+            slug: song.slug ?? slug ?? null,
             title: song.title,
             category: song.category,
             duration: song.duration,

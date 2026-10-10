@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { ensureSongSlug } from "@/lib/songSlug";
 import { z } from "zod";
 
 export async function GET(req: NextRequest) {
@@ -91,6 +92,8 @@ export async function POST(req: NextRequest) {
   const { songCode, ...rest } = parsed.data;
   const finalCode = songCode?.trim() || (await uniqueSongCode());
 
-  const song = await prisma.song.create({ data: { ...rest, songCode: finalCode } });
+  const created = await prisma.song.create({ data: { ...rest, songCode: finalCode } });
+  const slug = await ensureSongSlug(created.id);
+  const song = { ...created, slug };
   return NextResponse.json({ song }, { status: 201 });
 }

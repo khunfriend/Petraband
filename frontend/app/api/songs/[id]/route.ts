@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { setSongSlug } from "@/lib/songSlug";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -20,6 +21,8 @@ const updateSchema = z.object({
   defaultBpm: z.number().int().min(30).max(240).nullable().optional(),
   defaultTimeSig: z.enum(["4/4", "3/4", "6/8", "12/8", "7/8"]).nullable().optional(),
   commitMessage: z.string().optional(),
+  /** Link name; "" = back to the title. */
+  slug: z.string().max(100).optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -35,9 +38,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
 
-  const { commitMessage, ...songData } = parsed.data;
+  const { commitMessage, slug, ...songData } = parsed.data;
   const current = await prisma.song.findUnique({ where: { id } });
   if (!current) return NextResponse.json({ error: "ไม่พบเพลง" }, { status: 404 });
+
+  // Check the link name first so a taken one doesn't leave a half-saved edit.
+  if (slug !== undefined && slug.trim() !== (current.slug ?? "")) {
+    const result = await setSongSlug(id, slug);
+    if ("error" in result) {
+      return NextResponse.json({ error: result.error }, { status: result.error.includes("ใช้แล้ว") ? 409 : 400 });
+    }
+  }
 
   const [, song] = await prisma.$transaction([
     prisma.songVersion.create({

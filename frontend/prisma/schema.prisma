@@ -149,6 +149,9 @@ model Song {
   id             String   @id @default(cuid())
   songCode       String   @unique
   title          String
+  // Readable link name: /songs/<slug>; old values kept so shared links work.
+  slug           String?  @unique
+  previousSlugs  String[] @default([])
   category       String   @default("ดนตรีไทย")
   duration       Int? // seconds, null = N/A
   sheetData      Json? // rows/cols grid format from songs_full_export.json

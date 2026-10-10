@@ -13,6 +13,8 @@ const TIME_SIGS: TimeSig[] = ["4/4", "3/4", "6/8", "12/8", "7/8"];
 interface Props {
   song: {
     id: string;
+    /** Readable link name used in /songs/<slug>. */
+    slug: string | null;
     title: string;
     category: string;
     duration: number | null;
@@ -63,6 +65,7 @@ export default function SongDetailClient({ song, isAdmin, categories }: Props) {
     (song.sheetData as SheetData) ?? { rows: [] }
   );
   const [titleInput, setTitleInput] = useState(song.title);
+  const [slugInput, setSlugInput] = useState(song.slug ?? "");
   const [categoryInput, setCategoryInput] = useState(song.category);
   const [newCategory, setNewCategory] = useState("");
   // Always offer the song's own category, even if no other song uses it.
@@ -149,9 +152,22 @@ export default function SongDetailClient({ song, isAdmin, categories }: Props) {
         defaultBpm: validBpm,
         defaultTimeSig: validSig,
         commitMessage: "แก้ไขข้อมูลเพลง",
+        ...(slugInput.trim() !== (song.slug ?? "") && { slug: slugInput.trim() }),
       }),
     });
     setSaving(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast.error(typeof err.error === "string" ? err.error : "บันทึกไม่สำเร็จ");
+      return;
+    }
+    const savedSlug = ((await res.json().catch(() => ({}))).song as { slug?: string | null } | undefined)?.slug;
+    // A new link name moves the page to its new address (the old one still works).
+    if (savedSlug && savedSlug !== song.slug) {
+      setEditMode(false);
+      router.replace(`/songs/${encodeURIComponent(savedSlug)}`);
+      return;
+    }
     if (res.ok) {
       setCurrentDuration(duration);
       setCurrentBpm(validBpm);
@@ -166,6 +182,7 @@ export default function SongDetailClient({ song, isAdmin, categories }: Props) {
   function handleCancel() {
     setSheetData((song.sheetData as SheetData) ?? { rows: [] });
     setTitleInput(song.title);
+    setSlugInput(song.slug ?? "");
     setCategoryInput(song.category);
     setNewCategory("");
     setDurationInput(secondsToMmSs(song.duration));
@@ -224,6 +241,20 @@ export default function SongDetailClient({ song, isAdmin, categories }: Props) {
               onChange={(e) => setTitleInput(e.target.value)}
               className="flex-1 text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-1.5 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
             />
+          </div>
+          {/* Link name */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-muted w-24 shrink-0">ชื่อในลิงก์</label>
+            <div className="flex-1 flex items-center border border-hairline rounded-[var(--radius-sm)] bg-surface-card focus-within:ring-1 focus-within:ring-coral/50">
+              <span className="pl-3 text-sm text-muted-soft whitespace-nowrap">/songs/</span>
+              <input
+                type="text"
+                value={slugInput}
+                onChange={(e) => setSlugInput(e.target.value)}
+                placeholder="เว้นว่าง = ใช้ชื่อเพลง"
+                className="flex-1 min-w-0 text-sm px-1 py-1.5 bg-transparent text-ink outline-none"
+              />
+            </div>
           </div>
           {/* Category */}
           <div className="flex items-center gap-3">

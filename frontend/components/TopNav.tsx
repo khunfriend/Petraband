@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
+import { InstallButton } from "@/components/app/InstallButton";
 import { isGuestEmail } from "@/lib/guest";
 import { PENDING_USERS_CHANGED } from "@/lib/pendingUsers";
 import { cn } from "@/lib/utils";
@@ -63,8 +64,8 @@ export function TopNav() {
 
   return (
     // Installed on a phone the page runs under the status bar; pad by the safe area.
-    // In the installed app the home screen is its own launcher, without the bar.
-    <nav className={cn("bg-surface-dark sticky top-0 z-40 pt-[env(safe-area-inset-top)]", pathname === "/" && "standalone:hidden")}>
+    // As the installed app the bar turns light, like a native app header.
+    <nav className="bg-surface-dark standalone:bg-surface-card standalone:border-b standalone:border-hairline sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
       <div className="max-w-[1200px] mx-auto h-14 px-4 md:px-8 flex items-center gap-4 md:gap-8">
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
           <Image
@@ -74,10 +75,10 @@ export function TopNav() {
             height={32}
             className="rounded-full"
           />
-          <span className="hidden sm:inline text-sm font-semibold text-white">PETRAband</span>
+          <span className="hidden sm:inline standalone:inline text-sm standalone:text-lg font-semibold text-white standalone:text-primary">PETRAband</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-0.5 flex-1">
+        <div className="hidden md:flex standalone:hidden items-center gap-0.5 flex-1">
           {visibleLinks.map((link) => {
             const active = pathname.startsWith(link.href);
             return (
@@ -123,7 +124,8 @@ export function TopNav() {
           })}
         </div>
 
-        <div className="flex-1 md:hidden" />
+        <div className="flex-1 md:hidden standalone:block" />
+        <InstallButton className="md:hidden" />
         <button
           type="button"
           onClick={() => setSectionsOpen((v) => !v)}
@@ -143,7 +145,7 @@ export function TopNav() {
             <>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="w-8 h-8 rounded-full bg-surface-dark-elevated text-on-dark flex items-center justify-center text-xs font-bold overflow-hidden"
+                className="w-8 h-8 standalone:w-10 standalone:h-10 rounded-full bg-surface-dark-elevated standalone:bg-primary text-on-dark flex items-center justify-center text-xs font-bold overflow-hidden"
               >
                 {session.user.avatarUrl ? (
                   <Image
@@ -191,6 +193,15 @@ export function TopNav() {
             </Link>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          aria-label="ออกจากระบบ"
+          className="hidden standalone:flex w-10 h-10 -mr-1 items-center justify-center rounded-full text-muted hover:text-ink"
+        >
+          <LogOut size={22} strokeWidth={1.6} />
+        </button>
       </div>
 
       {sectionsOpen && (

@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, CalendarClock, Users, ArrowRight, Music, Package, UserCheck, type LucideIcon } from "lucide-react";
-import Image from "next/image";
+import { CalendarDays, CalendarClock, Users, ArrowRight, Music, Package, UserCheck, UserRound, BadgeCheck, type LucideIcon } from "lucide-react";
+import { ShortcutPager, type Shortcut } from "@/components/app/ShortcutPager";
 import { linksForRole } from "@/lib/navLinks";
 import { prisma } from "@/lib/prisma";
 import DashboardCalendar from "./dashboard/DashboardCalendar";
@@ -124,27 +124,42 @@ export default async function HomePage() {
     "/admin/pending-users": UserCheck,
   };
   const links = linksForRole(session.user.role).map((l) => ({ href: l.href, label: l.label, icon: sectionIcons[l.href] ?? ArrowRight }));
-  // App launcher grid: the main sections, then the next show, then admin tools.
-  const appItems: { href: string; label: string; icon: LucideIcon; badge?: string }[] = [
-    ...links.filter((l) => !NAV_ADMIN.has(l.href)).map((l) => ({ href: l.href, label: l.label, icon: l.icon })),
+  // App home tiles: next show first, then the sections, admin tools last.
+  const tone: Record<string, string> = {
+    "/performances": "bg-sky-50 text-sky-700",
+    "/songs": "bg-orange-50 text-orange-700",
+    "/members": "bg-violet-50 text-violet-700",
+    "/equipment": "bg-amber-50 text-amber-700",
+    "/admin/pending-users": "bg-rose-50 text-rose-700",
+  };
+  const order = ["/performances", "/songs", "/members"];
+  const shortcuts: Shortcut[] = [
     ...(nextPerformance && daysUntilNext !== null
       ? [{
           href: `/performances/${nextPerformance.performance.id}`,
           label: "งานถัดไป",
-          icon: CalendarClock,
+          icon: <CalendarClock size={30} strokeWidth={1.6} />,
+          tone: "bg-emerald-50 text-emerald-700",
           badge: daysUntilNext <= 0 ? "วันนี้" : `${daysUntilNext} วัน`,
         }]
       : []),
+    ...order
+      .map((href) => links.find((l) => l.href === href))
+      .filter((l): l is (typeof links)[number] => !!l)
+      .map((l) => ({ href: l.href, label: l.label, icon: <l.icon size={30} strokeWidth={1.6} />, tone: tone[l.href] })),
+    { href: "/profile", label: "โปรไฟล์", icon: <UserRound size={30} strokeWidth={1.6} />, tone: "bg-purple-50 text-purple-700" },
     ...links
       .filter((l) => NAV_ADMIN.has(l.href))
       .map((l) => ({
         href: l.href,
-        label: l.href === "/admin/pending-users" ? "อนุมัติ" : l.label,
-        icon: l.icon,
+        label: l.href === "/admin/pending-users" ? "อนุมัติสมาชิก" : l.label,
+        icon: <l.icon size={30} strokeWidth={1.6} />,
+        tone: tone[l.href],
         badge: l.href === "/admin/pending-users" && pendingCount > 0 ? `${pendingCount}` : undefined,
       })),
   ];
-  const initial = (session.user.name ?? "?").charAt(0).toUpperCase();
+  const roleLabel =
+    session.user.role === "ADMIN" ? "แอดมิน" : session.user.role === "HEAD" ? "หัวหน้าวง" : "สมาชิกวง";
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col gap-8">
@@ -174,57 +189,20 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* Installed as an app (home-screen icon): a launcher screen — logo on
-          navy up top, every section as an icon below. Fills the first screen;
-          the calendar follows when scrolling. */}
-      <section className="hidden standalone:flex -mx-4 -mt-6 min-h-[100dvh] flex-col bg-surface-card">
-        <div className="relative bg-surface-dark rounded-b-[36px] pt-[calc(env(safe-area-inset-top)+12px)] pb-8 flex flex-col items-center">
-          <Link
-            href="/profile"
-            aria-label="โปรไฟล์"
-            className="absolute right-4 top-[calc(env(safe-area-inset-top)+12px)] w-11 h-11 rounded-full bg-white text-primary overflow-hidden flex items-center justify-center text-sm font-semibold shadow-sm"
-          >
-            {session.user.avatarUrl ? (
-              <Image src={session.user.avatarUrl} alt="" width={44} height={44} className="w-full h-full object-cover" />
-            ) : (
-              initial
-            )}
-          </Link>
-          <Image
-            src="/petraband-logo.png"
-            alt="PETRAband"
-            width={208}
-            height={208}
-            priority
-            className="mt-10 w-52 h-52 rounded-full"
-          />
-          <p className="mt-4 text-2xl font-semibold tracking-wide text-white">PETRAband</p>
-          <p className="mt-1 text-sm text-on-dark-soft">สวัสดี, {session.user.name}</p>
-        </div>
-
-        <nav aria-label="เมนูหลัก" className="flex-1 px-6 pt-10 pb-[calc(env(safe-area-inset-bottom)+24px)]">
-          <ul className="grid grid-cols-3 gap-x-4 gap-y-8">
-            {appItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.href}>
-                  <Link href={item.href} className="flex flex-col items-center gap-2 text-center active:opacity-70">
-                    <span className="relative w-16 h-16 rounded-full border-[1.5px] border-primary text-primary flex items-center justify-center">
-                      <Icon size={26} strokeWidth={1.5} />
-                      {item.badge && (
-                        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-coral text-white text-[11px] font-bold leading-5 text-center ring-2 ring-surface-card">
-                          {item.badge}
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-[13px] font-medium text-primary leading-tight">{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-      </section>
+      {/* Installed as an app (home-screen icon): page title, greeting banner
+          and the sections as colour tiles; the tab bar sits at the bottom. */}
+      <div className="hidden standalone:flex flex-col gap-5 -mt-1">
+        <h1 className="text-3xl font-bold text-ink">หน้าหลัก</h1>
+        <section className="rounded-[28px] px-6 py-6 text-white bg-gradient-to-br from-primary via-navy-600 to-blue-400">
+          <p className="flex items-center gap-2 text-sm text-white/85">
+            <BadgeCheck size={18} strokeWidth={1.75} />
+            {roleLabel}
+          </p>
+          <p className="mt-3 text-2xl font-semibold">สวัสดี {session.user.name}</p>
+          <p className="mt-2 text-sm text-white/85">{todayLabel}</p>
+        </section>
+        <ShortcutPager title="ทั่วไป" items={shortcuts} />
+      </div>
 
       <DashboardCalendar
         performanceDates={perfDates}

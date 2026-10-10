@@ -3,6 +3,7 @@ import { IBM_Plex_Sans_Thai } from "next/font/google";
 import { TopNav } from "@/components/TopNav";
 import { RouteFade } from "@/components/RouteFade";
 import { Ripple } from "@/components/Ripple";
+import { AppTabBar } from "@/components/app/AppTabBar";
 import { SessionProvider } from "@/components/SessionProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
@@ -20,8 +21,8 @@ export const metadata: Metadata = {
   title: { default: "PETRAband", template: "%s | PETRAband" },
   description: "ระบบจัดการวงดนตรีไทย PETRAband",
   applicationName: "PETRAband",
-  // iPhone "Add to Home Screen": full-screen, navy status bar over the nav.
-  appleWebApp: { capable: true, title: "PETRAband", statusBarStyle: "black-translucent" },
+  // iPhone "Add to Home Screen": full-screen with a light status bar.
+  appleWebApp: { capable: true, title: "PETRAband", statusBarStyle: "default" },
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -32,7 +33,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#142748",
+  // Light header in the installed app, navy bar in the browser.
+  themeColor: [
+    { media: "(display-mode: standalone)", color: "#fffdf8" },
+    { color: "#142748" },
+  ],
   // Lets the page reach under the notch; the nav pads itself with the safe area.
   viewportFit: "cover",
 };
@@ -45,13 +50,14 @@ export default async function RootLayout({
   const session = await auth();
   return (
     <html lang="th" className={`h-full ${plex.variable}`} data-scroll-behavior="smooth">
-      <body className="min-h-full flex flex-col bg-canvas text-ink antialiased">
+      <body className="min-h-full flex flex-col bg-canvas text-ink antialiased standalone:pb-[calc(env(safe-area-inset-bottom)+72px)]">
         <SessionProvider session={session}>
           <ToastProvider>
             <ConfirmProvider>
               <Ripple />
               <TopNav />
               <RouteFade>{children}</RouteFade>
+              <AppTabBar />
             </ConfirmProvider>
           </ToastProvider>
         </SessionProvider>

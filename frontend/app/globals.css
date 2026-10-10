@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Opened from the phone's home-screen icon (installed PWA), not a browser tab. */
+@custom-variant standalone (@media (display-mode: standalone));
+
 /* ─── Design Tokens (Tailwind v4 @theme) ─────────────────── */
 @theme {
   /* Font families */

@@ -4,7 +4,7 @@ import Link from "next/link";
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="w-full flex-1 min-h-screen grid grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <aside className="bg-surface-dark text-on-dark px-6 py-6 lg:px-12 lg:py-12 flex lg:flex-col lg:justify-center lg:items-center gap-4">
+      <aside className="bg-surface-dark text-on-dark px-6 py-6 pt-[calc(1.5rem+env(safe-area-inset-top))] lg:px-12 lg:py-12 flex lg:flex-col lg:justify-center lg:items-center gap-4">
         <Link href="/" className="inline-flex items-center gap-3 lg:flex-col lg:gap-4">
           <Image
             src="/petraband-logo.png"

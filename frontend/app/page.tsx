@@ -1,10 +1,14 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, Users, ArrowRight } from "lucide-react";
+import { CalendarDays, CalendarClock, Users, ArrowRight, Music, Package, UserCheck, type LucideIcon } from "lucide-react";
+import Image from "next/image";
+import { linksForRole } from "@/lib/navLinks";
 import { prisma } from "@/lib/prisma";
 import DashboardCalendar from "./dashboard/DashboardCalendar";
 import type { CalendarPerformanceDate, CalendarPracticeDay } from "./dashboard/types";
+
+const NAV_ADMIN = new Set(["/equipment", "/admin/pending-users"]);
 
 export default async function HomePage() {
   const session = await auth();
@@ -110,30 +114,117 @@ export default async function HomePage() {
     timeZone: "Asia/Bangkok",
   });
 
+  const isAdmin = session.user.role === "ADMIN";
+  const pendingCount = isAdmin ? await prisma.user.count({ where: { status: "PENDING_APPROVAL" } }) : 0;
+  const sectionIcons: Record<string, LucideIcon> = {
+    "/songs": Music,
+    "/performances": CalendarDays,
+    "/members": Users,
+    "/equipment": Package,
+    "/admin/pending-users": UserCheck,
+  };
+  const links = linksForRole(session.user.role).map((l) => ({ href: l.href, label: l.label, icon: sectionIcons[l.href] ?? ArrowRight }));
+  // App launcher grid: the main sections, then the next show, then admin tools.
+  const appItems: { href: string; label: string; icon: LucideIcon; badge?: string }[] = [
+    ...links.filter((l) => !NAV_ADMIN.has(l.href)).map((l) => ({ href: l.href, label: l.label, icon: l.icon })),
+    ...(nextPerformance && daysUntilNext !== null
+      ? [{
+          href: `/performances/${nextPerformance.performance.id}`,
+          label: "งานถัดไป",
+          icon: CalendarClock,
+          badge: daysUntilNext <= 0 ? "วันนี้" : `${daysUntilNext} วัน`,
+        }]
+      : []),
+    ...links
+      .filter((l) => NAV_ADMIN.has(l.href))
+      .map((l) => ({
+        href: l.href,
+        label: l.href === "/admin/pending-users" ? "อนุมัติ" : l.label,
+        icon: l.icon,
+        badge: l.href === "/admin/pending-users" && pendingCount > 0 ? `${pendingCount}` : undefined,
+      })),
+  ];
+  const initial = (session.user.name ?? "?").charAt(0).toUpperCase();
+
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col gap-8">
+      {/* In a browser: greeting and summary cards. */}
+      <div className="standalone:hidden flex flex-col gap-8">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl md:text-3xl font-semibold leading-tight text-ink">
-          สวัสดี, {session.user.name}
-        </h1>
-        <p className="text-sm text-muted">{todayLabel}</p>
-      </header>
+          <h1 className="text-2xl md:text-3xl font-semibold leading-tight text-ink">
+            สวัสดี, {session.user.name}
+          </h1>
+          <p className="text-sm text-muted">{todayLabel}</p>
+        </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 -mt-2">
-        <StatCard
-          icon={<CalendarDays size={18} strokeWidth={1.75} />}
-          label="งานเดือนนี้"
-          value={performancesThisMonth}
-          unit="งาน"
-        />
-        <StatCard
-          icon={<Users size={18} strokeWidth={1.75} />}
-          label="ซ้อมสัปดาห์นี้"
-          value={practicesThisWeek}
-          unit="ครั้ง"
-        />
-        <NextEventCard performance={nextPerformance} daysUntil={daysUntilNext} />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 -mt-2">
+          <StatCard
+            icon={<CalendarDays size={18} strokeWidth={1.75} />}
+            label="งานเดือนนี้"
+            value={performancesThisMonth}
+            unit="งาน"
+          />
+          <StatCard
+            icon={<Users size={18} strokeWidth={1.75} />}
+            label="ซ้อมสัปดาห์นี้"
+            value={practicesThisWeek}
+            unit="ครั้ง"
+          />
+          <NextEventCard performance={nextPerformance} daysUntil={daysUntilNext} />
+        </div>
       </div>
+
+      {/* Installed as an app (home-screen icon): a launcher screen — logo on
+          navy up top, every section as an icon below. Fills the first screen;
+          the calendar follows when scrolling. */}
+      <section className="hidden standalone:flex -mx-4 -mt-6 min-h-[100dvh] flex-col bg-surface-card">
+        <div className="relative bg-surface-dark rounded-b-[36px] pt-[calc(env(safe-area-inset-top)+12px)] pb-8 flex flex-col items-center">
+          <Link
+            href="/profile"
+            aria-label="โปรไฟล์"
+            className="absolute right-4 top-[calc(env(safe-area-inset-top)+12px)] w-11 h-11 rounded-full bg-white text-primary overflow-hidden flex items-center justify-center text-sm font-semibold shadow-sm"
+          >
+            {session.user.avatarUrl ? (
+              <Image src={session.user.avatarUrl} alt="" width={44} height={44} className="w-full h-full object-cover" />
+            ) : (
+              initial
+            )}
+          </Link>
+          <Image
+            src="/petraband-logo.png"
+            alt="PETRAband"
+            width={208}
+            height={208}
+            priority
+            className="mt-10 w-52 h-52 rounded-full"
+          />
+          <p className="mt-4 text-2xl font-semibold tracking-wide text-white">PETRAband</p>
+          <p className="mt-1 text-sm text-on-dark-soft">สวัสดี, {session.user.name}</p>
+        </div>
+
+        <nav aria-label="เมนูหลัก" className="flex-1 px-6 pt-10 pb-[calc(env(safe-area-inset-bottom)+24px)]">
+          <ul className="grid grid-cols-3 gap-x-4 gap-y-8">
+            {appItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.href}>
+                  <Link href={item.href} className="flex flex-col items-center gap-2 text-center active:opacity-70">
+                    <span className="relative w-16 h-16 rounded-full border-[1.5px] border-primary text-primary flex items-center justify-center">
+                      <Icon size={26} strokeWidth={1.5} />
+                      {item.badge && (
+                        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-coral text-white text-[11px] font-bold leading-5 text-center ring-2 ring-surface-card">
+                          {item.badge}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-[13px] font-medium text-primary leading-tight">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </section>
 
       <DashboardCalendar
         performanceDates={perfDates}

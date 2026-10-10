@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai } from "next/font/google";
 import { TopNav } from "@/components/TopNav";
 import { RouteFade } from "@/components/RouteFade";
@@ -19,6 +19,22 @@ const plex = IBM_Plex_Sans_Thai({
 export const metadata: Metadata = {
   title: { default: "PETRAband", template: "%s | PETRAband" },
   description: "ระบบจัดการวงดนตรีไทย PETRAband",
+  applicationName: "PETRAband",
+  // iPhone "Add to Home Screen": full-screen, navy status bar over the nav.
+  appleWebApp: { capable: true, title: "PETRAband", statusBarStyle: "black-translucent" },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#142748",
+  // Lets the page reach under the notch; the nav pads itself with the safe area.
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({

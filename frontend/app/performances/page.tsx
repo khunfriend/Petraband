@@ -158,14 +158,15 @@ export default async function PerformancesPage() {
     }
   }
 
-  // Determine "งานถัดไป" — the ONE coral point in this viewport
-  const nextId = upcoming
-    .filter((p) => p.dates.length > 0)
-    .sort(
-      (a, b) =>
-        new Date(a.dates[0].date).getTime() -
-        new Date(b.dates[0].date).getTime()
-    )[0]?.id;
+  // By show date, not by when the performance was created: upcoming soonest
+  // first (no date yet goes last), past most recent first.
+  const firstDay = (p: Performance) => (p.dates.length ? new Date(p.dates[0].date).getTime() : Infinity);
+  const lastDay = (p: Performance) => (p.dates.length ? new Date(p.dates[p.dates.length - 1].date).getTime() : 0);
+  upcoming.sort((a, b) => firstDay(a) - firstDay(b));
+  past.sort((a, b) => lastDay(b) - lastDay(a));
+
+  // "งานถัดไป" — the soonest dated upcoming show.
+  const nextId = upcoming.find((p) => p.dates.length > 0)?.id;
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-6 md:px-8 py-8 md:py-10 flex flex-col gap-10">
@@ -186,7 +187,7 @@ export default async function PerformancesPage() {
       {/* Upcoming */}
       <section>
         <p className="text-[11px] font-bold text-muted mb-3">
-          Upcoming
+          กำลังจะมา
         </p>
         {upcoming.length === 0 ? (
           <EmptyState
@@ -221,7 +222,7 @@ export default async function PerformancesPage() {
       {past.length > 0 && (
         <section>
           <p className="text-[11px] font-bold text-muted mb-3">
-            History
+            ผ่านมาแล้ว
           </p>
           <div className="pb-stagger grid grid-cols-1 md:grid-cols-2 gap-3">
             {past.map((p) => (

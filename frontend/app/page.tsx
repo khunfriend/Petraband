@@ -6,6 +6,7 @@ import { ShortcutPager, type Shortcut } from "@/components/app/ShortcutPager";
 import { linksForRole } from "@/lib/navLinks";
 import { prisma } from "@/lib/prisma";
 import DashboardCalendar from "./dashboard/DashboardCalendar";
+import { MyWork } from "./MyWork";
 import type { CalendarPerformanceDate, CalendarPracticeDay } from "./dashboard/types";
 
 const NAV_ADMIN = new Set(["/equipment", "/admin/pending-users"]);
@@ -201,6 +202,13 @@ export default async function HomePage() {
           <p className="mt-3 text-2xl font-semibold">สวัสดี {session.user.name}</p>
           <p className="mt-2 text-sm text-white/85">{todayLabel}</p>
         </section>
+      </div>
+
+      {/* My shows and their open polls: right under the banner in the app, so
+          a poll waiting for an answer is the first thing seen. */}
+      <MyWork userId={session.user.id} />
+
+      <div className="hidden standalone:block">
         <ShortcutPager title="ทั่วไป" items={shortcuts} />
       </div>
 

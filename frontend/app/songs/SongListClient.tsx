@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { cleanCustomSlug, englishNameError } from "@/lib/slug";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Search, Music, ChevronRight } from "lucide-react";
@@ -53,6 +54,7 @@ export default function SongListClient({
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] = useState({
     title: "",
+    slug: "",
     category: categories[0] ?? "ดนตรีไทย",
   });
   const [addingNewCategory, setAddingNewCategory] = useState(false);
@@ -71,6 +73,11 @@ export default function SongListClient({
   async function handleCreate() {
     if (!createForm.title.trim()) {
       setCreateError("กรุณากรอกชื่อเพลง");
+      return;
+    }
+    const englishError = englishNameError(createForm.slug);
+    if (englishError) {
+      setCreateError(englishError);
       return;
     }
     const finalCategory = addingNewCategory
@@ -123,7 +130,7 @@ export default function SongListClient({
             <Button
               variant="primary"
               onClick={() => {
-                setCreateForm({ title: "", category: categories[0] ?? "ดนตรีไทย" });
+                setCreateForm({ title: "", slug: "", category: categories[0] ?? "ดนตรีไทย" });
                 setAddingNewCategory(categories.length === 0);
                 setNewCategory("");
                 setShowCreate(true);
@@ -267,6 +274,15 @@ export default function SongListClient({
               setCreateForm((f) => ({ ...f, title: e.target.value }))
             }
           />
+          <div className="flex flex-col gap-1">
+            <Input
+              label="ชื่อเพลงภาษาอังกฤษ *"
+              placeholder="เช่น Homrong Yawa"
+              value={createForm.slug}
+              onChange={(e) => setCreateForm((f) => ({ ...f, slug: e.target.value }))}
+            />
+            <p className="text-xs text-muted-soft">ลิงก์: /songs/{cleanCustomSlug(createForm.slug) || "…"}</p>
+          </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-ink">ประเภท</label>
             {addingNewCategory ? (

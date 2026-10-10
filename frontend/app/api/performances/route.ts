@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { setPerformanceSlug } from "@/lib/performanceSlug";
+import { englishNameError } from "@/lib/slug";
 import { z } from "zod";
 
 export async function GET() {
@@ -17,8 +18,8 @@ export async function GET() {
 
 const createSchema = z.object({
   name: z.string().min(1),
-  /** Optional link name; empty → name + first date. */
-  slug: z.string().max(100).optional(),
+  /** English name; becomes the link name (/performances/<slug>). */
+  slug: z.string().max(100),
   description: z.string().optional(),
   location: z.string().optional(),
   dates: z
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest) {
     );
 
   const { name, description, location, dates, slug } = parsed.data;
+  const englishError = englishNameError(slug);
+  if (englishError) return NextResponse.json({ error: englishError }, { status: 400 });
 
   // Block dates before Bangkok "today" — performances must be scheduled forward
   const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
@@ -75,15 +78,10 @@ export async function POST(req: NextRequest) {
     include: { dates: { orderBy: { date: "asc" } } },
   });
 
-  const slugResult = await setPerformanceSlug(performance.id, slug ?? "");
-  if ("error" in slugResult) {
-    // The show exists; fall back to the automatic link name and say why.
-    const fallback = await setPerformanceSlug(performance.id, "");
-    return NextResponse.json(
-      { performance: { ...performance, slug: "slug" in fallback ? fallback.slug : null }, slugError: slugResult.error },
-      { status: 201 },
-    );
-  }
-
-  return NextResponse.json({ performance: { ...performance, slug: slugResult.slug } }, { status: 201 });
+  // A name another show already uses gets -2, -3 rather than failing the create.
+  const slugResult = await setPerformanceSlug(performance.id, slug, { suffixIfTaken: true });
+  return NextResponse.json(
+    { performance: { ...performance, slug: "slug" in slugResult ? slugResult.slug : null } },
+    { status: 201 },
+  );
 }

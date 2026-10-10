@@ -546,6 +546,9 @@ model AvailabilityPoll {
   id            String     @id @default(cuid())
   performanceId String
   name          String     @default("โพลตารางว่าง")
+  // Readable link name: /polls/<slug>; old values kept so shared links work.
+  slug          String?    @unique
+  previousSlugs String[]   @default([])
   deadline      DateTime?
   timezone      String     @default("Asia/Bangkok")
   status        PollStatus @default(OPEN)

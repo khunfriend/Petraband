@@ -15,6 +15,7 @@ import { POSITIONS, POSITION_GROUPS } from "@/lib/positions";
 import { cn } from "@/lib/utils";
 import { accessoryTotals, type AccessoryType, type InstrumentAccessories } from "@/lib/accessories";
 import { getInstrumentColor } from "@/lib/instrumentColors";
+import { cleanCustomSlug, englishNameError, englishPrefill } from "@/lib/slug";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -448,20 +449,25 @@ export default function PerformanceClient({
   // ── Section 1 edit: name / location / dates ──────────────
   const [editingInfo, setEditingInfo] = useState(false);
   const [editName, setEditName] = useState(initial.name);
-  const [editSlug, setEditSlug] = useState(initial.slug ?? "");
+  const [editSlug, setEditSlug] = useState(englishPrefill(initial.slug));
   const [editLocation, setEditLocation] = useState(initial.location ?? "");
   const [infoLoading, setInfoLoading] = useState(false);
   const [editDates, setEditDates] = useState<DateEntry[]>(initial.dates);
 
   function openEditInfo() {
     setEditName(performance.name);
-    setEditSlug(performance.slug ?? "");
+    setEditSlug(englishPrefill(performance.slug));
     setEditLocation(performance.location ?? "");
     setEditDates(performance.dates);
     setEditingInfo(true);
   }
 
   async function saveInfo() {
+    const englishError = englishNameError(editSlug);
+    if (englishError) {
+      toast.error(englishError);
+      return;
+    }
     setInfoLoading(true);
     try {
       const infoRes = await fetch(`/api/performances/${performance.id}`, {
@@ -470,7 +476,7 @@ export default function PerformanceClient({
         body: JSON.stringify({
           name: editName.trim(),
           location: editLocation.trim() || null,
-          ...(editSlug.trim() !== (performance.slug ?? "") && { slug: editSlug.trim() }),
+          ...(cleanCustomSlug(editSlug) !== performance.slug && { slug: editSlug.trim() }),
         }),
       });
       if (!infoRes.ok) {
@@ -1094,17 +1100,11 @@ export default function PerformanceClient({
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="ชื่องานแสดง" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted mb-1">ชื่อในลิงก์</label>
-                <div className="flex items-center rounded-[var(--radius-md)] border border-hairline bg-surface-soft focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15">
-                  <span className="pl-3 text-sm text-muted-soft whitespace-nowrap">/performances/</span>
-                  <input
-                    value={editSlug}
-                    onChange={(e) => setEditSlug(e.target.value)}
-                    placeholder="เว้นว่าง = ชื่องาน + วันที่"
-                    className="flex-1 min-w-0 h-10 bg-transparent pr-3 text-sm text-ink outline-none"
-                  />
-                </div>
-                <p className="mt-1 text-xs text-muted-soft">ตัวอักษรไทย a–z ตัวเลข และ - · ลิงก์เดิมยังเปิดได้</p>
+                <label className="block text-xs font-medium text-muted mb-1">ชื่อภาษาอังกฤษ *</label>
+                <Input value={editSlug} onChange={(e) => setEditSlug(e.target.value)} placeholder="เช่น Wai Khru 2026" />
+                <p className="mt-1 text-xs text-muted-soft">
+                  ลิงก์: /performances/{cleanCustomSlug(editSlug) || "…"} · ลิงก์เดิมยังเปิดได้
+                </p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted mb-1">สถานที่</label>

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { ensureSongSlug } from "@/lib/songSlug";
+import { setSongSlug } from "@/lib/songSlug";
+import { englishNameError } from "@/lib/slug";
 import { z } from "zod";
 
 export async function GET(req: NextRequest) {
@@ -54,6 +55,8 @@ export async function GET(req: NextRequest) {
 const createSchema = z.object({
   songCode: z.string().optional(),
   title: z.string().min(1),
+  /** English title; becomes the link name (/songs/<slug>). */
+  slug: z.string().max(100),
   category: z.string().default("ดนตรีไทย"),
   duration: z.number().int().positive().nullable().optional(),
   sheetData: z.any().optional(),
@@ -89,11 +92,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { songCode, ...rest } = parsed.data;
+  const { songCode, slug: englishTitle, ...rest } = parsed.data;
+  const englishError = englishNameError(englishTitle);
+  if (englishError) return NextResponse.json({ error: englishError }, { status: 400 });
   const finalCode = songCode?.trim() || (await uniqueSongCode());
 
   const created = await prisma.song.create({ data: { ...rest, songCode: finalCode } });
-  const slug = await ensureSongSlug(created.id);
-  const song = { ...created, slug };
+  // A title another song already uses gets -2, -3 rather than failing the create.
+  const result = await setSongSlug(created.id, englishTitle, { suffixIfTaken: true });
+  const song = { ...created, slug: "slug" in result ? result.slug : null };
   return NextResponse.json({ song }, { status: 201 });
 }

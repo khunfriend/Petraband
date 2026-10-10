@@ -10,6 +10,7 @@ import { AlertBox } from "@/components/ui/AlertBox";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DateRowPicker } from "@/components/ui/DateRowPicker";
 import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
+import { cleanCustomSlug, englishNameError } from "@/lib/slug";
 
 type DateEntry = { date: string; startTime: string; endTime: string };
 
@@ -51,6 +52,11 @@ export default function CreatePerformancePage() {
       setError("กรุณากรอกชื่องานแสดง");
       return;
     }
+    const englishError = englishNameError(slug);
+    if (englishError) {
+      setError(englishError);
+      return;
+    }
     if (!location.trim()) {
       setError("กรุณากรอกสถานที่");
       return;
@@ -88,7 +94,7 @@ export default function CreatePerformancePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          slug: slug.trim() || undefined,
+          slug: slug.trim(),
           location: location.trim() || undefined,
           description: description.trim() || undefined,
           dates: validDates.map((d) => ({
@@ -146,17 +152,16 @@ export default function CreatePerformancePage() {
           />
         </Field>
 
-        <Field label="ชื่อในลิงก์">
-          <div className="flex items-center rounded-[var(--radius-md)] border border-hairline bg-surface-soft focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15">
-            <span className="pl-3 text-sm text-muted-soft whitespace-nowrap">/performances/</span>
-            <input
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="เว้นว่าง = ชื่องาน + วันที่"
-              className="flex-1 min-w-0 h-10 bg-transparent pr-3 text-sm text-ink outline-none"
-            />
-          </div>
-          <p className="mt-1 text-xs text-muted-soft">ไม่บังคับ · ตัวอักษรไทย a–z ตัวเลข และ -</p>
+        <Field label="ชื่อภาษาอังกฤษ" required>
+          <Input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="เช่น Wai Khru 2026"
+            required
+          />
+          <p className="mt-1 text-xs text-muted-soft">
+            ใช้เป็นลิงก์ของงาน: /performances/{cleanCustomSlug(slug) || "…"}
+          </p>
         </Field>
 
         <Field label="สถานที่" required>

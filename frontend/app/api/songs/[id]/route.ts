@@ -21,7 +21,7 @@ const updateSchema = z.object({
   defaultBpm: z.number().int().min(30).max(240).nullable().optional(),
   defaultTimeSig: z.enum(["4/4", "3/4", "6/8", "12/8", "7/8"]).nullable().optional(),
   commitMessage: z.string().optional(),
-  /** Link name; "" = back to the title. */
+  /** English title; becomes the link name. */
   slug: z.string().max(100).optional(),
 });
 

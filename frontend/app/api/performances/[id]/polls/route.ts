@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { ensurePollSlug } from "@/lib/pollSlug";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -84,5 +85,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     },
   });
 
-  return NextResponse.json({ pollId: poll.id }, { status: 201 });
+  // Link name follows the performance: /polls/poll-<performance>.
+  const slug = await ensurePollSlug(poll.id);
+  return NextResponse.json({ pollId: poll.id, slug }, { status: 201 });
 }

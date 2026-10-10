@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { cleanCustomSlug, looksLikeId, slugify } from "@/lib/slug";
+import { cleanCustomSlug, englishNameError, looksLikeId, slugify } from "@/lib/slug";
 
 // Songs work like performances (see lib/performanceSlug) but use the title
 // alone: a song has no date to tell two of the same name apart, so clashes
@@ -49,25 +49,25 @@ export async function resolveSongParam(raw: string): Promise<{ id: string; slug:
       });
 }
 
-/** Set the link name from the "ชื่อในลิงก์" box. Empty → back to the title. */
-export async function setSongSlug(id: string, input: string): Promise<{ slug: string } | { error: string }> {
+/** Set the link name from the required English title (see setPerformanceSlug). */
+export async function setSongSlug(id: string, input: string, opts: { suffixIfTaken?: boolean } = {}): Promise<{ slug: string } | { error: string }> {
   const s = await prisma.song.findUnique({ where: { id }, select: { slug: true, title: true, previousSlugs: true } });
   if (!s) return { error: "ไม่พบเพลง" };
 
+  const invalid = englishNameError(input);
+  if (invalid) return { error: invalid };
   const custom = cleanCustomSlug(input);
-  if (input.trim() && !custom) return { error: "ชื่อในลิงก์ใช้ได้เฉพาะตัวอักษรไทย a–z และตัวเลข" };
-  if (custom && looksLikeId(custom)) return { error: "ชื่อในลิงก์นี้ใช้ไม่ได้" };
 
   let slug: string;
-  if (custom) {
+  if (opts.suffixIfTaken) {
+    slug = await uniqueSongSlug(custom, id);
+  } else {
     const taken = await prisma.song.findFirst({
       where: { OR: [{ slug: custom }, { previousSlugs: { has: custom } }], NOT: { id } },
       select: { id: true },
     });
-    if (taken) return { error: "ชื่อในลิงก์นี้มีเพลงอื่นใช้แล้ว" };
+    if (taken) return { error: "ชื่อภาษาอังกฤษนี้มีเพลงอื่นใช้แล้ว" };
     slug = custom;
-  } else {
-    slug = await uniqueSongSlug(autoSongSlug(s.title), id);
   }
 
   if (slug !== s.slug) {

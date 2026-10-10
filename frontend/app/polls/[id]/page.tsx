@@ -3,13 +3,31 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import PollClient from "./PollClient";
+import { ensurePollSlug, resolvePollParam } from "@/lib/pollSlug";
 
 type Params = { params: Promise<{ id: string }> };
 
+function decodeParam(raw: string) {
+  try {
+    return decodeURIComponent(raw).normalize("NFC");
+  } catch {
+    return raw;
+  }
+}
+
 export default async function PollPage({ params }: Params) {
-  const { id } = await params;
+  const { id: param } = await params;
   const session = await auth();
   if (!session) redirect("/login");
+
+  // Id (old links), current slug or an old slug — always show the current slug.
+  const found = await resolvePollParam(param);
+  if (!found) notFound();
+  const id = found.id;
+  const slug = found.slug ?? (await ensurePollSlug(id));
+  if (slug && decodeParam(param) !== slug) {
+    redirect(`/polls/${encodeURIComponent(slug)}`);
+  }
 
   const poll = await prisma.availabilityPoll.findUnique({
     where: { id },

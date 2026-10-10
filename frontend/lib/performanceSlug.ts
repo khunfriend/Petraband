@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { autoSlug, cleanCustomSlug, looksLikeId } from "@/lib/slug";
+import { autoSlug, cleanCustomSlug, englishNameError, looksLikeId } from "@/lib/slug";
 
 /** `base`, or `base-2`, `base-3`… — whichever no other performance uses (now or before). */
 export async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
@@ -49,12 +49,14 @@ export async function resolvePerformanceParam(raw: string): Promise<{ id: string
 }
 
 /**
- * Set the link name from the "ชื่อในลิงก์" box. Empty → back to name + date.
- * The old slug is kept so links already shared still open the page.
+ * Set the link name from the required English name. `suffixIfTaken` (used on
+ * create) adds -2, -3 instead of refusing a taken name. The old slug is kept so
+ * links already shared still open the page.
  */
 export async function setPerformanceSlug(
   id: string,
   input: string,
+  opts: { suffixIfTaken?: boolean } = {},
 ): Promise<{ slug: string } | { error: string }> {
   const p = await prisma.performance.findUnique({
     where: { id },
@@ -62,20 +64,20 @@ export async function setPerformanceSlug(
   });
   if (!p) return { error: "ไม่พบงานแสดง" };
 
+  const invalid = englishNameError(input);
+  if (invalid) return { error: invalid };
   const custom = cleanCustomSlug(input);
-  if (input.trim() && !custom) return { error: "ชื่อในลิงก์ใช้ได้เฉพาะตัวอักษรไทย a–z และตัวเลข" };
-  if (custom && looksLikeId(custom)) return { error: "ชื่อในลิงก์นี้ใช้ไม่ได้" };
 
   let slug: string;
-  if (custom) {
+  if (opts.suffixIfTaken) {
+    slug = await uniqueSlug(custom, id);
+  } else {
     const taken = await prisma.performance.findFirst({
       where: { OR: [{ slug: custom }, { previousSlugs: { has: custom } }], NOT: { id } },
       select: { id: true },
     });
-    if (taken) return { error: "ชื่อในลิงก์นี้มีงานอื่นใช้แล้ว" };
+    if (taken) return { error: "ชื่อภาษาอังกฤษนี้มีงานอื่นใช้แล้ว" };
     slug = custom;
-  } else {
-    slug = await uniqueSlug(autoSlug(p.name, p.dates[0]?.date), id);
   }
 
   if (slug !== p.slug) {

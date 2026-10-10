@@ -50,7 +50,7 @@ const updateSchema = z.object({
   programSchedule: z.array(programDaySchema).nullable().optional(),
   instrumentsNeeded: z.array(instrumentNeededSchema).nullable().optional(),
   equipmentNotes: z.record(z.string(), z.string()).nullable().optional(),
-  /** Link name; "" = back to name + date. */
+  /** English name; becomes the link name. */
   slug: z.string().max(100).optional(),
 });
 

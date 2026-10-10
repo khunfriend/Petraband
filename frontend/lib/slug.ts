@@ -28,9 +28,23 @@ export function autoSlug(name: string, firstDate?: Date | null): string {
   return suffix ? `${base}-${suffix}` : base;
 }
 
-/** A value typed into the "ชื่อในลิงก์" box; "" when nothing usable is left. */
+/** The English name typed into the form → its link name; "" if it holds Thai or nothing usable. */
 export function cleanCustomSlug(input: string): string {
+  if (/[฀-๿]/.test(input)) return "";
   return slugify(input);
+}
+
+/** What to prefill the English-name box with: the slug if it is already English, else "". */
+export function englishPrefill(slug: string | null | undefined): string {
+  return slug && cleanCustomSlug(slug) === slug ? slug : "";
+}
+
+/** Why an English name can't be used, or null when it can. */
+export function englishNameError(input: string): string | null {
+  if (!input.trim()) return "กรอกชื่อภาษาอังกฤษ";
+  if (!cleanCustomSlug(input)) return "ชื่อภาษาอังกฤษใช้ได้เฉพาะตัวอักษร a–z ตัวเลข และช่องว่าง";
+  if (looksLikeId(cleanCustomSlug(input))) return "ชื่อภาษาอังกฤษนี้ใช้ไม่ได้";
+  return null;
 }
 
 /** cuid ids look like this; slugs never do (they always contain a dash or Thai). */

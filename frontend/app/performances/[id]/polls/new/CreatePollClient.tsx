@@ -69,7 +69,7 @@ export default function CreatePollClient({ performanceId, performanceName, perfo
         return;
       }
       const data = await res.json();
-      router.push(`/polls/${data.pollId}`);
+      router.push(`/polls/${encodeURIComponent(data.slug ?? data.pollId)}`);
     } finally {
       setSubmitting(false);
     }

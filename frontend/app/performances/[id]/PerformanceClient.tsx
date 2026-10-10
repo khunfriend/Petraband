@@ -45,6 +45,8 @@ type SectionEntry = {
 
 type Performance = {
   id: string;
+  /** Readable link name used in /performances/<slug>. */
+  slug: string | null;
   name: string;
   location: string | null;
   description: string | null;
@@ -446,12 +448,14 @@ export default function PerformanceClient({
   // ── Section 1 edit: name / location / dates ──────────────
   const [editingInfo, setEditingInfo] = useState(false);
   const [editName, setEditName] = useState(initial.name);
+  const [editSlug, setEditSlug] = useState(initial.slug ?? "");
   const [editLocation, setEditLocation] = useState(initial.location ?? "");
   const [infoLoading, setInfoLoading] = useState(false);
   const [editDates, setEditDates] = useState<DateEntry[]>(initial.dates);
 
   function openEditInfo() {
     setEditName(performance.name);
+    setEditSlug(performance.slug ?? "");
     setEditLocation(performance.location ?? "");
     setEditDates(performance.dates);
     setEditingInfo(true);
@@ -466,6 +470,7 @@ export default function PerformanceClient({
         body: JSON.stringify({
           name: editName.trim(),
           location: editLocation.trim() || null,
+          ...(editSlug.trim() !== (performance.slug ?? "") && { slug: editSlug.trim() }),
         }),
       });
       if (!infoRes.ok) {
@@ -501,14 +506,22 @@ export default function PerformanceClient({
         }
       }
 
+      const saved = (await infoRes.json().catch(() => ({}))).performance as { slug?: string | null } | undefined;
+      const newSlug = saved?.slug ?? performance.slug;
       setPerformance((prev) => ({
         ...prev,
+        slug: newSlug,
         name: editName.trim(),
         location: editLocation.trim() || null,
         dates: editDates,
       }));
       setEditingInfo(false);
-      router.refresh();
+      // A new link name moves the page to its new address (the old one still works).
+      if (newSlug && newSlug !== performance.slug) {
+        router.replace(`/performances/${encodeURIComponent(newSlug)}`);
+      } else {
+        router.refresh();
+      }
       toast.success("บันทึกข้อมูลงานแล้ว");
     } finally {
       setInfoLoading(false);
@@ -1079,6 +1092,19 @@ export default function PerformanceClient({
               <div>
                 <label className="block text-xs font-medium text-muted mb-1">ชื่องาน</label>
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="ชื่องานแสดง" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1">ชื่อในลิงก์</label>
+                <div className="flex items-center rounded-[var(--radius-md)] border border-hairline bg-surface-soft focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15">
+                  <span className="pl-3 text-sm text-muted-soft whitespace-nowrap">/performances/</span>
+                  <input
+                    value={editSlug}
+                    onChange={(e) => setEditSlug(e.target.value)}
+                    placeholder="เว้นว่าง = ชื่องาน + วันที่"
+                    className="flex-1 min-w-0 h-10 bg-transparent pr-3 text-sm text-ink outline-none"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-muted-soft">ตัวอักษรไทย a–z ตัวเลข และ - · ลิงก์เดิมยังเปิดได้</p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted mb-1">สถานที่</label>

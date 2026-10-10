@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { canEditPerformance } from "@/lib/permissions";
+import { setPerformanceSlug } from "@/lib/performanceSlug";
 import { z } from "zod";
 
 type Params = { params: Promise<{ id: string }> };
@@ -49,6 +50,8 @@ const updateSchema = z.object({
   programSchedule: z.array(programDaySchema).nullable().optional(),
   instrumentsNeeded: z.array(instrumentNeededSchema).nullable().optional(),
   equipmentNotes: z.record(z.string(), z.string()).nullable().optional(),
+  /** Link name; "" = back to name + date. */
+  slug: z.string().max(100).optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -65,7 +68,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
       { status: 400 }
     );
 
-  const { programSchedule, instrumentsNeeded, equipmentNotes, ...rest } = parsed.data;
+  const { programSchedule, instrumentsNeeded, equipmentNotes, slug, ...rest } = parsed.data;
+  // Check the link name first so a taken one doesn't leave a half-saved edit.
+  if (slug !== undefined) {
+    const result = await setPerformanceSlug(id, slug);
+    if ("error" in result) {
+      const taken = result.error.includes("ใช้แล้ว");
+      return NextResponse.json({ error: result.error }, { status: taken ? 409 : 400 });
+    }
+  }
   const performance = await prisma.performance.update({
     where: { id: id },
     data: {

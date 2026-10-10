@@ -21,6 +21,7 @@ export default function CreatePerformancePage() {
   const [todayStr] = useState(() => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [dates, setDates] = useState<DateEntry[]>([
     { date: "", startTime: "", endTime: "" },
@@ -87,6 +88,7 @@ export default function CreatePerformancePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
+          slug: slug.trim() || undefined,
           location: location.trim() || undefined,
           description: description.trim() || undefined,
           dates: validDates.map((d) => ({
@@ -104,7 +106,8 @@ export default function CreatePerformancePage() {
       }
 
       const data = await res.json();
-      router.push(`/performances/${data.performance.id}`);
+      // Land on the readable address; the id still works if no slug came back.
+      router.push(`/performances/${encodeURIComponent(data.performance.slug ?? data.performance.id)}`);
     } catch {
       setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
@@ -141,6 +144,19 @@ export default function CreatePerformancePage() {
             placeholder="เช่น งานไหว้ครูดนตรีไทย 2569"
             required
           />
+        </Field>
+
+        <Field label="ชื่อในลิงก์">
+          <div className="flex items-center rounded-[var(--radius-md)] border border-hairline bg-surface-soft focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/15">
+            <span className="pl-3 text-sm text-muted-soft whitespace-nowrap">/performances/</span>
+            <input
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="เว้นว่าง = ชื่องาน + วันที่"
+              className="flex-1 min-w-0 h-10 bg-transparent pr-3 text-sm text-ink outline-none"
+            />
+          </div>
+          <p className="mt-1 text-xs text-muted-soft">ไม่บังคับ · ตัวอักษรไทย a–z ตัวเลข และ -</p>
         </Field>
 
         <Field label="สถานที่" required>

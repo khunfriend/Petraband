@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { setPerformanceSlug } from "@/lib/performanceSlug";
 import { z } from "zod";
 
 export async function GET() {
@@ -16,6 +17,8 @@ export async function GET() {
 
 const createSchema = z.object({
   name: z.string().min(1),
+  /** Optional link name; empty → name + first date. */
+  slug: z.string().max(100).optional(),
   description: z.string().optional(),
   location: z.string().optional(),
   dates: z
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
 
-  const { name, description, location, dates } = parsed.data;
+  const { name, description, location, dates, slug } = parsed.data;
 
   // Block dates before Bangkok "today" — performances must be scheduled forward
   const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
@@ -72,5 +75,15 @@ export async function POST(req: NextRequest) {
     include: { dates: { orderBy: { date: "asc" } } },
   });
 
-  return NextResponse.json({ performance }, { status: 201 });
+  const slugResult = await setPerformanceSlug(performance.id, slug ?? "");
+  if ("error" in slugResult) {
+    // The show exists; fall back to the automatic link name and say why.
+    const fallback = await setPerformanceSlug(performance.id, "");
+    return NextResponse.json(
+      { performance: { ...performance, slug: "slug" in fallback ? fallback.slug : null }, slugError: slugResult.error },
+      { status: 201 },
+    );
+  }
+
+  return NextResponse.json({ performance: { ...performance, slug: slugResult.slug } }, { status: 201 });
 }

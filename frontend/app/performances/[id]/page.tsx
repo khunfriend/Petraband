@@ -4,13 +4,32 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import PerformanceClient from "./PerformanceClient";
+import { ensureSlug, resolvePerformanceParam } from "@/lib/performanceSlug";
+
+function decodeParam(raw: string) {
+  try {
+    return decodeURIComponent(raw).normalize("NFC");
+  } catch {
+    return raw;
+  }
+}
 
 type Params = { params: Promise<{ id: string }> };
 
 export default async function PerformanceDetailPage({ params }: Params) {
-  const { id } = await params;
+  const { id: param } = await params;
   const session = await auth();
   if (!session) redirect("/login");
+
+  // The URL may hold the id (old links), the readable slug, or an old slug.
+  // Anything but the current slug is redirected so shared links read well.
+  const found = await resolvePerformanceParam(param);
+  if (!found) notFound();
+  const id = found.id;
+  const slug = found.slug ?? (await ensureSlug(id));
+  if (slug && decodeParam(param) !== slug) {
+    redirect(`/performances/${encodeURIComponent(slug)}`);
+  }
 
   // Temp accounts can only access their linked performance
   const currentUser = await prisma.user.findUnique({
@@ -144,6 +163,7 @@ export default async function PerformanceDetailPage({ params }: Params) {
         hasJoined={!!myMember}
         performance={{
           id: perf.id,
+          slug: perf.slug ?? slug ?? null,
           name: perf.name,
           location: perf.location ?? null,
           description: perf.description ?? null,

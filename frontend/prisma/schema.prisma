@@ -182,6 +182,10 @@ model SongVersion {
 model Performance {
   id                String   @id @default(cuid())
   name              String
+  // Readable link name: /performances/<slug>. Set on create (or lazily for
+  // older rows); old values stay in previousSlugs so shared links keep working.
+  slug              String?  @unique
+  previousSlugs     String[] @default([])
   description       String?
   location          String?
   costume           String?

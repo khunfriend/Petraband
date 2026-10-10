@@ -5,6 +5,8 @@ import Link from "next/link";
 import { canEditPerformance } from "@/lib/permissions";
 import ManagePracticeClient from "./ManagePracticeClient";
 import { bangkokTodayStr } from "@/lib/today";
+import { availabilityFromPolls, type PollAnswers } from "@/lib/practiceAvailability";
+import type { SheetAnswer, SheetRow } from "@/components/practice/AvailabilitySheet";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -45,6 +47,82 @@ export default async function PracticeListPage({ params }: Params) {
     redirect(`/performances/${id}`);
   }
 
+  // ── "ใครว่างบ้าง": one column per musician in the lineup ──
+  const lineup = await prisma.performanceMember.findMany({
+    where: { performanceId: id },
+    orderBy: { joinedAt: "asc" },
+    select: { userId: true, user: { select: { nickname: true, firstName: true } } },
+  });
+  const members = [...new Map(lineup.map((m) => [m.userId, { id: m.userId, name: m.user.nickname || m.user.firstName || "?" }])).values()];
+  const memberIds = members.map((m) => m.id);
+  const slotIds = schedules.flatMap((s) => s.days.flatMap((d) => d.slots.map((sl) => sl.id)));
+
+  const [manual, polls] = await Promise.all([
+    prisma.practiceAvailability.findMany({
+      where: { slotId: { in: slotIds }, userId: { in: memberIds } },
+      select: { slotId: true, userId: true, isAvailable: true },
+    }),
+    prisma.availabilityPoll.findMany({
+      where: { performanceId: id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        slots: {
+          select: {
+            date: true,
+            startTime: true,
+            endTime: true,
+            responses: { where: { userId: { in: memberIds } }, select: { userId: true, isAvailable: true } },
+          },
+        },
+      },
+    }),
+  ]);
+  const pollAnswers = new Map<string, PollAnswers>(
+    polls.map((p) => [
+      p.id,
+      {
+        cells: p.slots.map((c) => ({
+          date: c.date.toISOString().slice(0, 10),
+          startTime: c.startTime,
+          endTime: c.endTime,
+          availableUserIds: c.responses.filter((r) => r.isAvailable).map((r) => r.userId),
+        })),
+        responderIds: [...new Set(p.slots.flatMap((c) => c.responses.map((r) => r.userId)))],
+      },
+    ]),
+  );
+  const manualBySlot = new Map<string, Map<string, boolean>>();
+  for (const m of manual) {
+    if (!manualBySlot.has(m.slotId)) manualBySlot.set(m.slotId, new Map());
+    manualBySlot.get(m.slotId)!.set(m.userId, m.isAvailable);
+  }
+
+  function sheetFor(s: (typeof schedules)[number]) {
+    // The poll this schedule was made from speaks first, then the newest.
+    const ordered = [
+      ...(s.sourcePollId && pollAnswers.has(s.sourcePollId) ? [pollAnswers.get(s.sourcePollId)!] : []),
+      ...polls.filter((p) => p.id !== s.sourcePollId).map((p) => pollAnswers.get(p.id)!),
+    ];
+    const rows: SheetRow[] = [];
+    const answers: Record<string, Record<string, SheetAnswer>> = {};
+    for (const d of s.days) {
+      const date = d.date.toISOString().slice(0, 10);
+      for (const sl of d.slots) {
+        rows.push({ slotId: sl.id, date, startTime: sl.startTime, endTime: sl.endTime, label: sl.label, supervisor: sl.supervisor });
+        answers[sl.id] = {};
+        for (const m of members) {
+          const own = manualBySlot.get(sl.id)?.get(m.id);
+          answers[sl.id][m.id] =
+            own !== undefined
+              ? { value: own ? "yes" : "no", manual: true }
+              : { value: availabilityFromPolls(ordered, date, sl.startTime, sl.endTime, m.id), manual: false };
+        }
+      }
+    }
+    return { rows, answers };
+  }
+
   return (
     <div className="w-full max-w-[1200px] mx-auto px-8 py-8">
       <div className="flex items-center gap-2 text-sm text-muted mb-6">
@@ -74,6 +152,9 @@ export default async function PracticeListPage({ params }: Params) {
       </div>
 
       <ManagePracticeClient
+        members={members}
+        viewerId={session?.user.id ?? ""}
+        sheets={Object.fromEntries(schedules.map((s) => [s.id, sheetFor(s)]))}
         canEdit={canEditNow}
         canDelete={isAdmin}
         dateRange={{

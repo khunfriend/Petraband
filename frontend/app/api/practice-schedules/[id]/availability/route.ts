@@ -1,51 +1,56 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { canEditPerformance } from "@/lib/permissions";
 import { z } from "zod";
 
 type Params = { params: Promise<{ id: string }> };
 
 const bodySchema = z.object({
   slotId: z.string().min(1),
-  isAvailable: z.boolean(),
+  /** null clears the answer, so the poll decides again. */
+  isAvailable: z.boolean().nullable(),
+  /** Someone else's answer — heads and admins only. Defaults to the caller. */
+  userId: z.string().min(1).optional(),
 });
 
+/** Set one member's "ว่าง / ไม่ว่าง" for one practice session. */
 export async function POST(req: Request, { params }: Params) {
   const { id } = await params;
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
-  const parsed = bodySchema.safeParse(body);
+  const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
   }
-
   const { slotId, isAvailable } = parsed.data;
+  const userId = parsed.data.userId ?? session.user.id;
 
   const slot = await prisma.practiceSlot.findUnique({
     where: { id: slotId },
     include: { day: { select: { scheduleId: true, schedule: { select: { performanceId: true } } } } },
   });
-
   if (!slot || slot.day.scheduleId !== id) {
-    return NextResponse.json({ error: "Slot not found in this schedule" }, { status: 404 });
+    return NextResponse.json({ error: "ไม่พบช่วงซ้อมนี้" }, { status: 404 });
   }
+  const performanceId = slot.day.schedule.performanceId;
 
-  // Temp accounts can only set availability on their linked performance's schedules
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isTemporary: true, linkedPerformanceId: true },
-  });
-  if (currentUser?.isTemporary && slot.day.schedule.performanceId !== currentUser.linkedPerformanceId) {
+  // Only people in the lineup have a column; editors may fill in for them.
+  const member = await prisma.performanceMember.findFirst({ where: { performanceId, userId }, select: { id: true } });
+  if (!member) return NextResponse.json({ error: "คนนี้ไม่ได้อยู่ในงานนี้" }, { status: 400 });
+  if (userId !== session.user.id && !(await canEditPerformance(session.user.id, session.user.role, performanceId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  await prisma.practiceAvailability.upsert({
-    where: { slotId_userId: { slotId, userId: session.user.id } },
-    create: { slotId, userId: session.user.id, isAvailable },
-    update: { isAvailable },
-  });
-
+  if (isAvailable === null) {
+    await prisma.practiceAvailability.deleteMany({ where: { slotId, userId } });
+  } else {
+    await prisma.practiceAvailability.upsert({
+      where: { slotId_userId: { slotId, userId } },
+      create: { slotId, userId, isAvailable },
+      update: { isAvailable },
+    });
+  }
   return NextResponse.json({ ok: true });
 }

@@ -31,6 +31,7 @@ const patchSchema = z
     startTime: hhmm.optional(),
     endTime: hhmm.optional(),
     location: z.string().trim().max(100).optional(),
+    supervisor: z.string().trim().max(100).optional(),
   })
   .refine((b) => Object.values(b).some((v) => v !== undefined));
 
@@ -63,8 +64,14 @@ export async function PATCH(req: Request, { params }: Params) {
       : parsed.data.label.split("\n").map((l) => l.trim()).filter(Boolean).join("\n");
   const updated = await prisma.practiceSlot.update({
     where: { id: slotId },
-    data: { label, startTime, endTime, location: parsed.data.location ?? slot.location },
-    select: { id: true, label: true, startTime: true, endTime: true, location: true },
+    data: {
+      label,
+      startTime,
+      endTime,
+      location: parsed.data.location ?? slot.location,
+      supervisor: parsed.data.supervisor ?? slot.supervisor,
+    },
+    select: { id: true, label: true, startTime: true, endTime: true, location: true, supervisor: true },
   });
   return NextResponse.json({ ok: true, slot: updated });
 }

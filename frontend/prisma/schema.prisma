@@ -514,6 +514,8 @@ model PracticeSlot {
   label     String  @default("")
   // "" = same place as the schedule's location.
   location  String  @default("")
+  // Who runs this session ("คุมซ้อม"); free text, usually a member's nickname.
+  supervisor String  @default("")
   isSpecial Boolean @default(false)
   slotOrder Int     @default(0)
 

@@ -5,6 +5,7 @@ import { CalendarDays, CalendarClock, Users, ArrowRight, Music, Package, UserChe
 import { ShortcutPager, type Shortcut } from "@/components/app/ShortcutPager";
 import { linksForRole } from "@/lib/navLinks";
 import { prisma } from "@/lib/prisma";
+import { bangkokTodayStr } from "@/lib/today";
 import DashboardCalendar from "./dashboard/DashboardCalendar";
 import { MyWork } from "./MyWork";
 import type { CalendarPerformanceDate, CalendarPracticeDay } from "./dashboard/types";
@@ -100,11 +101,19 @@ export default async function HomePage() {
     (d) => d.date >= weekStart && d.date <= weekEnd
   ).length;
 
-  const nextPerformance = performanceDates.find((d) => d.date >= now);
+  // "งานถัดไป" is the next show the user plays in, not the band's next show.
+  const todayStr = bangkokTodayStr();
+  const nextPerformance = await prisma.performanceDate.findFirst({
+    where: {
+      date: { gte: new Date(todayStr) },
+      performance: { members: { some: { userId: session.user.id } } },
+    },
+    include: { performance: { select: { id: true, slug: true, name: true, location: true } } },
+    orderBy: { date: "asc" },
+  });
+  // Whole days from today (Bangkok), so a show today reads "วันนี้".
   const daysUntilNext = nextPerformance
-    ? Math.ceil(
-        (nextPerformance.date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      )
+    ? Math.round((nextPerformance.date.getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
   const todayLabel = now.toLocaleDateString("th-TH", {
@@ -135,15 +144,20 @@ export default async function HomePage() {
   };
   const order = ["/performances", "/songs", "/members"];
   const shortcuts: Shortcut[] = [
-    ...(nextPerformance && daysUntilNext !== null
-      ? [{
-          href: `/performances/${nextPerformance.performance.id}`,
+    nextPerformance && daysUntilNext !== null
+      ? {
+          href: `/performances/${encodeURIComponent(nextPerformance.performance.slug ?? nextPerformance.performance.id)}`,
           label: "งานถัดไป",
           icon: <CalendarClock size={30} strokeWidth={1.6} />,
           tone: "bg-emerald-50 text-emerald-700",
           badge: daysUntilNext <= 0 ? "วันนี้" : `${daysUntilNext} วัน`,
-        }]
-      : []),
+        }
+      : {
+          href: "/performances",
+          label: "ไม่มีการแสดง",
+          icon: <CalendarClock size={30} strokeWidth={1.6} />,
+          tone: "bg-slate-100 text-slate-500",
+        },
     ...order
       .map((href) => links.find((l) => l.href === href))
       .filter((l): l is (typeof links)[number] => !!l)
@@ -186,7 +200,7 @@ export default async function HomePage() {
             value={practicesThisWeek}
             unit="ครั้ง"
           />
-          <NextEventCard performance={nextPerformance} daysUntil={daysUntilNext} />
+          <NextEventCard performance={nextPerformance ?? undefined} daysUntil={daysUntilNext} />
         </div>
       </div>
 
@@ -247,7 +261,7 @@ function StatCard({
 
 type NextPerf = {
   date: Date;
-  performance: { id: string; name: string; location: string | null };
+  performance: { id: string; slug: string | null; name: string; location: string | null };
 };
 
 function NextEventCard({
@@ -265,7 +279,7 @@ function NextEventCard({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted">งานถัดไป</p>
-          <p className="mt-1 text-sm text-muted-soft">ยังไม่มีงานในตาราง</p>
+          <p className="mt-1 text-sm text-muted-soft">ไม่มีการแสดง</p>
         </div>
       </div>
     );
@@ -274,7 +288,7 @@ function NextEventCard({
   // งานถัดไป = จุด coral จุดเดียวใน viewport (§9.2)
   return (
     <Link
-      href={`/performances/${performance.performance.id}`}
+      href={`/performances/${encodeURIComponent(performance.performance.slug ?? performance.performance.id)}`}
       className="group rounded-[var(--radius-md)] bg-surface-card border border-hairline border-l-[3px] border-l-coral px-4 py-3 flex items-center gap-3 transition-colors duration-[var(--duration-pb-base)] hover:border-primary/40 hover:border-l-coral"
     >
       <div className="text-coral shrink-0">

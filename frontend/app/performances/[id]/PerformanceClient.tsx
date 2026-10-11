@@ -1760,9 +1760,20 @@ export default function PerformanceClient({
       </section>
 
       {/* ── โพลตารางว่าง ── */}
-      {polls.length > 0 && (
+      {(polls.length > 0 || canEdit) && (
         <section>
-          <SectionHeader label="โพลตารางว่าง" />
+          <SectionHeader label="โพลตารางว่าง">
+            {canEdit && (
+              <Link href={`/performances/${performance.id}/polls/new`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
+                + สร้างโพล
+              </Link>
+            )}
+          </SectionHeader>
+          {polls.length === 0 && (
+            <div className="px-4 py-5 bg-surface-card border border-hairline-soft rounded-[var(--radius-md)]">
+              <p className="text-sm text-muted-soft">ยังไม่มีโพลตารางว่าง</p>
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             {polls.map((p) => (
               <Link
@@ -1793,11 +1804,6 @@ export default function PerformanceClient({
       <section>
         <SectionHeader label="ตารางซ้อม">
           <div className="flex items-center gap-4">
-            {canEdit && (
-              <Link href={`/performances/${performance.id}/polls/new`} className="text-xs font-medium text-body-strong hover:text-primary transition-colors duration-[var(--duration-pb-base)]">
-                + โพลตารางว่าง
-              </Link>
-            )}
             {/* A performance can have several schedules; this stays available
                 after the first one exists. */}
             {canEdit && practiceSchedules.length > 0 && (

@@ -17,7 +17,7 @@ export default async function SongsPage({
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
 
-  const [songs, categories, perCategory] = await Promise.all([
+  const [songs, categories, perCategory, allPerCategory] = await Promise.all([
     prisma.song.findMany({
       where,
       select: { id: true, songCode: true, title: true, category: true, duration: true },
@@ -35,6 +35,8 @@ export default async function SongsPage({
       where: q ? { title: { contains: q, mode: "insensitive" } } : {},
       _count: { _all: true },
     }),
+    // Whole library, for "จัดการประเภท".
+    isAdmin ? prisma.song.groupBy({ by: ["category"], _count: { _all: true } }) : Promise.resolve([]),
   ]);
 
   return (
@@ -46,6 +48,7 @@ export default async function SongsPage({
         initialQ={q}
         initialCategory={category}
         isAdmin={isAdmin}
+        allCategoryCounts={Object.fromEntries(allPerCategory.map((c) => [c.category, c._count._all]))}
       />
     </div>
   );

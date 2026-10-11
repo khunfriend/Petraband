@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
+import { CategoryManager } from "./CategoryManager";
 
 interface Song {
   id: string;
@@ -29,6 +30,8 @@ interface Props {
   initialQ: string;
   initialCategory: string;
   isAdmin: boolean;
+  /** Songs per category over the whole library (admins only). */
+  allCategoryCounts: Record<string, number>;
 }
 
 function formatDuration(seconds: number | null) {
@@ -45,7 +48,9 @@ export default function SongListClient({
   initialQ,
   initialCategory,
   isAdmin,
+  allCategoryCounts,
 }: Props) {
+  const [managingCategories, setManagingCategories] = useState(false);
   const router = useRouter();
   const totalCount = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
   const [q, setQ] = useState(initialQ);
@@ -160,8 +165,8 @@ export default function SongListClient({
         </div>
 
         {/* Category tabs — navy underline active state */}
-        <div className="border-b border-hairline">
-          <div className="flex flex-wrap gap-1">
+        <div className="border-b border-hairline flex items-end gap-2">
+          <div className="flex flex-wrap gap-1 flex-1">
             <CategoryTab
               active={!activeCategory}
               onClick={() => handleCategoryChange("")}
@@ -185,7 +190,26 @@ export default function SongListClient({
               );
             })}
           </div>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setManagingCategories(true)}
+              className="shrink-0 pb-2 text-xs text-muted hover:text-primary"
+            >
+              จัดการประเภท
+            </button>
+          )}
         </div>
+        {isAdmin && (
+          <CategoryManager
+            open={managingCategories}
+            onClose={() => setManagingCategories(false)}
+            counts={allCategoryCounts}
+            onRenamed={(from, to) => {
+              if (activeCategory === from) handleCategoryChange(to);
+            }}
+          />
+        )}
 
         {/* Result count */}
         <p className="text-xs text-muted">

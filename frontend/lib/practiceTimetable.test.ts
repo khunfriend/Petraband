@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTimetable, formatDateLines } from "./practiceTimetable";
+import { buildTimetable, formatDateLines, isBreakShow } from "./practiceTimetable";
 
 const slot = (id: string, startTime: string, endTime: string, label = "") => ({
   id, startTime, endTime, label, isSpecial: false,
@@ -51,7 +51,26 @@ describe("buildTimetable", () => {
   it("keeps days without slots", () => {
     const blocks = buildTimetable([{ id: "a", date: "2026-11-02T00:00:00.000Z", slots: [] }]);
     expect(blocks).toEqual([
-      { dateLines: [expect.any(String)], days: [{ id: "a", date: "2026-11-02T00:00:00.000Z" }], slots: [] },
+      { dateLines: [expect.any(String)], days: [{ id: "a", date: "2026-11-02T00:00:00.000Z" }], note: "", slots: [] },
     ]);
+  });
+
+  it("merges days only when show and note match too", () => {
+    const slot = (id: string, show: string) => ({ id, startTime: "13:00", endTime: "14:00", label: "", show, isSpecial: false });
+    const blocks = buildTimetable([
+      { id: "a", date: "2026-11-01T00:00:00.000Z", note: "ควรคล่องแล้ว", slots: [slot("a1", "TMR & GBY")] },
+      { id: "b", date: "2026-11-07T00:00:00.000Z", note: "ควรคล่องแล้ว", slots: [slot("b1", "TMR & GBY")] },
+      { id: "c", date: "2026-11-08T00:00:00.000Z", note: "พร้อมแสดง", slots: [slot("c1", "TMR & GBY")] },
+      { id: "d", date: "2026-11-09T00:00:00.000Z", note: "พร้อมแสดง", slots: [slot("d1", "All Shows")] },
+    ]);
+    expect(blocks.map((b) => b.days.map((d) => d.id))).toEqual([["a", "b"], ["c"], ["d"]]);
+    expect(blocks[0].note).toBe("ควรคล่องแล้ว");
+    expect(blocks[0].slots[0]).toMatchObject({ show: "TMR & GBY", ids: ["a1", "b1"] });
+  });
+
+  it("spots break rows", () => {
+    expect(isBreakShow("Break")).toBe(true);
+    expect(isBreakShow("พักกินข้าว")).toBe(true);
+    expect(isBreakShow("All Shows")).toBe(false);
   });
 });

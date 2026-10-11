@@ -32,6 +32,7 @@ const patchSchema = z
     endTime: hhmm.optional(),
     location: z.string().trim().max(100).optional(),
     supervisor: z.string().trim().max(100).optional(),
+    show: z.string().trim().max(100).optional(),
   })
   .refine((b) => Object.values(b).some((v) => v !== undefined));
 
@@ -70,8 +71,9 @@ export async function PATCH(req: Request, { params }: Params) {
       endTime,
       location: parsed.data.location ?? slot.location,
       supervisor: parsed.data.supervisor ?? slot.supervisor,
+      show: parsed.data.show ?? slot.show,
     },
-    select: { id: true, label: true, startTime: true, endTime: true, location: true, supervisor: true },
+    select: { id: true, label: true, startTime: true, endTime: true, location: true, supervisor: true, show: true },
   });
   return NextResponse.json({ ok: true, slot: updated });
 }

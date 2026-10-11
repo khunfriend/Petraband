@@ -235,11 +235,13 @@ export default async function PerformanceDetailPage({ params }: Params) {
           days: s.days.map((d) => ({
             id: d.id,
             date: d.date.toISOString(),
+            note: d.note,
             slots: d.slots.map((sl) => ({
               id: sl.id,
               startTime: sl.startTime,
               endTime: sl.endTime,
               label: sl.label,
+              show: sl.show,
               location: sl.location,
               isSpecial: sl.isSpecial,
             })),

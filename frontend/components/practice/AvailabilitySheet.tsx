@@ -18,7 +18,8 @@ export type SheetRow = {
 
 export type SheetAnswer = { value: Availability; /** Set on the timetable (not from a poll). */ manual: boolean };
 
-const BUSY = "#6f6f6f";
+const FREE = "#4caf6a";
+const BUSY = "#e05555";
 const UNKNOWN = "#c9c9c9";
 
 const WEEKDAY = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
@@ -32,7 +33,7 @@ function dayLabel(date: string) {
 
 /**
  * Printed-sheet style "who is free" table: one row per practice session, one
- * column per member. Members click their own cells; heads/admins any cell.
+ * column per member. Members click their own cells; admins any cell.
  */
 export function AvailabilitySheet({
   scheduleId,
@@ -41,6 +42,7 @@ export function AvailabilitySheet({
   answers: initialAnswers,
   viewerId,
   canEditAll,
+  canEditSupervisor,
 }: {
   scheduleId: string;
   rows: SheetRow[];
@@ -48,7 +50,10 @@ export function AvailabilitySheet({
   /** answers[slotId][userId] */
   answers: Record<string, Record<string, SheetAnswer>>;
   viewerId: string;
+  /** Admins: anyone's cells. Everyone else only their own. */
   canEditAll: boolean;
+  /** "คุมซ้อม" is part of the timetable: heads and admins. */
+  canEditSupervisor: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -148,7 +153,7 @@ export function AvailabilitySheet({
                         }}
                         className="w-24 bg-white/80 px-1 outline-none rounded-sm"
                       />
-                    ) : canEditAll ? (
+                    ) : canEditSupervisor ? (
                       <button
                         type="button"
                         onClick={() => {
@@ -167,12 +172,12 @@ export function AvailabilitySheet({
                   {members.map((m) => {
                     const a = answers[r.slotId]?.[m.id];
                     const editable = canEditAll || m.id === viewerId;
-                    const state = a?.value === "yes" ? "ว่าง" : a?.value === "no" ? "ไม่ว่าง" : "ยังไม่ตอบ";
+                    const state = a?.value === "yes" ? "ว่าง" : a?.value === "no" ? "ไม่ว่าง" : "ไม่ตอบ";
                     return (
                       <td
                         key={m.id}
                         className="border border-[#0b1a3a]/70 p-0 min-w-14"
-                        style={a?.value === "yes" ? undefined : { background: a?.value === "no" ? BUSY : UNKNOWN }}
+                        style={{ background: a?.value === "yes" ? FREE : a?.value === "no" ? BUSY : UNKNOWN }}
                       >
                         <button
                           type="button"
@@ -195,9 +200,9 @@ export function AvailabilitySheet({
         </table>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted">
-        <Legend color={THAI_DAY_TINT[5]} label="ว่าง (สีตามวัน)" />
+        <Legend color={FREE} label="ว่าง" />
         <Legend color={BUSY} label="ไม่ว่าง" />
-        <Legend color={UNKNOWN} label="ยังไม่ตอบ" />
+        <Legend color={UNKNOWN} label="ไม่ตอบ" />
         <span>ค่าเริ่มต้นมาจากโพลตารางว่าง กดแก้ทับได้</span>
       </div>
     </section>

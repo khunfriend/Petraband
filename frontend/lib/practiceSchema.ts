@@ -8,6 +8,7 @@ export const practiceSlotInput = z
     startTime: hhmm,
     endTime: hhmm,
     label: z.string().max(1000).default(""),
+    show: z.string().trim().max(100).default(""),
     location: z.string().trim().max(100).default(""),
     isSpecial: z.boolean().default(false),
   })

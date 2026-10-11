@@ -12,7 +12,13 @@ export default function ManagePracticeClient({
   members,
   viewerId,
   sheets,
+  showSuggestions,
+  isAdmin,
 }: {
+  /** Admins may set anyone's "ว่าง / ไม่ว่าง". */
+  isAdmin: boolean;
+  /** Song titles offered in the "การแสดง" box. */
+  showSuggestions: string[];
   schedules: TimetableSchedule[];
   members: { id: string; name: string }[];
   viewerId: string;
@@ -38,6 +44,9 @@ export default function ManagePracticeClient({
             onAddDay={canEdit ? edits.addDay : undefined}
             onAddSlot={canEdit ? edits.addSlot : undefined}
             onDeleteSlot={canEdit ? edits.deleteSlot : undefined}
+            onSaveShow={canEdit ? edits.saveShow : undefined}
+            onSaveNote={canEdit ? edits.saveNote : undefined}
+            showSuggestions={showSuggestions}
             onDeleteSchedule={canEdit && canDelete ? edits.deleteSchedule : undefined}
             dateRange={dateRange}
           />
@@ -48,7 +57,8 @@ export default function ManagePracticeClient({
               answers={sheets[s.id].answers}
               members={members}
               viewerId={viewerId}
-              canEditAll={canEdit}
+              canEditAll={isAdmin}
+              canEditSupervisor={canEdit}
             />
           )}
         </div>

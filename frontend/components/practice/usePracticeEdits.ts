@@ -36,6 +36,21 @@ export function usePracticeEdits() {
 
   return {
     saveLabel: (slotIds: string[], label: string) => patchSlots(slotIds, { label }, "บันทึกรายละเอียดไม่สำเร็จ"),
+    saveShow: (slotIds: string[], show: string) => patchSlots(slotIds, { show }, "บันทึกการแสดงไม่สำเร็จ"),
+    async saveNote(dayIds: string[], note: string) {
+      const results = await Promise.all(
+        dayIds.map((id) =>
+          fetch(`/api/practice-days/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ note }),
+          }).then((r) => r.ok, () => false),
+        ),
+      );
+      router.refresh();
+      if (!results.every(Boolean)) toast.error("บันทึกหมายเหตุไม่สำเร็จ");
+      return results.every(Boolean);
+    },
     saveTimes: (slotIds: string[], startTime: string, endTime: string, location: string) =>
       patchSlots(slotIds, { startTime, endTime, location: location.trim() }, "บันทึกไม่สำเร็จ"),
     async deleteDay(dayId: string, dateLabel: string) {

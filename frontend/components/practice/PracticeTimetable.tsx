@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useState, type ReactNode } from "react";
-import { buildTimetable, formatDateLines, type TimetableDay } from "@/lib/practiceTimetable";
+import { buildTimetable, formatDateLines, isBreakShow, type TimetableDay } from "@/lib/practiceTimetable";
 import { MapPin } from "lucide-react";
 import type { PhaseInfo } from "./usePracticeEdits";
 
@@ -17,12 +17,14 @@ export type TimetableSchedule = {
 
 type Editing =
   | { kind: "label"; id: string; draft: string }
-  | { kind: "time"; id: string; start: string; end: string; location: string }
+  | { kind: "time"; id: string; start: string; end: string; location: string; show: string }
+  | { kind: "show"; id: string; draft: string }
+  | { kind: "note"; id: string; draft: string }
   | { kind: "phase"; id: string; info: PhaseInfo; newDate: string }
   | { kind: "dateCell"; id: string }
   | { kind: "addSlot"; id: string; start: string; end: string; location: string };
 
-export type SlotTemplate = { startTime: string; endTime: string; label: string; location: string; isSpecial: boolean };
+export type SlotTemplate = { startTime: string; endTime: string; label: string; show: string; location: string; isSpecial: boolean };
 
 const cell = "border border-hairline px-2 sm:px-3 py-1.5 align-middle";
 const editableCell = "cursor-text hover:bg-primary/5 transition-colors";
@@ -109,6 +111,9 @@ export function PracticeTimetable({
   onDeleteSchedule,
   onAddSlot,
   onDeleteSlot,
+  onSaveShow,
+  onSaveNote,
+  showSuggestions = [],
 }: {
   schedules: TimetableSchedule[];
   /** Link for the phase title. */
@@ -125,6 +130,12 @@ export function PracticeTimetable({
   onDeleteSchedule?: (scheduleId: string, title: string) => Promise<boolean>;
   onAddSlot?: (dayIds: string[], slot: SlotTemplate) => Promise<boolean>;
   onDeleteSlot?: (slotIds: string[]) => Promise<boolean>;
+  /** "การแสดง" of a slot, on every merged day. */
+  onSaveShow?: (slotIds: string[], show: string) => Promise<boolean>;
+  /** "หมายเหตุ" of the merged days. */
+  onSaveNote?: (dayIds: string[], note: string) => Promise<boolean>;
+  /** Offered while typing "การแสดง" (e.g. the performance's songs). */
+  showSuggestions?: string[];
 }) {
   const [editing, setEditing] = useState<Editing | null>(null);
   const [saving, setSaving] = useState(false);
@@ -152,6 +163,7 @@ export function PracticeTimetable({
       startTime: sl.startTime,
       endTime: sl.endTime,
       label: sl.label,
+      show: sl.show ?? "",
       location: sl.location ?? "",
       isSpecial: sl.isSpecial,
     }));
@@ -216,9 +228,23 @@ export function PracticeTimetable({
     </button>
   ) : null;
   const linkBtn = "text-xs text-muted hover:text-primary transition-colors";
+  // "การแสดง" / "หมายเหตุ" columns appear once any schedule here uses them
+  // (or while the first one is being typed), so simple timetables stay simple.
+  const withShow =
+    editing?.kind === "show" ||
+    (editing?.kind === "time" && editing.show.trim() !== "") ||
+    schedules.some((s) => s.days.some((d) => d.slots.some((sl) => (sl.show ?? "").trim())));
+  const withNote = editing?.kind === "note" || schedules.some((s) => s.days.some((d) => (d.note ?? "").trim()));
+  const baseCols = 4 + (withShow ? 1 : 0) + (withNote ? 1 : 0);
+  const suggestId = "practice-show-suggestions";
 
   return (
     <div className="overflow-x-auto rounded-[var(--radius-md)] border border-hairline bg-surface-card">
+      <datalist id={suggestId}>
+        {[...new Set(["Prep", "Break", "All Shows", ...showSuggestions])].map((v) => (
+          <option key={v} value={v} />
+        ))}
+      </datalist>
       <table className="w-full sm:min-w-[560px] border-collapse text-xs sm:text-sm tabular-nums">
         <thead>
           <tr className="bg-primary text-on-primary">
@@ -226,12 +252,14 @@ export function PracticeTimetable({
             <th className="px-2 sm:px-3 py-2 font-semibold w-24 sm:w-36">วันที่</th>
             <th className="px-1 sm:px-3 py-2 font-semibold w-12 sm:w-20">เริ่ม</th>
             <th className="px-1 sm:px-3 py-2 font-semibold w-12 sm:w-20">จบ</th>
+            {withShow && <th className="px-2 sm:px-3 py-2 font-semibold text-left w-28 sm:w-36">การแสดง</th>}
             <th className="px-2 sm:px-3 py-2 font-semibold text-left">
               <div className="flex items-center justify-between gap-2">
                 รายละเอียด
                 {deleteButton && <span className="sm:hidden">{deleteButton}</span>}
               </div>
             </th>
+            {withNote && <th className="px-2 sm:px-3 py-2 font-semibold text-left w-40 sm:w-56">หมายเหตุ</th>}
           </tr>
         </thead>
         {schedules.map((s) => {
@@ -273,7 +301,7 @@ export function PracticeTimetable({
             rows.push(
               <tr key="empty">
                 {phaseCell()}
-                <td colSpan={4} className={`${cell} text-muted-soft`}>ยังไม่มีวันซ้อม</td>
+                <td colSpan={baseCols} className={`${cell} text-muted-soft`}>ยังไม่มีวันซ้อม</td>
               </tr>,
             );
           }
@@ -288,7 +316,7 @@ export function PracticeTimetable({
               run(() =>
                 onAddSlot(
                   b.days.map((d) => d.id),
-                  { startTime: addSlot.start, endTime: addSlot.end, label: "", location: addSlot.location.trim(), isSpecial: false },
+                  { startTime: addSlot.start, endTime: addSlot.end, label: "", show: "", location: addSlot.location.trim(), isSpecial: false },
                 ),
               );
             };
@@ -323,6 +351,11 @@ export function PracticeTimetable({
                         + เพิ่มช่วงเวลา
                       </button>
                     )}
+                    {onSaveNote && !b.note && (
+                      <button type="button" onClick={() => startEdit({ kind: "note", id: blockKey, draft: "" })} className={linkBtn}>
+                        + หมายเหตุ
+                      </button>
+                    )}
                     {onDeleteDay &&
                       b.days.map((d) => {
                         const label = formatDateLines([d.date])[0];
@@ -353,6 +386,39 @@ export function PracticeTimetable({
                 )}
               </td>
             );
+            const editNote = editing?.kind === "note" && editing.id === blockKey ? editing : null;
+            const submitNote = () => {
+              if (!editNote || !onSaveNote) return;
+              if (editNote.draft.trim() === b.note) return setEditing(null);
+              run(() => onSaveNote(b.days.map((d) => d.id), editNote.draft));
+            };
+            const noteTd = withNote ? (
+              <td rowSpan={blockRows[bi]} className={`${cell} align-top text-ink ${onSaveNote && !editNote ? editableCell : ""}`}
+                onClick={onSaveNote && !editNote ? () => startEdit({ kind: "note", id: blockKey, draft: b.note }) : undefined}
+                title={onSaveNote && !editNote ? "คลิกเพื่อแก้หมายเหตุ" : undefined}
+              >
+                {editNote ? (
+                  <textarea
+                    autoFocus
+                    value={editNote.draft}
+                    disabled={saving}
+                    rows={3}
+                    onChange={(e) => setEditing({ ...editNote, draft: e.target.value })}
+                    onBlur={submitNote}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setEditing(null);
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submitNote();
+                    }}
+                    placeholder="เช่น ควรฟังเพลงมาก่อน"
+                    className={`${field} min-w-[160px] resize-y`}
+                  />
+                ) : b.note ? (
+                  <span className="whitespace-pre-line">{b.note}</span>
+                ) : onSaveNote ? (
+                  <span className="text-muted-soft">+ หมายเหตุ</span>
+                ) : null}
+              </td>
+            ) : null;
             if (b.slots.length === 0) {
               rows.push(
                 <tr key={`${bi}-none`}>
@@ -360,7 +426,9 @@ export function PracticeTimetable({
                   {dateTd}
                   <td className={cell} />
                   <td className={cell} />
+                  {withShow && <td className={cell} />}
                   <td className={cell} />
+                  {noteTd}
                 </tr>,
               );
               return;
@@ -368,7 +436,8 @@ export function PracticeTimetable({
             let dateShown = false;
             b.slots.forEach((sl, si) => {
               const items = sl.items.length > 0 ? sl.items : [""];
-              const shade = si % 2 === 1 ? "bg-surface-cream-strong/40" : "";
+              const isBreak = isBreakShow(sl.show);
+              const shade = isBreak ? "bg-hairline-soft text-muted" : si % 2 === 1 ? "bg-surface-cream-strong/40" : "";
               const timeTone = sl.isSpecial ? "text-coral font-semibold" : "text-ink";
               // Only flag a slot held somewhere other than the schedule's usual place.
               const elsewhere = sl.location && sl.location !== s.location ? sl.location : "";
@@ -382,7 +451,7 @@ export function PracticeTimetable({
               const editLabel = editing?.kind === "label" && editing.id === sl.id ? editing : null;
               const editTime = editing?.kind === "time" && editing.id === sl.id ? editing : null;
               const openTime = onSaveTimes
-                ? () => startEdit({ kind: "time", id: sl.id, start: sl.startTime, end: sl.endTime, location: sl.location })
+                ? () => startEdit({ kind: "time", id: sl.id, start: sl.startTime, end: sl.endTime, location: sl.location, show: sl.show })
                 : undefined;
 
               const submitTime = () => {
@@ -390,8 +459,47 @@ export function PracticeTimetable({
                 if (!editTime.start || !editTime.end || editTime.start >= editTime.end) {
                   return setError("เวลาจบต้องหลังเวลาเริ่ม");
                 }
-                run(() => onSaveTimes(sl.ids, editTime.start, editTime.end, editTime.location));
+                run(async () => {
+                  const timesChanged =
+                    editTime.start !== sl.startTime || editTime.end !== sl.endTime || editTime.location.trim() !== sl.location;
+                  if (timesChanged && !(await onSaveTimes(sl.ids, editTime.start, editTime.end, editTime.location))) return false;
+                  if (onSaveShow && editTime.show.trim() !== sl.show) return onSaveShow(sl.ids, editTime.show.trim());
+                  return true;
+                });
               };
+              const editShow = editing?.kind === "show" && editing.id === sl.id ? editing : null;
+              const submitShow = () => {
+                if (!editShow || !onSaveShow) return;
+                if (editShow.draft.trim() === sl.show) return setEditing(null);
+                run(() => onSaveShow(sl.ids, editShow.draft.trim()));
+              };
+              const showTd = withShow ? (
+                <td
+                  rowSpan={items.length}
+                  onClick={onSaveShow && !editShow ? () => startEdit({ kind: "show", id: sl.id, draft: sl.show }) : undefined}
+                  title={onSaveShow && !editShow ? "คลิกเพื่อแก้การแสดง" : undefined}
+                  className={`${cell} ${isBreak ? "" : "text-ink"} ${onSaveShow && !editShow ? editableCell : ""}`}
+                >
+                  {editShow ? (
+                    <input
+                      autoFocus
+                      list={suggestId}
+                      value={editShow.draft}
+                      disabled={saving}
+                      onChange={(e) => setEditing({ ...editShow, draft: e.target.value })}
+                      onBlur={submitShow}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") setEditing(null);
+                        if (e.key === "Enter") submitShow();
+                      }}
+                      placeholder="เช่น TMR & GBY"
+                      className={`${field} min-w-[110px]`}
+                    />
+                  ) : (
+                    sl.show || (onSaveShow ? <span className="text-muted-soft">+</span> : null)
+                  )}
+                </td>
+              ) : null;
               const submitLabel = () => {
                 if (!editLabel || !onSaveLabel) return;
                 if (editLabel.draft.trim() === sl.label.trim()) return setEditing(null);
@@ -431,6 +539,15 @@ export function PracticeTimetable({
                                 className={`${field} px-1`}
                               />
                             </div>
+                            {onSaveShow && (
+                              <input
+                                list={suggestId}
+                                value={editTime.show}
+                                onChange={(e) => setEditing({ ...editTime, show: e.target.value })}
+                                placeholder="การแสดง เช่น TMR & GBY, Break"
+                                className={field}
+                              />
+                            )}
                             <input
                               value={editTime.location}
                               onChange={(e) => setEditing({ ...editTime, location: e.target.value })}
@@ -466,6 +583,7 @@ export function PracticeTimetable({
                           </td>
                         ))
                       ))}
+                    {ii === 0 && showTd}
                     {editLabel ? (
                       ii === 0 && (
                         <td rowSpan={items.length} className={`${cell} p-1 sm:p-1`}>
@@ -500,6 +618,7 @@ export function PracticeTimetable({
                         {item}
                       </td>
                     )}
+                    {showDate && noteTd}
                   </tr>,
                 );
               });
@@ -510,7 +629,7 @@ export function PracticeTimetable({
             <tbody key={s.id}>
               {/* Phone width: the phase column is hidden, so it gets its own row. */}
               <tr className="sm:hidden">
-                <td colSpan={4} className={`${cell} relative bg-coral-100/60 ${deleteButton ? "pt-7" : ""}`}>
+                <td colSpan={baseCols} className={`${cell} relative bg-coral-100/60 ${deleteButton ? "pt-7" : ""}`}>
                   {deleteButton}
                   {phase}
                 </td>

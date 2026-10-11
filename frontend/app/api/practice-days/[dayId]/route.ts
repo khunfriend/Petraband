@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canEditPerformance } from "@/lib/permissions";
+import { z } from "zod";
 
 type Params = { params: Promise<{ dayId: string }> };
 
@@ -21,4 +22,29 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   await prisma.practiceDay.delete({ where: { id: dayId } });
   return NextResponse.json({ ok: true });
+}
+
+const patchSchema = z.object({ note: z.string().max(1000) });
+
+/** Set the day's "หมายเหตุ". */
+export async function PATCH(req: Request, { params }: Params) {
+  const { dayId } = await params;
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const parsed = patchSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
+
+  const day = await prisma.practiceDay.findUnique({
+    where: { id: dayId },
+    include: { schedule: { select: { performanceId: true } } },
+  });
+  if (!day) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const allowed = await canEditPerformance(session.user.id, session.user.role, day.schedule.performanceId);
+  if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const note = parsed.data.note.split("\n").map((l) => l.trim()).filter(Boolean).join("\n");
+  await prisma.practiceDay.update({ where: { id: dayId }, data: { note } });
+  return NextResponse.json({ ok: true, note });
 }

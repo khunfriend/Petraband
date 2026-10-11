@@ -49,6 +49,7 @@ export async function POST(req: Request, { params }: Params) {
           startTime: s.startTime,
           endTime: s.endTime,
           label: s.label,
+          show: s.show,
           location: s.location,
           isSpecial: s.isSpecial,
           slotOrder,

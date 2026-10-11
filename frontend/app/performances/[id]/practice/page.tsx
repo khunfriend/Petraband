@@ -20,6 +20,7 @@ export default async function PracticeListPage({ params }: Params) {
       id: true,
       name: true,
       heads: { select: { userId: true } },
+      songs: { orderBy: { order: "asc" }, select: { song: { select: { title: true } } } },
       dates: { select: { date: true }, orderBy: { date: "asc" } },
     },
   });
@@ -154,6 +155,8 @@ export default async function PracticeListPage({ params }: Params) {
       <ManagePracticeClient
         members={members}
         viewerId={session?.user.id ?? ""}
+        isAdmin={isAdmin}
+        showSuggestions={performance.songs.map((ps) => ps.song.title)}
         sheets={Object.fromEntries(schedules.map((s) => [s.id, sheetFor(s)]))}
         canEdit={canEditNow}
         canDelete={isAdmin}
@@ -170,11 +173,13 @@ export default async function PracticeListPage({ params }: Params) {
           days: s.days.map((d) => ({
             id: d.id,
             date: d.date.toISOString(),
+            note: d.note,
             slots: d.slots.map((sl) => ({
               id: sl.id,
               startTime: sl.startTime,
               endTime: sl.endTime,
               label: sl.label,
+              show: sl.show,
               location: sl.location,
               isSpecial: sl.isSpecial,
             })),

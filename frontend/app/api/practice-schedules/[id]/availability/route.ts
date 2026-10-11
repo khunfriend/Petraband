@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { canEditPerformance } from "@/lib/permissions";
 import { z } from "zod";
 
 type Params = { params: Promise<{ id: string }> };
@@ -10,7 +9,7 @@ const bodySchema = z.object({
   slotId: z.string().min(1),
   /** null clears the answer, so the poll decides again. */
   isAvailable: z.boolean().nullable(),
-  /** Someone else's answer — heads and admins only. Defaults to the caller. */
+  /** Someone else's answer — admins only. Defaults to the caller. */
   userId: z.string().min(1).optional(),
 });
 
@@ -39,7 +38,8 @@ export async function POST(req: Request, { params }: Params) {
   // Only people in the lineup have a column; editors may fill in for them.
   const member = await prisma.performanceMember.findFirst({ where: { performanceId, userId }, select: { id: true } });
   if (!member) return NextResponse.json({ error: "คนนี้ไม่ได้อยู่ในงานนี้" }, { status: 400 });
-  if (userId !== session.user.id && !(await canEditPerformance(session.user.id, session.user.role, performanceId))) {
+  // Members answer for themselves; only admins may change someone else's.
+  if (userId !== session.user.id && session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

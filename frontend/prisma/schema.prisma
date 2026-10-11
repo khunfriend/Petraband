@@ -501,6 +501,8 @@ model PracticeDay {
   scheduleId String
   date       DateTime @db.Date
   dayOrder   Int      @default(0)
+  // "หมายเหตุ" for the whole day, e.g. "ควรฟังเพลงมาก่อน".
+  note       String   @default("")
 
   schedule PracticeSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   slots    PracticeSlot[]
@@ -512,6 +514,8 @@ model PracticeSlot {
   startTime String
   endTime   String
   label     String  @default("")
+  // "การแสดง" — which show/songs this session works on ("TMR & GBY", "Break").
+  show      String  @default("")
   // "" = same place as the schedule's location.
   location  String  @default("")
   // Who runs this session ("คุมซ้อม"); free text, usually a member's nickname.

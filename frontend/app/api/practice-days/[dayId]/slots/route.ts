@@ -40,6 +40,7 @@ export async function POST(req: Request, { params }: Params) {
       startTime: parsed.data.startTime,
       endTime: parsed.data.endTime,
       label: parsed.data.label,
+      show: parsed.data.show,
       location: parsed.data.location,
       isSpecial: parsed.data.isSpecial,
       slotOrder: nextOrder,

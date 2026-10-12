@@ -118,6 +118,8 @@ model PasswordResetToken {
 model UserSecondaryInstrument {
   userId       String
   instrumentId String
+  // Skill order after the main instrument: 0 → อันดับ 2, 1 → อันดับ 3, …
+  rank         Int    @default(0)
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   instrument Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)

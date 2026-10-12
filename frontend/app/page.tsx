@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, CalendarClock, Users, ArrowRight, Music, Package, UserCheck, UserRound, BadgeCheck, type LucideIcon } from "lucide-react";
+import { CalendarDays, CalendarClock, Users, ArrowRight, Music, Package, UserCheck, UserRound, BadgeCheck, LayoutDashboard, type LucideIcon } from "lucide-react";
 import { ShortcutPager, type Shortcut } from "@/components/app/ShortcutPager";
 import { linksForRole } from "@/lib/navLinks";
 import { prisma } from "@/lib/prisma";
@@ -10,7 +10,7 @@ import DashboardCalendar from "./dashboard/DashboardCalendar";
 import { MyWork } from "./MyWork";
 import type { CalendarPerformanceDate, CalendarPracticeDay } from "./dashboard/types";
 
-const NAV_ADMIN = new Set(["/equipment", "/admin/pending-users"]);
+const NAV_ADMIN = new Set(["/equipment", "/admin/dashboard", "/admin/pending-users"]);
 
 export default async function HomePage() {
   const session = await auth();
@@ -132,6 +132,7 @@ export default async function HomePage() {
     "/members": Users,
     "/equipment": Package,
     "/admin/pending-users": UserCheck,
+    "/admin/dashboard": LayoutDashboard,
   };
   const links = linksForRole(session.user.role).map((l) => ({ href: l.href, label: l.label, icon: sectionIcons[l.href] ?? ArrowRight }));
   // App home tiles: next show first, then the sections, admin tools last.
@@ -141,6 +142,7 @@ export default async function HomePage() {
     "/members": "bg-violet-50 text-violet-700",
     "/equipment": "bg-amber-50 text-amber-700",
     "/admin/pending-users": "bg-rose-50 text-rose-700",
+    "/admin/dashboard": "bg-indigo-50 text-indigo-700",
   };
   const order = ["/performances", "/songs", "/members"];
   const shortcuts: Shortcut[] = [

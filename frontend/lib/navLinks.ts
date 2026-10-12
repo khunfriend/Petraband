@@ -12,6 +12,7 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/performances", label: "งานแสดง" },
   { href: "/members", label: "สมาชิก" },
   { href: "/equipment", label: "อุปกรณ์", roles: ["ADMIN", "HEAD"] },
+  { href: "/admin/dashboard", label: "แดชบอร์ด", roles: ["ADMIN"] },
   { href: "/admin/pending-users", label: "อนุมัติสมาชิก", roles: ["ADMIN"], pendingBadge: true },
 ];
 

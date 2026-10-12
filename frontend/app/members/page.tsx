@@ -34,6 +34,7 @@ export default async function MembersPage() {
         contact: true,
         primaryInstrument: { select: { id: true, name: true, nameThai: true } },
         secondaryInstruments: {
+          orderBy: { rank: "asc" },
           select: { instrument: { select: { id: true, nameThai: true } } },
         },
         // Admin/Head see additional identifying fields; Member sees only public fields

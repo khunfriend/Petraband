@@ -26,7 +26,7 @@ export default async function ProfilePage() {
       role: true,
       primaryInstrumentId: true,
       primaryInstrument: true,
-      secondaryInstruments: { include: { instrument: true } },
+      secondaryInstruments: { orderBy: { rank: "asc" }, include: { instrument: true } },
       linkedPerformance: {
         select: {
           id: true,

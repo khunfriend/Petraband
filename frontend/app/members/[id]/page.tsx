@@ -48,6 +48,7 @@ export default async function MemberDetailPage({
         : false,
       primaryInstrument: { select: { id: true, nameThai: true } },
       secondaryInstruments: {
+        orderBy: { rank: "asc" },
         select: { instrument: { select: { id: true, nameThai: true } } },
       },
     },

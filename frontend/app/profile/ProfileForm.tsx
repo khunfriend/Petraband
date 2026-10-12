@@ -213,11 +213,15 @@ export default function ProfileForm({ user, instruments }: Props) {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-ink">
               เครื่องดนตรีที่เล่นเป็น
-              <span className="ml-1 text-xs text-muted-soft font-normal">(เลือกได้มากกว่า 1)</span>
+              <span className="ml-1 text-xs text-muted-soft font-normal">
+                (กดเรียงตามความถนัด — เครื่องหลักคืออันดับ 1)
+              </span>
             </label>
             <div className="flex flex-wrap gap-1.5">
               {secondaryOptions.map((i) => {
                 const selected = secondaryIds.includes(i.id);
+                // Click order = skill order; the main instrument is อันดับ 1.
+                const rank = secondaryIds.indexOf(i.id) + (primaryId ? 2 : 1);
                 return (
                   <button
                     key={i.id}
@@ -229,6 +233,7 @@ export default function ProfileForm({ user, instruments }: Props) {
                         : "bg-canvas border-hairline text-ink hover:border-primary hover:text-primary"
                     }`}
                   >
+                    {selected && <span className="mr-1 font-bold">{rank}.</span>}
                     {i.nameThai}
                   </button>
                 );

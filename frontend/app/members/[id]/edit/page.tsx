@@ -31,7 +31,7 @@ export default async function MemberEditPage({
         generation: true,
         isTemporary: true,
         primaryInstrumentId: true,
-        secondaryInstruments: { select: { instrumentId: true } },
+        secondaryInstruments: { orderBy: { rank: "asc" }, select: { instrumentId: true } },
       },
     }),
     prisma.instrument.findMany({

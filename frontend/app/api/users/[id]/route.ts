@@ -50,7 +50,7 @@ export async function PATCH(
       ...(secondaryInstrumentIds !== undefined && {
         secondaryInstruments: {
           deleteMany: {},
-          create: secondaryInstrumentIds.map((instrumentId) => ({ instrumentId })),
+          create: secondaryInstrumentIds.map((instrumentId, rank) => ({ instrumentId, rank })),
         },
       }),
     },
@@ -64,7 +64,7 @@ export async function PATCH(
       generation: true,
       isTemporary: true,
       primaryInstrumentId: true,
-      secondaryInstruments: { select: { instrumentId: true } },
+      secondaryInstruments: { orderBy: { rank: "asc" }, select: { instrumentId: true } },
     },
   });
 

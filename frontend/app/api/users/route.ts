@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       role: "MEMBER",
       primaryInstrumentId: primaryInstrumentId || null,
       secondaryInstruments: {
-        create: secondaryInstrumentIds.map((instrumentId) => ({ instrumentId })),
+        create: secondaryInstrumentIds.map((instrumentId, rank) => ({ instrumentId, rank })),
       },
     },
     select: { id: true, email: true, nickname: true, role: true, status: true, isTemporary: true },

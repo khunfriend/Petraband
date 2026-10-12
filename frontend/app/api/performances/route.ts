@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { setPerformanceSlug } from "@/lib/performanceSlug";
-import { englishNameError } from "@/lib/slug";
+import { ensureSlug } from "@/lib/performanceSlug";
 import { z } from "zod";
 
 export async function GET() {
@@ -18,8 +17,6 @@ export async function GET() {
 
 const createSchema = z.object({
   name: z.string().min(1),
-  /** English name; becomes the link name (/performances/<slug>). */
-  slug: z.string().max(100),
   description: z.string().optional(),
   location: z.string().optional(),
   dates: z
@@ -48,9 +45,7 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
 
-  const { name, description, location, dates, slug } = parsed.data;
-  const englishError = englishNameError(slug);
-  if (englishError) return NextResponse.json({ error: englishError }, { status: 400 });
+  const { name, description, location, dates } = parsed.data;
 
   // Block dates before Bangkok "today" — performances must be scheduled forward
   const todayStr = new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
@@ -78,10 +73,7 @@ export async function POST(req: NextRequest) {
     include: { dates: { orderBy: { date: "asc" } } },
   });
 
-  // A name another show already uses gets -2, -3 rather than failing the create.
-  const slugResult = await setPerformanceSlug(performance.id, slug, { suffixIfTaken: true });
-  return NextResponse.json(
-    { performance: { ...performance, slug: "slug" in slugResult ? slugResult.slug : null } },
-    { status: 201 },
-  );
+  // Link from the name + first date; a clash gets -2, -3.
+  const slug = await ensureSlug(performance.id);
+  return NextResponse.json({ performance: { ...performance, slug } }, { status: 201 });
 }

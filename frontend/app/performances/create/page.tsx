@@ -10,7 +10,6 @@ import { AlertBox } from "@/components/ui/AlertBox";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DateRowPicker } from "@/components/ui/DateRowPicker";
 import { TimeRangePicker } from "@/components/ui/TimeRangePicker";
-import { cleanCustomSlug, englishNameError } from "@/lib/slug";
 
 type DateEntry = { date: string; startTime: string; endTime: string };
 
@@ -22,7 +21,6 @@ export default function CreatePerformancePage() {
   const [todayStr] = useState(() => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10));
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
-  const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [dates, setDates] = useState<DateEntry[]>([
     { date: "", startTime: "", endTime: "" },
@@ -50,11 +48,6 @@ export default function CreatePerformancePage() {
 
     if (!name.trim()) {
       setError("กรุณากรอกชื่องานแสดง");
-      return;
-    }
-    const englishError = englishNameError(slug);
-    if (englishError) {
-      setError(englishError);
       return;
     }
     if (!location.trim()) {
@@ -94,7 +87,6 @@ export default function CreatePerformancePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          slug: slug.trim(),
           location: location.trim() || undefined,
           description: description.trim() || undefined,
           dates: validDates.map((d) => ({
@@ -150,18 +142,6 @@ export default function CreatePerformancePage() {
             placeholder="เช่น งานไหว้ครูดนตรีไทย 2569"
             required
           />
-        </Field>
-
-        <Field label="ชื่อภาษาอังกฤษ" required>
-          <Input
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="เช่น Wai Khru 2026"
-            required
-          />
-          <p className="mt-1 text-xs text-muted-soft">
-            ใช้เป็นลิงก์ของงาน: /performances/{cleanCustomSlug(slug) || "…"}
-          </p>
         </Field>
 
         <Field label="สถานที่" required>

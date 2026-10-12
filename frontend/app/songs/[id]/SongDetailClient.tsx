@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { NotationGrid, type SheetData } from "@/components/songs/NotationGrid";
 import { Metronome } from "@/components/songs/Metronome";
-import { cleanCustomSlug, englishNameError, englishPrefill } from "@/lib/slug";
 
 type TimeSig = "4/4" | "3/4" | "6/8" | "12/8" | "7/8";
 const TIME_SIGS: TimeSig[] = ["4/4", "3/4", "6/8", "12/8", "7/8"];
@@ -66,7 +65,6 @@ export default function SongDetailClient({ song, isAdmin, categories }: Props) {
     (song.sheetData as SheetData) ?? { rows: [] }
   );
   const [titleInput, setTitleInput] = useState(song.title);
-  const [slugInput, setSlugInput] = useState(englishPrefill(song.slug));
   const [categoryInput, setCategoryInput] = useState(song.category);
   const [newCategory, setNewCategory] = useState("");
   // Always offer the song's own category, even if no other song uses it.
@@ -141,11 +139,6 @@ export default function SongDetailClient({ song, isAdmin, categories }: Props) {
     const validBpm = parsedBpm === null ? null : Math.max(30, Math.min(240, parsedBpm));
     const validSig = sigInput || null;
     setDurationError("");
-    const englishError = englishNameError(slugInput);
-    if (englishError) {
-      toast.error(englishError);
-      return;
-    }
     setSaving(true);
     const res = await fetch(`/api/songs/${song.id}`, {
       method: "PUT",
@@ -158,7 +151,6 @@ export default function SongDetailClient({ song, isAdmin, categories }: Props) {
         defaultBpm: validBpm,
         defaultTimeSig: validSig,
         commitMessage: "แก้ไขข้อมูลเพลง",
-        ...(cleanCustomSlug(slugInput) !== song.slug && { slug: slugInput.trim() }),
       }),
     });
     setSaving(false);
@@ -188,7 +180,6 @@ export default function SongDetailClient({ song, isAdmin, categories }: Props) {
   function handleCancel() {
     setSheetData((song.sheetData as SheetData) ?? { rows: [] });
     setTitleInput(song.title);
-    setSlugInput(englishPrefill(song.slug));
     setCategoryInput(song.category);
     setNewCategory("");
     setDurationInput(secondsToMmSs(song.duration));
@@ -247,20 +238,6 @@ export default function SongDetailClient({ song, isAdmin, categories }: Props) {
               onChange={(e) => setTitleInput(e.target.value)}
               className="flex-1 text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-1.5 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
             />
-          </div>
-          {/* English title — becomes the link /songs/<slug> */}
-          <div className="flex items-start gap-3">
-            <label className="text-xs text-muted w-24 shrink-0 pt-2">ชื่อเพลงภาษาอังกฤษ *</label>
-            <div className="flex-1 min-w-0">
-              <input
-                type="text"
-                value={slugInput}
-                onChange={(e) => setSlugInput(e.target.value)}
-                placeholder="เช่น Lao Duang Duen"
-                className="w-full text-sm border border-hairline rounded-[var(--radius-sm)] px-3 py-1.5 bg-surface-card text-ink outline-none focus:ring-1 focus:ring-coral/50"
-              />
-              <p className="mt-1 text-xs text-muted-soft">ลิงก์: /songs/{cleanCustomSlug(slugInput) || "…"}</p>
-            </div>
           </div>
           {/* Category */}
           <div className="flex items-center gap-3">

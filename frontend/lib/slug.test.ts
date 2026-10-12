@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoSlug, cleanCustomSlug, dateSuffix, englishNameError, looksLikeId, slugify } from "./slug";
+import { autoSlug, dateSuffix, looksLikeId, slugify, slugMatchesBase } from "./slug";
 
 describe("slugify", () => {
   it("lower-cases and dashes English", () => {
@@ -28,15 +28,12 @@ describe("helpers", () => {
   it("dateSuffix handles missing dates", () => {
     expect(dateSuffix(null)).toBe("");
   });
-  it("cleanCustomSlug tidies typed values", () => {
-    expect(cleanCustomSlug("CBS night 2025")).toBe("cbs-night-2025");
-  });
-  it("cleanCustomSlug only takes English", () => {
-    expect(cleanCustomSlug("ลาวดวงเดือน")).toBe("");
-    expect(cleanCustomSlug("CBS ไนท์")).toBe("");
-    expect(englishNameError("")).toBe("กรอกชื่อภาษาอังกฤษ");
-    expect(englishNameError("ลาว")).not.toBeNull();
-    expect(englishNameError("Lao Duang Duen")).toBeNull();
+  it("slugMatchesBase accepts the base and its -N variants", () => {
+    expect(slugMatchesBase("ลาวดวงเดือน", "ลาวดวงเดือน")).toBe(true);
+    expect(slugMatchesBase("ลาวดวงเดือน-2", "ลาวดวงเดือน")).toBe(true);
+    expect(slugMatchesBase("ลาวดวงเดือน-ใหม่", "ลาวดวงเดือน")).toBe(false);
+    expect(slugMatchesBase("lao-duang-duen", "ลาวดวงเดือน")).toBe(false);
+    expect(slugMatchesBase(null, "x")).toBe(false);
   });
   it("looksLikeId tells cuids from slugs", () => {
     expect(looksLikeId("cmv0u7jvk000v1h767lhvsspd")).toBe(true);

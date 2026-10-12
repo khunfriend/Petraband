@@ -1,5 +1,6 @@
-// Readable URL names, e.g. "CBS Night" on 12 Nov 2026 → "cbs-night-2569-11-12".
-// Thai letters are kept as they are; browsers show them, some apps encode them.
+// Readable URL names made from the Thai name, e.g. "ลาวดวงเดือน" or
+// "CBS Night" on 12 Nov 2026 → "cbs-night-2569-11-12". Thai letters are kept;
+// LINE and browsers show them as they are.
 
 const MAX = 80;
 
@@ -28,23 +29,11 @@ export function autoSlug(name: string, firstDate?: Date | null): string {
   return suffix ? `${base}-${suffix}` : base;
 }
 
-/** The English name typed into the form → its link name; "" if it holds Thai or nothing usable. */
-export function cleanCustomSlug(input: string): string {
-  if (/[฀-๿]/.test(input)) return "";
-  return slugify(input);
-}
-
-/** What to prefill the English-name box with: the slug if it is already English, else "". */
-export function englishPrefill(slug: string | null | undefined): string {
-  return slug && cleanCustomSlug(slug) === slug ? slug : "";
-}
-
-/** Why an English name can't be used, or null when it can. */
-export function englishNameError(input: string): string | null {
-  if (!input.trim()) return "กรอกชื่อภาษาอังกฤษ";
-  if (!cleanCustomSlug(input)) return "ชื่อภาษาอังกฤษใช้ได้เฉพาะตัวอักษร a–z ตัวเลข และช่องว่าง";
-  if (looksLikeId(cleanCustomSlug(input))) return "ชื่อภาษาอังกฤษนี้ใช้ไม่ได้";
-  return null;
+/** True when `slug` is `base` or a clash variant of it (`base-2`, `base-3`…). */
+export function slugMatchesBase(slug: string | null | undefined, base: string): boolean {
+  if (!slug) return false;
+  if (slug === base) return true;
+  return slug.startsWith(`${base}-`) && /^\d+$/.test(slug.slice(base.length + 1));
 }
 
 /** cuid ids look like this; slugs never do (they always contain a dash or Thai). */

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { autoSlug, cleanCustomSlug, englishNameError, looksLikeId } from "@/lib/slug";
+import { autoSlug, looksLikeId, slugMatchesBase } from "@/lib/slug";
 
 /** `base`, or `base-2`, `base-3`… — whichever no other performance uses (now or before). */
 export async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
@@ -49,43 +49,20 @@ export async function resolvePerformanceParam(raw: string): Promise<{ id: string
 }
 
 /**
- * Set the link name from the required English name. `suffixIfTaken` (used on
- * create) adds -2, -3 instead of refusing a taken name. The old slug is kept so
- * links already shared still open the page.
+ * Keep the link in step with the name: after a rename the slug becomes the
+ * new name + first date (old one kept in previousSlugs so shared links still
+ * open). Leaves it alone when it already matches.
  */
-export async function setPerformanceSlug(
-  id: string,
-  input: string,
-  opts: { suffixIfTaken?: boolean } = {},
-): Promise<{ slug: string } | { error: string }> {
+export async function syncSlug(id: string): Promise<string | null> {
   const p = await prisma.performance.findUnique({
     where: { id },
     select: { slug: true, name: true, previousSlugs: true, dates: { orderBy: { date: "asc" }, take: 1, select: { date: true } } },
   });
-  if (!p) return { error: "ไม่พบงานแสดง" };
-
-  const invalid = englishNameError(input);
-  if (invalid) return { error: invalid };
-  const custom = cleanCustomSlug(input);
-
-  let slug: string;
-  if (opts.suffixIfTaken) {
-    slug = await uniqueSlug(custom, id);
-  } else {
-    const taken = await prisma.performance.findFirst({
-      where: { OR: [{ slug: custom }, { previousSlugs: { has: custom } }], NOT: { id } },
-      select: { id: true },
-    });
-    if (taken) return { error: "ชื่อภาษาอังกฤษนี้มีงานอื่นใช้แล้ว" };
-    slug = custom;
-  }
-
-  if (slug !== p.slug) {
-    const previous = p.slug && !p.previousSlugs.includes(p.slug) ? [...p.previousSlugs, p.slug] : p.previousSlugs;
-    await prisma.performance.update({
-      where: { id },
-      data: { slug, previousSlugs: previous.filter((s) => s !== slug) },
-    });
-  }
-  return { slug };
+  if (!p) return null;
+  const base = autoSlug(p.name, p.dates[0]?.date);
+  if (slugMatchesBase(p.slug, base)) return p.slug;
+  const slug = await uniqueSlug(base, id);
+  const previous = p.slug && !p.previousSlugs.includes(p.slug) ? [...p.previousSlugs, p.slug] : p.previousSlugs;
+  await prisma.performance.update({ where: { id }, data: { slug, previousSlugs: previous.filter((s) => s !== slug) } });
+  return slug;
 }

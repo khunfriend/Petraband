@@ -22,7 +22,7 @@ export type MemberStats = {
   instruments: string[];
 };
 
-const ROLE_LABEL = { ADMIN: "แอดมิน", HEAD: "หัวหน้าวง", MEMBER: "สมาชิก" } as const;
+const ROLE_LABEL = { ADMIN: "Admin", HEAD: "Head", MEMBER: "Member" } as const;
 const ROLE_TONE = {
   ADMIN: "bg-primary text-on-primary",
   HEAD: "bg-amber-100 text-amber-800",
@@ -110,7 +110,7 @@ export default function DashboardClient({ members, rollCallDays }: { members: Me
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="สมาชิกทั้งหมด" value={members.length} unit="คน" />
-        <Stat label="แอดมิน / หัวหน้าวง" value={`${byRole("ADMIN")} / ${byRole("HEAD")}`} unit="คน" />
+        <Stat label="Admin / Head" value={`${byRole("ADMIN")} / ${byRole("HEAD")}`} unit="คน" />
         <Stat label="วันที่เช็คชื่อแล้ว" value={rollCallDays} unit="วัน" />
         <Stat label="ตรงเวลาทั้งวง" value={pct(punctual(totals))} sub={`มาซ้อม ${pct(presence(totals))}`} />
       </div>
@@ -142,7 +142,7 @@ export default function DashboardClient({ members, rollCallDays }: { members: Me
           <thead>
             <tr className="bg-primary text-on-primary text-left">
               {header("nickname", "สมาชิก")}
-              {header("role", "บทบาท")}
+              {header("role", "ยศ")}
               {header("shows", "งานที่ร่วม", "text-right")}
               {header("presence", "มาซ้อม", "text-right")}
               {header("punctual", "ตรงเวลา", "text-right")}

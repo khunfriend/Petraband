@@ -176,7 +176,7 @@ export default async function HomePage() {
       })),
   ];
   const roleLabel =
-    session.user.role === "ADMIN" ? "แอดมิน" : session.user.role === "HEAD" ? "หัวหน้าวง" : "สมาชิกวง";
+    session.user.role === "ADMIN" ? "Admin" : session.user.role === "HEAD" ? "Head" : "Member";
 
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-10 flex flex-col gap-8">

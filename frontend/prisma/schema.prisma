@@ -33,6 +33,7 @@ enum AttendanceStatus {
   PRESENT
   ABSENT
   EXCUSED
+  LATE
 }
 
 enum PollStatus {
@@ -71,6 +72,7 @@ model User {
   rsvps                     Rsvp[]
   songAssignments           SongAssignment[]
   rehearsalAttendances      RehearsalAttendance[]
+  practiceAttendances       PracticeAttendance[]
   auditLogs                 AuditLog[]
   stageLayoutVersions       StageLayoutVersion[]
   songVersions              SongVersion[]
@@ -503,9 +505,26 @@ model PracticeDay {
   dayOrder   Int      @default(0)
   // "หมายเหตุ" for the whole day, e.g. "ควรฟังเพลงมาก่อน".
   note       String   @default("")
+  // Roll call is only taken on some days: set when someone presses "เช็คชื่อวันนี้".
+  attendanceOpenedAt DateTime?
 
-  schedule PracticeSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  slots    PracticeSlot[]
+  schedule    PracticeSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  slots       PracticeSlot[]
+  attendances PracticeAttendance[]
+}
+
+// One member's roll-call mark for one practice day.
+model PracticeAttendance {
+  id        String           @id @default(cuid())
+  dayId     String
+  userId    String
+  status    AttendanceStatus
+  updatedAt DateTime         @updatedAt
+
+  day  PracticeDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dayId, userId])
 }
 
 model PracticeSlot {

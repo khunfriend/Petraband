@@ -7,6 +7,7 @@ import ManagePracticeClient from "./ManagePracticeClient";
 import { bangkokTodayStr } from "@/lib/today";
 import { availabilityFromPolls, type PollAnswers } from "@/lib/practiceAvailability";
 import type { SheetAnswer, SheetRow } from "@/components/practice/AvailabilitySheet";
+import { AttendancePanel, type AttendanceDay } from "@/components/practice/AttendancePanel";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -99,6 +100,28 @@ export default async function PracticeListPage({ params }: Params) {
     manualBySlot.get(m.slotId)!.set(m.userId, m.isAvailable);
   }
 
+  // ── เช็คชื่อ: marks per day, for the days roll call was taken ──
+  const marks = await prisma.practiceAttendance.groupBy({
+    by: ["dayId", "status"],
+    where: { dayId: { in: schedules.flatMap((s) => s.days.map((d) => d.id)) } },
+    _count: { _all: true },
+  });
+  const attendanceDays: AttendanceDay[] = schedules
+    .flatMap((s) =>
+      s.days.map((d) => {
+        const counts = { PRESENT: 0, LATE: 0, EXCUSED: 0, ABSENT: 0 };
+        for (const m of marks) if (m.dayId === d.id) counts[m.status] = m._count._all;
+        return {
+          id: d.id,
+          date: d.date.toISOString().slice(0, 10),
+          scheduleTitle: s.title,
+          opened: !!d.attendanceOpenedAt,
+          counts,
+        };
+      }),
+    )
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   function sheetFor(s: (typeof schedules)[number]) {
     // The poll this schedule was made from speaks first, then the newest.
     const ordered = [
@@ -151,6 +174,14 @@ export default async function PracticeListPage({ params }: Params) {
           </Link>
         )}
       </div>
+
+      <AttendancePanel
+        performanceId={id}
+        days={attendanceDays}
+        today={bangkokTodayStr()}
+        lineupSize={members.length}
+        canEdit={canEditNow}
+      />
 
       <ManagePracticeClient
         members={members}

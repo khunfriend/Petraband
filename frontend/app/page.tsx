@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { bangkokTodayStr } from "@/lib/today";
 import DashboardCalendar from "./dashboard/DashboardCalendar";
 import { MyWork } from "./MyWork";
+import { RollCallReminder } from "./RollCallReminder";
 import type { CalendarPerformanceDate, CalendarPracticeDay } from "./dashboard/types";
 
 const NAV_ADMIN = new Set(["/equipment", "/admin/dashboard", "/admin/pending-users"]);
@@ -222,6 +223,8 @@ export default async function HomePage() {
 
       {/* My shows and their open polls: right under the banner in the app, so
           a poll waiting for an answer is the first thing seen. */}
+      {isAdmin && <RollCallReminder />}
+
       <MyWork userId={session.user.id} />
 
       <div className="hidden standalone:block">
